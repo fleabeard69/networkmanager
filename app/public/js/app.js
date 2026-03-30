@@ -230,6 +230,15 @@ function initPanelEditor() {
         el.appendChild(typeEl);
         el.appendChild(deviceEl);
 
+        const isPoe = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        if (isPoe) {
+            const poeEl = document.createElement('span');
+            poeEl.className = 'port-poe-badge';
+            poeEl.textContent = '⚡';
+            poeEl.title = 'PoE Enabled';
+            el.appendChild(poeEl);
+        }
+
         el.addEventListener('click', () => openEditModal(port));
 
         el.addEventListener('dragstart', e => {
@@ -731,6 +740,15 @@ function initGlobalPanelEditor() {
         el.appendChild(numEl);
         el.appendChild(typeEl);
         el.appendChild(labelEl);
+
+        const isPoe = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        if (isPoe) {
+            const poeEl = document.createElement('span');
+            poeEl.className = 'port-poe-badge';
+            poeEl.textContent = '⚡';
+            poeEl.title = 'PoE Enabled';
+            el.appendChild(poeEl);
+        }
 
         el.addEventListener('click', () => openEditModal(port));
 
