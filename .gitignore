@@ -1,0 +1,5 @@
+.env
+db/data/
+swag/
+!swag/nginx/
+!swag/nginx/proxy-confs/

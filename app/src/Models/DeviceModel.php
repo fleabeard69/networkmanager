@@ -1,0 +1,201 @@
+<?php
+declare(strict_types=1);
+
+class DeviceModel
+{
+    public function __construct(private Database $db) {}
+
+    public function all(): array
+    {
+        return $this->db->fetchAll(
+            "SELECT
+                d.*,
+                sp.id                         AS port_id,
+                sp.port_number                AS switch_port_number,
+                sp.label                      AS switch_port_label,
+                (
+                    SELECT ip_address::text
+                    FROM ip_assignments
+                    WHERE device_id = d.id AND is_primary = TRUE
+                    LIMIT 1
+                ) AS primary_ip
+             FROM devices d
+             LEFT JOIN switch_ports sp ON sp.device_id = d.id
+             ORDER BY d.hostname"
+        );
+    }
+
+    public function find(int $id): array|false
+    {
+        return $this->db->fetchOne(
+            'SELECT d.*,
+                    sp.id          AS port_id,
+                    sp.port_number AS switch_port_number,
+                    sp.label       AS switch_port_label
+             FROM devices d
+             LEFT JOIN switch_ports sp ON sp.device_id = d.id
+             WHERE d.id = :id',
+            [':id' => $id]
+        );
+    }
+
+    public function ips(int $deviceId): array
+    {
+        return $this->db->fetchAll(
+            'SELECT *,
+                    ip_address::text AS ip_str,
+                    subnet::text     AS subnet_str,
+                    gateway::text    AS gateway_str
+             FROM ip_assignments
+             WHERE device_id = :id
+             ORDER BY is_primary DESC, id ASC',
+            [':id' => $deviceId]
+        );
+    }
+
+    public function services(int $deviceId): array
+    {
+        return $this->db->fetchAll(
+            'SELECT * FROM service_ports
+             WHERE device_id = :id
+             ORDER BY port_number ASC',
+            [':id' => $deviceId]
+        );
+    }
+
+    /**
+     * @throws PDOException on constraint violations
+     */
+    public function create(array $data): int
+    {
+        $this->db->execute(
+            'INSERT INTO devices (hostname, mac_address, device_type, notes)
+             VALUES (:host, :mac, :type, :notes)',
+            [
+                ':host'  => $data['hostname'],
+                ':mac'   => $data['mac_address'],
+                ':type'  => $data['device_type'],
+                ':notes' => $data['notes'],
+            ]
+        );
+        return (int) $this->db->lastInsertId();
+    }
+
+    public function update(int $id, array $data): void
+    {
+        $this->db->execute(
+            'UPDATE devices SET
+             hostname    = :host,
+             mac_address = :mac,
+             device_type = :type,
+             notes       = :notes,
+             updated_at  = NOW()
+             WHERE id = :id',
+            [
+                ':host'  => $data['hostname'],
+                ':mac'   => $data['mac_address'],
+                ':type'  => $data['device_type'],
+                ':notes' => $data['notes'],
+                ':id'    => $id,
+            ]
+        );
+    }
+
+    public function delete(int $id): void
+    {
+        $this->db->execute('DELETE FROM devices WHERE id = :id', [':id' => $id]);
+    }
+
+    // ── IP Assignments ────────────────────────────────────────────────────
+
+    /**
+     * @throws PDOException if IP format invalid or primary constraint violated
+     */
+    public function addIp(int $deviceId, array $data): void
+    {
+        $this->db->execute(
+            'INSERT INTO ip_assignments
+             (device_id, ip_address, subnet, gateway, interface, is_primary, notes)
+             VALUES (:dev, :ip, :subnet, :gw, :iface, :primary, :notes)',
+            [
+                ':dev'     => $deviceId,
+                ':ip'      => $data['ip_address'],
+                ':subnet'  => $data['subnet'],
+                ':gw'      => $data['gateway'],
+                ':iface'   => $data['interface'],
+                ':primary' => $data['is_primary'] ? 'true' : 'false',
+                ':notes'   => $data['notes'],
+            ]
+        );
+    }
+
+    /**
+     * Deletes an IP assignment and returns the owning device_id, or 0 if not found.
+     */
+    public function deleteIp(int $ipId): int
+    {
+        $row = $this->db->fetchOne(
+            'SELECT device_id FROM ip_assignments WHERE id = :id',
+            [':id' => $ipId]
+        );
+        if (!$row) {
+            return 0;
+        }
+        $this->db->execute('DELETE FROM ip_assignments WHERE id = :id', [':id' => $ipId]);
+        return (int) $row['device_id'];
+    }
+
+    // ── Service Ports ─────────────────────────────────────────────────────
+
+    /**
+     * Upserts a service port (updates if same device+protocol+port_number exists).
+     * @throws PDOException
+     */
+    public function addService(int $deviceId, array $data): void
+    {
+        $this->db->execute(
+            'INSERT INTO service_ports (device_id, protocol, port_number, service, description, is_external)
+             VALUES (:dev, :proto, :port, :svc, :desc, :ext)
+             ON CONFLICT (device_id, protocol, port_number) DO UPDATE SET
+                 service     = EXCLUDED.service,
+                 description = EXCLUDED.description,
+                 is_external = EXCLUDED.is_external',
+            [
+                ':dev'   => $deviceId,
+                ':proto' => $data['protocol'],
+                ':port'  => $data['port_number'],
+                ':svc'   => $data['service'],
+                ':desc'  => $data['description'],
+                ':ext'   => $data['is_external'] ? 'true' : 'false',
+            ]
+        );
+    }
+
+    /**
+     * Deletes a service port and returns the owning device_id, or 0 if not found.
+     */
+    public function deleteService(int $serviceId): int
+    {
+        $row = $this->db->fetchOne(
+            'SELECT device_id FROM service_ports WHERE id = :id',
+            [':id' => $serviceId]
+        );
+        if (!$row) {
+            return 0;
+        }
+        $this->db->execute('DELETE FROM service_ports WHERE id = :id', [':id' => $serviceId]);
+        return (int) $row['device_id'];
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────────
+
+    public function count(): int
+    {
+        return (int) ($this->db->fetchOne('SELECT COUNT(*) AS c FROM devices')['c'] ?? 0);
+    }
+
+    public function ipCount(): int
+    {
+        return (int) ($this->db->fetchOne('SELECT COUNT(*) AS c FROM ip_assignments')['c'] ?? 0);
+    }
+}

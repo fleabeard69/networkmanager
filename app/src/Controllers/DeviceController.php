@@ -1,0 +1,297 @@
+<?php
+declare(strict_types=1);
+
+class DeviceController
+{
+    public function __construct(
+        private DeviceModel $deviceModel,
+        private PortModel $portModel
+    ) {}
+
+    public function index(): void
+    {
+        $devices = $this->deviceModel->all();
+        render('devices', ['navActive' => 'devices', 'devices' => $devices]);
+    }
+
+    public function create(): void
+    {
+        render('device_form', [
+            'navActive' => 'devices',
+            'device'    => null,
+        ]);
+    }
+
+    public function store(): void
+    {
+        $this->verifyCsrf();
+
+        $data = $this->validateDeviceData($_POST);
+        if (is_string($data)) {
+            Session::flash('error', $data);
+            header('Location: /devices/new');
+            exit;
+        }
+
+        try {
+            $id = $this->deviceModel->create($data);
+            Session::flash('success', 'Device added successfully.');
+            header("Location: /devices/{$id}");
+        } catch (PDOException) {
+            Session::flash('error', 'A database error occurred. Please try again.');
+            header('Location: /devices/new');
+        }
+        exit;
+    }
+
+    public function show(int $id): void
+    {
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        $ips      = $this->deviceModel->ips($id);
+        $services = $this->deviceModel->services($id);
+
+        render('device_detail', [
+            'navActive' => 'devices',
+            'device'    => $device,
+            'ips'       => $ips,
+            'services'  => $services,
+        ]);
+    }
+
+    public function edit(int $id): void
+    {
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        render('device_form', [
+            'navActive' => 'devices',
+            'device'    => $device,
+        ]);
+    }
+
+    public function update(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        $data = $this->validateDeviceData($_POST);
+        if (is_string($data)) {
+            Session::flash('error', $data);
+            header("Location: /devices/{$id}/edit");
+            exit;
+        }
+
+        try {
+            $this->deviceModel->update($id, $data);
+            Session::flash('success', 'Device updated.');
+            header("Location: /devices/{$id}");
+        } catch (PDOException) {
+            Session::flash('error', 'A database error occurred. Please try again.');
+            header("Location: /devices/{$id}/edit");
+        }
+        exit;
+    }
+
+    public function delete(int $id): void
+    {
+        $this->verifyCsrf();
+        $this->deviceModel->delete($id);
+        Session::flash('success', 'Device removed.');
+        header('Location: /devices');
+        exit;
+    }
+
+    // ── IP Assignments ────────────────────────────────────────────────────
+
+    public function addIp(int $deviceId): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($deviceId);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        $data = $this->validateIpData($_POST);
+        if (is_string($data)) {
+            Session::flash('error', $data);
+            header("Location: /devices/{$deviceId}#ips");
+            exit;
+        }
+
+        try {
+            $this->deviceModel->addIp($deviceId, $data);
+            Session::flash('success', 'IP address added.');
+        } catch (PDOException $e) {
+            $msg = str_contains(strtolower($e->getMessage()), 'unique')
+                ? 'This device already has a primary IP. Remove it first.'
+                : 'Invalid IP address or subnet format.';
+            Session::flash('error', $msg);
+        }
+
+        header("Location: /devices/{$deviceId}#ips");
+        exit;
+    }
+
+    public function deleteIp(int $ipId): void
+    {
+        $this->verifyCsrf();
+        $deviceId = $this->deviceModel->deleteIp($ipId);
+        Session::flash('success', 'IP address removed.');
+        header("Location: /devices/{$deviceId}#ips");
+        exit;
+    }
+
+    // ── Service Ports ─────────────────────────────────────────────────────
+
+    public function addService(int $deviceId): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($deviceId);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        $data = $this->validateServiceData($_POST);
+        if (is_string($data)) {
+            Session::flash('error', $data);
+            header("Location: /devices/{$deviceId}#services");
+            exit;
+        }
+
+        try {
+            $this->deviceModel->addService($deviceId, $data);
+            Session::flash('success', 'Service port saved.');
+        } catch (PDOException) {
+            Session::flash('error', 'A database error occurred. Please try again.');
+        }
+
+        header("Location: /devices/{$deviceId}#services");
+        exit;
+    }
+
+    public function deleteService(int $serviceId): void
+    {
+        $this->verifyCsrf();
+        $deviceId = $this->deviceModel->deleteService($serviceId);
+        Session::flash('success', 'Service port removed.');
+        header("Location: /devices/{$deviceId}#services");
+        exit;
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    /** @return array|string Validated data array, or an error string. */
+    private function validateDeviceData(array $post): array|string
+    {
+        $hostname = trim($post['hostname'] ?? '');
+        if ($hostname === '') {
+            return 'Hostname is required.';
+        }
+        if (strlen($hostname) > 128) {
+            return 'Hostname must be 128 characters or fewer.';
+        }
+
+        $mac = strtoupper(trim($post['mac_address'] ?? ''));
+        if ($mac !== '' && !preg_match('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+            return 'Invalid MAC address format. Expected: AA:BB:CC:DD:EE:FF';
+        }
+
+        $validTypes = [
+            'server', 'workstation', 'laptop', 'router', 'switch',
+            'access-point', 'nas', 'iot', 'printer', 'camera',
+            'phone', 'tv', 'game-console', 'other', 'unknown',
+        ];
+        $deviceType = $post['device_type'] ?? 'unknown';
+        if (!in_array($deviceType, $validTypes, true)) {
+            $deviceType = 'unknown';
+        }
+
+        return [
+            'hostname'    => $hostname,
+            'mac_address' => $mac !== '' ? $mac : null,
+            'device_type' => $deviceType,
+            'notes'       => trim($post['notes'] ?? ''),
+        ];
+    }
+
+    /** @return array|string Validated data array, or an error string. */
+    private function validateIpData(array $post): array|string
+    {
+        $ip = trim($post['ip_address'] ?? '');
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return 'Invalid IP address format.';
+        }
+
+        $subnet = trim($post['subnet'] ?? '');
+        if ($subnet !== '' && !preg_match('/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/', $subnet)) {
+            return 'Invalid subnet format. Expected: 192.168.1.0/24';
+        }
+
+        $gateway = trim($post['gateway'] ?? '');
+        if ($gateway !== '' && !filter_var($gateway, FILTER_VALIDATE_IP)) {
+            return 'Invalid gateway IP address format.';
+        }
+
+        return [
+            'ip_address' => $ip,
+            'subnet'     => $subnet !== '' ? $subnet : null,
+            'gateway'    => $gateway !== '' ? $gateway : null,
+            'interface'  => substr(trim($post['interface'] ?? ''), 0, 32),
+            'is_primary' => !empty($post['is_primary']),
+            'notes'      => trim($post['notes'] ?? ''),
+        ];
+    }
+
+    /** @return array|string Validated data array, or an error string. */
+    private function validateServiceData(array $post): array|string
+    {
+        $validProtocols = ['tcp', 'udp', 'both'];
+        $protocol       = $post['protocol'] ?? 'tcp';
+        if (!in_array($protocol, $validProtocols, true)) {
+            return 'Invalid protocol. Choose tcp, udp, or both.';
+        }
+
+        $portNum = filter_var(
+            $post['port_number'] ?? '',
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 65535]]
+        );
+        if ($portNum === false) {
+            return 'Port number must be between 1 and 65535.';
+        }
+
+        return [
+            'protocol'    => $protocol,
+            'port_number' => $portNum,
+            'service'     => substr(trim($post['service'] ?? ''), 0, 64),
+            'description' => trim($post['description'] ?? ''),
+            'is_external' => !empty($post['is_external']),
+        ];
+    }
+
+    private function verifyCsrf(): void
+    {
+        if (!Csrf::verify($_POST['_csrf'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid CSRF token.');
+        }
+    }
+
+    private function notFound(string $message): never
+    {
+        http_response_code(404);
+        exit(htmlspecialchars($message, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+}
