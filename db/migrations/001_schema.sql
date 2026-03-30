@@ -92,3 +92,22 @@ CREATE UNIQUE INDEX idx_one_primary_ip ON ip_assignments(device_id) WHERE is_pri
 -- Prevent duplicate connections regardless of which port is A or B
 CREATE UNIQUE INDEX idx_port_connections_pair
     ON port_connections (LEAST(port_a, port_b), GREATEST(port_a, port_b));
+
+-- Enforce that each port can only be in one connection (one cable per port)
+CREATE OR REPLACE FUNCTION fn_check_port_single_connection()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM port_connections
+        WHERE port_a = NEW.port_a OR port_b = NEW.port_a
+           OR port_a = NEW.port_b OR port_b = NEW.port_b
+    ) THEN
+        RAISE EXCEPTION 'port_already_connected';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_port_single_connection
+    BEFORE INSERT ON port_connections
+    FOR EACH ROW EXECUTE FUNCTION fn_check_port_single_connection();

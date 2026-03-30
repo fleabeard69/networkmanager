@@ -1042,10 +1042,11 @@ function initDashboardConnections() {
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-    let connections    = [];
-    let connectMode    = false;
-    let selectedPortId = null;
-    let selectedColor  = '#388bfd';
+    let connections     = [];
+    let occupiedPortIds = new Set();
+    let connectMode     = false;
+    let selectedPortId  = null;
+    let selectedColor   = '#388bfd';
 
     // ── Color swatch setup ────────────────────────────────────────────────
     colorPicker?.querySelectorAll('.color-swatch').forEach(swatch => {
@@ -1142,6 +1143,8 @@ function initDashboardConnections() {
             });
             if (res.ok) {
                 connections = connections.filter(c => c.id !== conn.id);
+                occupiedPortIds.delete(Number(conn.port_a));
+                occupiedPortIds.delete(Number(conn.port_b));
                 drawConnections();
             }
         } catch (err) {
@@ -1156,9 +1159,14 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
         colorPicker?.classList.remove('hidden');
-        container.querySelectorAll('.port-card[data-port-id]').forEach(c =>
-            c.classList.add('connectable')
-        );
+        container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
+            const pid = parseInt(card.dataset.portId, 10);
+            if (occupiedPortIds.has(pid)) {
+                card.classList.add('conn-occupied');
+            } else {
+                card.classList.add('connectable');
+            }
+        });
     }
 
     function exitConnectMode() {
@@ -1168,7 +1176,7 @@ function initDashboardConnections() {
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
         colorPicker?.classList.add('hidden');
         container.querySelectorAll('.port-card').forEach(c =>
-            c.classList.remove('connectable', 'conn-selected')
+            c.classList.remove('connectable', 'conn-selected', 'conn-occupied')
         );
     }
 
@@ -1185,6 +1193,9 @@ function initDashboardConnections() {
         e.preventDefault();
 
         const portId = parseInt(card.dataset.portId, 10);
+
+        // Silently ignore already-connected ports
+        if (occupiedPortIds.has(portId)) return;
 
         if (selectedPortId === null) {
             selectedPortId = portId;
@@ -1211,6 +1222,8 @@ function initDashboardConnections() {
                     alert(data.error || 'Failed to create connection.');
                 } else {
                     connections.push(data);
+                    occupiedPortIds.add(portA);
+                    occupiedPortIds.add(portB);
                     drawConnections();
                 }
             } catch (err) {
@@ -1227,7 +1240,11 @@ function initDashboardConnections() {
 
     fetch('/api/connections')
         .then(r => r.json())
-        .then(data => { connections = data; drawConnections(); })
+        .then(data => {
+            connections     = data.connections     ?? data;
+            occupiedPortIds = new Set((data.occupied_port_ids ?? []).map(Number));
+            drawConnections();
+        })
         .catch(err => console.error('Failed to load connections:', err));
 }
 

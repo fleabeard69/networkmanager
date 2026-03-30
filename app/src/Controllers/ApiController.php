@@ -121,7 +121,10 @@ class ApiController
     // ── GET /api/connections ──────────────────────────────────────────────
     public function listConnections(): void
     {
-        $this->json($this->connectionModel->all());
+        $this->json([
+            'connections'      => $this->connectionModel->all(),
+            'occupied_port_ids' => $this->connectionModel->occupiedPortIds(),
+        ]);
     }
 
     // ── POST /api/connections ─────────────────────────────────────────────
@@ -150,6 +153,8 @@ class ApiController
         try {
             $id = $this->connectionModel->create($portA, $portB, $color);
             $this->json($this->connectionModel->find($id), 201);
+        } catch (RuntimeException $e) {
+            $this->json(['error' => $e->getMessage()], 409);
         } catch (PDOException $e) {
             $msg = str_contains(strtolower($e->getMessage()), 'unique')
                 ? 'These ports are already connected.'

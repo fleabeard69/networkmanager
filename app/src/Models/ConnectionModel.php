@@ -33,9 +33,37 @@ class ConnectionModel
         );
     }
 
-    /** @throws PDOException on duplicate connection */
+    /**
+     * Returns the set of port IDs that already have a connection.
+     * Used by the API and JS to pre-flag occupied ports.
+     */
+    public function occupiedPortIds(): array
+    {
+        $rows = $this->db->fetchAll(
+            'SELECT port_a AS id FROM port_connections
+             UNION
+             SELECT port_b AS id FROM port_connections'
+        );
+        return array_column($rows, 'id');
+    }
+
+    /**
+     * @throws RuntimeException if either port is already connected
+     * @throws PDOException on duplicate connection (race condition fallback)
+     */
     public function create(int $portA, int $portB, string $color = '#388bfd'): int
     {
+        // Application-level check for a friendly error message
+        $row = $this->db->fetchOne(
+            'SELECT id FROM port_connections
+             WHERE port_a = :a OR port_b = :a OR port_a = :b OR port_b = :b
+             LIMIT 1',
+            [':a' => $portA, ':b' => $portB]
+        );
+        if ($row) {
+            throw new RuntimeException('One of those ports is already connected.');
+        }
+
         $this->db->execute(
             'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :color)',
             [':a' => $portA, ':b' => $portB, ':color' => $color]

@@ -998,6 +998,11 @@ select.field-input { cursor: pointer; }
     background: var(--yellow-bg) !important;
 }
 
+.port-card.conn-occupied {
+    opacity: 0.35;
+    cursor: not-allowed !important;
+}
+
 /* Device panel sections in global panel editor */
 #panel-editor-container {
     display: flex;
