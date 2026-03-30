@@ -14,14 +14,9 @@ require APP_ROOT . '/src/Controllers/AuthController.php';
 require APP_ROOT . '/src/Controllers/DashboardController.php';
 require APP_ROOT . '/src/Controllers/PortController.php';
 require APP_ROOT . '/src/Controllers/DeviceController.php';
+require APP_ROOT . '/src/Controllers/ApiController.php';
 
 // ── View renderer ─────────────────────────────────────────────────────────────
-/**
- * Renders a template wrapped in the layout.
- *
- * The template may set $title via a plain assignment; that variable will be
- * available to layout.php after the template executes (same function scope).
- */
 function render(string $template, array $data = []): void
 {
     extract($data, EXTR_SKIP);
@@ -31,9 +26,6 @@ function render(string $template, array $data = []): void
     require APP_ROOT . '/templates/layout.php';
 }
 
-/**
- * Escape a value for safe HTML output.
- */
 function h(mixed $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -67,6 +59,13 @@ if ($path === '/logout') {
 
 // ── Auth gate ─────────────────────────────────────────────────────────────────
 if (!$auth->check()) {
+    // API requests get JSON 401 instead of a redirect
+    if (str_starts_with($path, '/api/')) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Unauthenticated']);
+        exit;
+    }
     header('Location: /login');
     exit;
 }
@@ -77,12 +76,44 @@ $deviceModel = new DeviceModel($db);
 
 // ── Router ────────────────────────────────────────────────────────────────────
 switch (true) {
-    // Dashboard
+
+    // ── Dashboard ─────────────────────────────────────────────────────────────
     case $path === '/':
         (new DashboardController($portModel, $deviceModel))->index();
         break;
 
+    // ── JSON API (must be before HTML routes to avoid regex conflicts) ────────
+    case $path === '/api/ports' && $method === 'GET':
+        (new ApiController($portModel, $deviceModel))->listPorts();
+        break;
+
+    case $path === '/api/devices' && $method === 'GET':
+        (new ApiController($portModel, $deviceModel))->listDevices();
+        break;
+
+    case $path === '/api/ports' && $method === 'POST':
+        (new ApiController($portModel, $deviceModel))->createPort();
+        break;
+
+    // /position must be matched before the bare /{id} pattern
+    case preg_match('#^/api/ports/(\d+)/position$#', $path, $m) && $method === 'PATCH':
+        (new ApiController($portModel, $deviceModel))->movePort((int) $m[1]);
+        break;
+
+    case preg_match('#^/api/ports/(\d+)$#', $path, $m) && $method === 'PATCH':
+        (new ApiController($portModel, $deviceModel))->updatePort((int) $m[1]);
+        break;
+
+    case preg_match('#^/api/ports/(\d+)$#', $path, $m) && $method === 'DELETE':
+        (new ApiController($portModel, $deviceModel))->deletePort((int) $m[1]);
+        break;
+
     // ── Switch Ports ──────────────────────────────────────────────────────────
+    // /panel and /new must be matched before /{id} patterns
+    case $path === '/ports/panel' && $method === 'GET':
+        (new PortController($portModel, $deviceModel))->panel();
+        break;
+
     case $path === '/ports' && $method === 'GET':
         (new PortController($portModel, $deviceModel))->index();
         break;

@@ -31,10 +31,11 @@ class PortModel
      */
     public function create(array $data): int
     {
-        $this->db->execute(
+        $stmt = $this->db->query(
             'INSERT INTO switch_ports
              (port_number, label, port_type, speed, poe_enabled, vlan_id, status, device_id, notes, port_row, port_col)
-             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes, :row, :col)',
+             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes, :row, :col)
+             RETURNING id',
             [
                 ':num'    => $data['port_number'],
                 ':label'  => $data['label'],
@@ -49,7 +50,7 @@ class PortModel
                 ':col'    => $data['port_col'],
             ]
         );
-        return (int) $this->db->lastInsertId();
+        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -86,6 +87,14 @@ class PortModel
                 ':col'    => $data['port_col'],
                 ':id'     => $id,
             ]
+        );
+    }
+
+    public function move(int $id, int $row, int $col): void
+    {
+        $this->db->execute(
+            'UPDATE switch_ports SET port_row = :row, port_col = :col, updated_at = NOW() WHERE id = :id',
+            [':row' => $row, ':col' => $col, ':id' => $id]
         );
     }
 

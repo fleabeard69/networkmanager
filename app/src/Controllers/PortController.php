@@ -8,6 +8,11 @@ class PortController
         private DeviceModel $deviceModel
     ) {}
 
+    public function panel(): void
+    {
+        render('panel_editor', ['navActive' => 'ports']);
+    }
+
     public function index(): void
     {
         $ports = $this->portModel->all();

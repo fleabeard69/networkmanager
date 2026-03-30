@@ -78,4 +78,409 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     });
 
+    // ── Panel Editor ──────────────────────────────────────────────────────
+    const panelGrid = document.getElementById('panel-grid');
+    if (panelGrid) {
+        initPanelEditor();
+    }
+
 });
+
+// ── Panel Editor Module ───────────────────────────────────────────────────
+function initPanelEditor() {
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let ports   = [];
+    let devices = [];
+    let rows    = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
+    let cols    = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
+    let editId  = null;   // null = create mode, number = edit mode
+    let createRow = 1;
+    let createCol = 1;
+    let dragPortId = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // ── DOM refs ──────────────────────────────────────────────────────────
+    const grid         = document.getElementById('panel-grid');
+    const overlay      = document.getElementById('port-modal-overlay');
+    const modalTitle   = document.getElementById('modal-title');
+    const modalError   = document.getElementById('modal-error');
+    const modalSave    = document.getElementById('modal-save');
+    const modalDelete  = document.getElementById('modal-delete');
+    const modalCancel  = document.getElementById('modal-cancel');
+    const modalClose   = document.getElementById('modal-close');
+    const mPortNumber  = document.getElementById('m-port-number');
+    const mLabel       = document.getElementById('m-label');
+    const mPortType    = document.getElementById('m-port-type');
+    const mSpeed       = document.getElementById('m-speed');
+    const mStatus      = document.getElementById('m-status');
+    const mDevice      = document.getElementById('m-device');
+    const mVlan        = document.getElementById('m-vlan');
+    const mPoe         = document.getElementById('m-poe');
+    const mNotes       = document.getElementById('m-notes');
+    const ctrlRows     = document.getElementById('ctrl-rows');
+    const ctrlCols     = document.getElementById('ctrl-cols');
+    const btnApply     = document.getElementById('btn-apply-dims');
+
+    // ── API helpers ───────────────────────────────────────────────────────
+    async function apiFetch(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (options.method && options.method !== 'GET') {
+            headers['X-CSRF-Token'] = csrfToken();
+        }
+        const res = await fetch(url, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
+
+    // ── Load data ─────────────────────────────────────────────────────────
+    async function loadData() {
+        const [portsData, devicesData] = await Promise.all([
+            apiFetch('/api/ports'),
+            apiFetch('/api/devices'),
+        ]);
+        ports   = portsData;
+        devices = devicesData;
+        populateDeviceSelect();
+        renderGrid();
+    }
+
+    // ── Build device <select> options ─────────────────────────────────────
+    function populateDeviceSelect() {
+        // Keep the "— None —" option, replace the rest
+        while (mDevice.options.length > 1) mDevice.remove(1);
+        devices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.hostname;
+            mDevice.appendChild(opt);
+        });
+    }
+
+    // ── Render grid ───────────────────────────────────────────────────────
+    function renderGrid() {
+        // Build occupied-cell map
+        const map = {};
+        ports.forEach(p => {
+            const r = p.port_row;
+            const c = p.port_col;
+            if (!map[r]) map[r] = {};
+            map[r][c] = p;
+        });
+
+        grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
+        grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
+        grid.innerHTML = '';
+
+        for (let r = 1; r <= rows; r++) {
+            for (let c = 1; c <= cols; c++) {
+                const port = map[r]?.[c];
+                if (port) {
+                    grid.appendChild(makePortCard(port));
+                } else {
+                    grid.appendChild(makeEmptyCell(r, c));
+                }
+            }
+        }
+    }
+
+    // ── Build a port card element ─────────────────────────────────────────
+    function makePortCard(port) {
+        const el = document.createElement('div');
+        el.className = 'port-card ' + portColorClass(port);
+        el.style.gridRow    = port.port_row;
+        el.style.gridColumn = port.port_col;
+        el.draggable = true;
+        el.dataset.portId = port.id;
+
+        const numEl    = document.createElement('span');
+        numEl.className = 'port-number';
+        numEl.textContent = port.port_number;
+
+        const typeEl   = document.createElement('span');
+        typeEl.className = 'port-type-badge';
+        typeEl.textContent = port.port_type.toUpperCase();
+
+        const deviceEl = document.createElement('span');
+        deviceEl.className = 'port-device';
+        deviceEl.textContent = port.device_hostname || '';
+
+        el.appendChild(numEl);
+        el.appendChild(typeEl);
+        el.appendChild(deviceEl);
+
+        // Click to edit
+        el.addEventListener('click', () => openEditModal(port));
+
+        // Drag events
+        el.addEventListener('dragstart', e => {
+            dragPortId = port.id;
+            e.dataTransfer.effectAllowed = 'move';
+            requestAnimationFrame(() => el.classList.add('dragging'));
+        });
+        el.addEventListener('dragend', () => {
+            dragPortId = null;
+            el.classList.remove('dragging');
+            grid.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        });
+        el.addEventListener('dragover', e => {
+            e.preventDefault();
+            if (dragPortId && dragPortId !== port.id) {
+                el.classList.add('drag-over');
+            }
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            el.classList.remove('drag-over');
+            if (dragPortId && dragPortId !== port.id) {
+                swapPorts(dragPortId, port.port_row, port.port_col, port.id, port.port_row, port.port_col);
+            }
+        });
+
+        return el;
+    }
+
+    // ── Build an empty cell element ───────────────────────────────────────
+    function makeEmptyCell(r, c) {
+        const el = document.createElement('div');
+        el.className = 'port-cell-empty';
+        el.style.gridRow    = r;
+        el.style.gridColumn = c;
+
+        const icon = document.createElement('span');
+        icon.className = 'cell-add-icon';
+        icon.textContent = '+';
+        el.appendChild(icon);
+
+        el.addEventListener('click', () => openCreateModal(r, c));
+
+        // Drop target for drag
+        el.addEventListener('dragover', e => {
+            e.preventDefault();
+            el.classList.add('drag-over');
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            el.classList.remove('drag-over');
+            if (dragPortId) {
+                movePort(dragPortId, r, c);
+            }
+        });
+
+        return el;
+    }
+
+    // ── Port color class ──────────────────────────────────────────────────
+    function portColorClass(port) {
+        if (port.status === 'disabled') return 'port-disabled';
+        if (port.port_type === 'wan')   return 'port-wan';
+        if (port.port_type === 'mgmt')  return 'port-mgmt';
+        if (port.device_id)             return 'port-connected';
+        return '';
+    }
+
+    // ── Modal open/close ──────────────────────────────────────────────────
+    function openCreateModal(r, c) {
+        editId    = null;
+        createRow = r;
+        createCol = c;
+        modalTitle.textContent = 'Add Port';
+        clearModal();
+        modalDelete.classList.add('hidden');
+        overlay.classList.remove('hidden');
+        mPortNumber.focus();
+    }
+
+    function openEditModal(port) {
+        editId = port.id;
+        modalTitle.textContent = `Edit Port ${port.port_number}`;
+        clearModal();
+        mPortNumber.value      = port.port_number;
+        mLabel.value           = port.label ?? '';
+        mPortType.value        = port.port_type;
+        mSpeed.value           = port.speed;
+        mStatus.value          = port.status;
+        mDevice.value          = port.device_id ?? '';
+        mVlan.value            = port.vlan_id ?? '';
+        mPoe.checked           = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        mNotes.value           = port.notes ?? '';
+        modalDelete.classList.remove('hidden');
+        overlay.classList.remove('hidden');
+        mPortNumber.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        hideError();
+    }
+
+    function clearModal() {
+        mPortNumber.value = '';
+        mLabel.value      = '';
+        mPortType.value   = 'rj45';
+        mSpeed.value      = '1G';
+        mStatus.value     = 'active';
+        mDevice.value     = '';
+        mVlan.value       = '';
+        mPoe.checked      = false;
+        mNotes.value      = '';
+        hideError();
+    }
+
+    function showError(msg) {
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+
+    function hideError() {
+        modalError.textContent = '';
+        modalError.classList.add('hidden');
+    }
+
+    // ── Build payload from modal fields ───────────────────────────────────
+    function buildPayload(r, c) {
+        return {
+            port_number: parseInt(mPortNumber.value, 10) || null,
+            label:       mLabel.value.trim(),
+            port_type:   mPortType.value,
+            speed:       mSpeed.value,
+            status:      mStatus.value,
+            device_id:   mDevice.value ? parseInt(mDevice.value, 10) : null,
+            vlan_id:     mVlan.value   ? parseInt(mVlan.value, 10)   : null,
+            poe_enabled: mPoe.checked,
+            notes:       mNotes.value.trim(),
+            port_row:    r,
+            port_col:    c,
+        };
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────
+    async function savePort() {
+        hideError();
+        modalSave.disabled = true;
+        try {
+            if (editId === null) {
+                // Create
+                const payload = buildPayload(createRow, createCol);
+                const created = await apiFetch('/api/ports', {
+                    method:  'POST',
+                    body:    JSON.stringify(payload),
+                });
+                ports.push(created);
+            } else {
+                // Update: keep existing row/col
+                const existing = ports.find(p => p.id === editId);
+                const payload  = buildPayload(existing?.port_row ?? 1, existing?.port_col ?? 1);
+                const updated  = await apiFetch(`/api/ports/${editId}`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify(payload),
+                });
+                const idx = ports.findIndex(p => p.id === editId);
+                if (idx !== -1) ports[idx] = updated;
+            }
+            closeModal();
+            renderGrid();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalSave.disabled = false;
+        }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+    async function deletePort() {
+        if (!editId) return;
+        if (!window.confirm('Delete this port? This cannot be undone.')) return;
+        modalDelete.disabled = true;
+        try {
+            await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
+            ports = ports.filter(p => p.id !== editId);
+            closeModal();
+            renderGrid();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalDelete.disabled = false;
+        }
+    }
+
+    // ── Move port to empty cell ───────────────────────────────────────────
+    async function movePort(id, toRow, toCol) {
+        try {
+            const updated = await apiFetch(`/api/ports/${id}/position`, {
+                method: 'PATCH',
+                body:   JSON.stringify({ port_row: toRow, port_col: toCol }),
+            });
+            const idx = ports.findIndex(p => p.id === id);
+            if (idx !== -1) ports[idx] = updated;
+            renderGrid();
+        } catch (err) {
+            alert('Move failed: ' + err.message);
+        }
+    }
+
+    // ── Swap two ports' positions ─────────────────────────────────────────
+    async function swapPorts(idA, rowA, colA, idB, rowB, colB) {
+        try {
+            // Move A to a temp-safe spot first is tricky; instead use two
+            // sequential PATCH calls — the server allows duplicate positions
+            // transiently (no unique constraint on row/col).
+            const [updatedA, updatedB] = await Promise.all([
+                apiFetch(`/api/ports/${idA}/position`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ port_row: rowB, port_col: colB }),
+                }),
+                apiFetch(`/api/ports/${idB}/position`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ port_row: rowA, port_col: colA }),
+                }),
+            ]);
+            const idxA = ports.findIndex(p => p.id === idA);
+            const idxB = ports.findIndex(p => p.id === idB);
+            if (idxA !== -1) ports[idxA] = updatedA;
+            if (idxB !== -1) ports[idxB] = updatedB;
+            renderGrid();
+        } catch (err) {
+            alert('Swap failed: ' + err.message);
+        }
+    }
+
+    // ── Grid dimension controls ───────────────────────────────────────────
+    btnApply.addEventListener('click', () => {
+        const r = parseInt(ctrlRows.value, 10);
+        const c = parseInt(ctrlCols.value, 10);
+        if (r >= 1 && r <= 10 && c >= 1 && c <= 50) {
+            rows = r;
+            cols = c;
+            renderGrid();
+        }
+    });
+
+    // ── Modal button events ───────────────────────────────────────────────
+    modalSave.addEventListener('click',   savePort);
+    modalDelete.addEventListener('click', deletePort);
+    modalCancel.addEventListener('click', closeModal);
+    modalClose.addEventListener('click',  closeModal);
+
+    // Close on backdrop click
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeModal();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    // ── Bootstrap ─────────────────────────────────────────────────────────
+    loadData().catch(err => {
+        grid.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load ports: ${err.message}</p>`;
+    });
+}

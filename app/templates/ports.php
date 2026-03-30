@@ -1,6 +1,7 @@
 <?php $title = 'Switch Ports'; ?>
 
 <div class="page-actions">
+    <a href="/ports/panel" class="btn btn-secondary">Panel Editor</a>
     <a href="/ports/new" class="btn btn-primary">+ Add Port</a>
 </div>
 

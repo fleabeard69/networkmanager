@@ -872,6 +872,167 @@ select.field-input { cursor: pointer; }
     gap: 16px;
 }
 
+/* ── Panel Editor ────────────────────────────────────────────────────────── */
+.panel-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.panel-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.panel-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-ctrl-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.panel-ctrl-input {
+    width: 72px;
+    padding: 5px 8px;
+    font-size: 13px;
+}
+
+/* Empty cell in panel editor */
+.port-cell-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    border-radius: var(--radius);
+    border: 2px dashed var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition);
+    color: var(--text-dim);
+}
+
+.port-cell-empty:hover {
+    border-color: var(--accent);
+    background: var(--blue-bg);
+    color: var(--accent);
+}
+
+.cell-add-icon {
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 300;
+    pointer-events: none;
+}
+
+/* Dragging state */
+.port-card.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+.port-card[draggable="true"] {
+    cursor: grab;
+}
+
+.port-cell-empty.drag-over {
+    border-color: var(--accent);
+    background: var(--blue-bg);
+}
+
+.port-card.drag-over {
+    border-color: var(--yellow);
+    background: var(--yellow-bg);
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 540px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color var(--transition);
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.modal-error {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    color: #ff7b72;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+.modal-footer-right {
+    display: flex;
+    gap: 8px;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .sidebar { width: 56px; }

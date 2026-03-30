@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= h($title ?? 'Network Manager') ?> — Network Manager</title>
     <link rel="stylesheet" href="/css/app.css">
+    <meta name="csrf-token" content="<?= Csrf::token() ?>">
 </head>
 <body>
 
@@ -25,7 +26,7 @@
                 </a>
             </li>
             <li>
-                <a href="/ports" class="nav-link <?= ($navActive ?? '') === 'ports' ? 'active' : '' ?>">
+                <a href="/ports/panel" class="nav-link <?= ($navActive ?? '') === 'ports' ? 'active' : '' ?>">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="7" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/></svg>
                     Switch Ports
                 </a>
