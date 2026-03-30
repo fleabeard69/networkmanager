@@ -481,6 +481,7 @@ function initPanelEditor() {
             if (idxB !== -1) ports[idxB] = updatedB;
             renderGrid();
         } catch (err) {
+            await loadData();
             alert('Swap failed: ' + err.message);
         }
     }
@@ -515,7 +516,10 @@ function initPanelEditor() {
 
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
-        grid.innerHTML = `<p class="error-message">Failed to load ports: ${err.message}</p>`;
+        const errEl = document.createElement('p');
+        errEl.className = 'error-message';
+        errEl.textContent = `Failed to load ports: ${err.message}`;
+        grid.replaceChildren(errEl);
     });
 }
 
@@ -991,6 +995,7 @@ function initGlobalPanelEditor() {
             });
             renderAll();
         } catch (err) {
+            await loadData();
             alert('Swap failed: ' + err.message);
         }
     }
@@ -1026,7 +1031,10 @@ function initGlobalPanelEditor() {
 
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
-        container.innerHTML = `<p class="error-message">Failed to load: ${err.message}</p>`;
+        const errEl = document.createElement('p');
+        errEl.className = 'error-message';
+        errEl.textContent = `Failed to load: ${err.message}`;
+        container.replaceChildren(errEl);
     });
 }
 
