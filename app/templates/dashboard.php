@@ -40,7 +40,11 @@ foreach ($ports as $p) {
             $deviceId    = (int) $device['id'];
             $devicePorts = $portsByDevice[$deviceId] ?? [];
             $rows        = max(1, (int) $device['panel_rows']);
-            $cols        = max(1, (int) $device['panel_cols']);
+            $maxCol      = 1;
+            foreach ($devicePorts as $dp) {
+                $maxCol = max($maxCol, (int) $dp['port_col']);
+            }
+            $cols = $maxCol;
         ?>
         <section class="device-panel-section">
             <div class="device-panel-section-header">
