@@ -93,6 +93,30 @@ class ApiController
         $this->json($this->portModel->find($id));
     }
 
+    // ── PATCH /api/devices/{id}/panel ────────────────────────────────────
+    public function updateDevicePanel(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
+        $body = $this->body();
+        $rows = filter_var($body['panel_rows'] ?? null, FILTER_VALIDATE_INT,
+                           ['options' => ['min_range' => 1, 'max_range' => 10]]);
+        $cols = filter_var($body['panel_cols'] ?? null, FILTER_VALIDATE_INT,
+                           ['options' => ['min_range' => 1, 'max_range' => 50]]);
+
+        if ($rows === false || $cols === false) {
+            $this->json(['error' => 'panel_rows must be 1–10 and panel_cols must be 1–50.'], 422);
+        }
+
+        $this->deviceModel->updatePanelDims($id, $rows, $cols);
+        $this->json($this->deviceModel->find($id));
+    }
+
     // ── GET /api/ports/unassigned ─────────────────────────────────────────
     public function listUnassignedPorts(): void
     {

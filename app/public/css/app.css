@@ -929,6 +929,53 @@ select.field-input { cursor: pointer; }
     font-size: 13px;
 }
 
+/* Device panel sections in global panel editor */
+#panel-editor-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.device-panel-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.device-panel-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    background: var(--surface-2);
+    flex-wrap: wrap;
+}
+
+.device-section-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 80px;
+}
+
+.device-panel-resize {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Standalone legend outside any panel */
+.port-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 12px 0;
+}
+
 /* Empty cell in panel editor */
 .port-cell-empty {
     display: flex;

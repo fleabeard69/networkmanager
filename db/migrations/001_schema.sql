@@ -16,6 +16,8 @@ CREATE TABLE devices (
     mac_address VARCHAR(17),
     device_type VARCHAR(32)  NOT NULL DEFAULT 'unknown',
     notes       TEXT         NOT NULL DEFAULT '',
+    panel_rows  INTEGER      NOT NULL DEFAULT 2  CHECK (panel_rows BETWEEN 1 AND 10),
+    panel_cols  INTEGER      NOT NULL DEFAULT 28 CHECK (panel_cols BETWEEN 1 AND 50),
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

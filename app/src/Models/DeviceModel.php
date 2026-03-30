@@ -8,19 +8,11 @@ class DeviceModel
     public function all(): array
     {
         return $this->db->fetchAll(
-            "SELECT
-                d.*,
-                sp.id                         AS port_id,
-                sp.port_number                AS switch_port_number,
-                sp.label                      AS switch_port_label,
-                (
-                    SELECT ip_address::text
-                    FROM ip_assignments
-                    WHERE device_id = d.id AND is_primary = TRUE
-                    LIMIT 1
-                ) AS primary_ip
+            "SELECT d.*,
+                (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id)                   AS port_count,
+                (SELECT ip_address::text FROM ip_assignments
+                 WHERE device_id = d.id AND is_primary = TRUE LIMIT 1)                       AS primary_ip
              FROM devices d
-             LEFT JOIN switch_ports sp ON sp.device_id = d.id
              ORDER BY d.hostname"
         );
     }
@@ -29,13 +21,18 @@ class DeviceModel
     {
         return $this->db->fetchOne(
             'SELECT d.*,
-                    sp.id          AS port_id,
-                    sp.port_number AS switch_port_number,
-                    sp.label       AS switch_port_label
+                (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id) AS port_count
              FROM devices d
-             LEFT JOIN switch_ports sp ON sp.device_id = d.id
              WHERE d.id = :id',
             [':id' => $id]
+        );
+    }
+
+    public function updatePanelDims(int $id, int $rows, int $cols): void
+    {
+        $this->db->execute(
+            'UPDATE devices SET panel_rows = :rows, panel_cols = :cols, updated_at = NOW() WHERE id = :id',
+            [':rows' => $rows, ':cols' => $cols, ':id' => $id]
         );
     }
 

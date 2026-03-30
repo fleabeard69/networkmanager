@@ -20,7 +20,7 @@
                 <th>Type</th>
                 <th>MAC Address</th>
                 <th>Primary IP</th>
-                <th>Switch Port</th>
+                <th>Ports</th>
                 <th class="col-actions">Actions</th>
             </tr>
         </thead>
@@ -38,13 +38,13 @@
                     <?= $d['primary_ip'] ? h($d['primary_ip']) : '<span class="text-muted">—</span>' ?>
                 </td>
                 <td>
-                    <?php if ($d['switch_port_number']): ?>
-                        <a href="/ports/<?= h($d['port_id'] ?? '#') ?>/edit" class="link mono">
-                            Port <?= h($d['switch_port_number']) ?>
-                            <?= $d['switch_port_label'] ? '(' . h($d['switch_port_label']) . ')' : '' ?>
+                    <?php $pc = (int)($d['port_count'] ?? 0); ?>
+                    <?php if ($pc > 0): ?>
+                        <a href="/devices/<?= h($d['id']) ?>/ports/panel" class="link mono">
+                            <?= $pc ?> port<?= $pc !== 1 ? 's' : '' ?>
                         </a>
                     <?php else: ?>
-                        <span class="text-muted">—</span>
+                        <a href="/devices/<?= h($d['id']) ?>/ports/panel" class="text-muted link">None — manage</a>
                     <?php endif; ?>
                 </td>
                 <td class="actions-cell">

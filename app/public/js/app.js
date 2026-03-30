@@ -79,9 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Panel Editor ──────────────────────────────────────────────────────
-    const panelGrid = document.getElementById('panel-grid');
-    if (panelGrid) {
-        initPanelEditor();
+    const panelContainer = document.getElementById('panel-editor-container');
+    const panelGrid      = document.getElementById('panel-grid');
+
+    if (panelContainer) {
+        initGlobalPanelEditor();          // global multi-device view
+    } else if (panelGrid) {
+        initPanelEditor();                // per-device scoped view
     }
 
 });
@@ -508,5 +512,516 @@ function initPanelEditor() {
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
         grid.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load ports: ${err.message}</p>`;
+    });
+}
+
+// ── Global Multi-Device Panel Editor ─────────────────────────────────────────
+function initGlobalPanelEditor() {
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let devices        = [];
+    let ports          = [];
+    let editId         = null;
+    let createDeviceId = null;
+    let createRow      = 1;
+    let createCol      = 1;
+    let dragPortId     = null;
+    let dragDeviceId   = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // ── DOM refs ──────────────────────────────────────────────────────────
+    const container   = document.getElementById('panel-editor-container');
+    const overlay     = document.getElementById('port-modal-overlay');
+    const modalTitle  = document.getElementById('modal-title');
+    const modalError  = document.getElementById('modal-error');
+    const modalSave   = document.getElementById('modal-save');
+    const modalDelete = document.getElementById('modal-delete');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalClose  = document.getElementById('modal-close');
+    const mPortNumber = document.getElementById('m-port-number');
+    const mLabel      = document.getElementById('m-label');
+    const mPortType   = document.getElementById('m-port-type');
+    const mSpeed      = document.getElementById('m-speed');
+    const mStatus     = document.getElementById('m-status');
+    const mVlan       = document.getElementById('m-vlan');
+    const mPoe        = document.getElementById('m-poe');
+    const mNotes      = document.getElementById('m-notes');
+    const ctrlRows    = document.getElementById('ctrl-rows');
+    const ctrlCols    = document.getElementById('ctrl-cols');
+    const btnApplyAll = document.getElementById('btn-apply-all');
+
+    // ── API helper ────────────────────────────────────────────────────────
+    async function apiFetch(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (options.method && options.method !== 'GET') {
+            headers['X-CSRF-Token'] = csrfToken();
+        }
+        const res  = await fetch(url, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────
+    async function loadData() {
+        const [portsData, devicesData] = await Promise.all([
+            apiFetch('/api/ports'),
+            apiFetch('/api/devices'),
+        ]);
+        ports   = portsData;
+        devices = devicesData;
+        renderAll();
+    }
+
+    function portsForDevice(deviceId) {
+        return ports.filter(p => String(p.device_id) === String(deviceId));
+    }
+
+    // ── Render all device sections ────────────────────────────────────────
+    function renderAll() {
+        container.innerHTML = '';
+        if (devices.length === 0) {
+            container.innerHTML =
+                '<div class="panel"><div class="empty-state">' +
+                '<p>No devices configured yet.</p>' +
+                '<a href="/devices/new" class="btn btn-primary">Add a Device</a>' +
+                '</div></div>';
+            return;
+        }
+        devices.forEach(device => container.appendChild(makeDeviceSection(device)));
+    }
+
+    // ── Build one device section ──────────────────────────────────────────
+    function makeDeviceSection(device) {
+        const rows  = device.panel_rows || 2;
+        const cols  = device.panel_cols || 28;
+        const dPorts = portsForDevice(device.id);
+
+        const section = document.createElement('div');
+        section.className    = 'device-panel-section';
+        section.dataset.deviceId = device.id;
+
+        // ── Section header ────────────────────────────────────────────────
+        const header = document.createElement('div');
+        header.className = 'device-panel-section-header';
+
+        const nameEl = document.createElement('a');
+        nameEl.className   = 'device-section-label link';
+        nameEl.href        = `/devices/${device.id}`;
+        nameEl.textContent = device.hostname;
+
+        // Inline resize controls
+        const resizeWrap = document.createElement('div');
+        resizeWrap.className = 'device-panel-resize';
+
+        const rowLabel = document.createElement('label');
+        rowLabel.className   = 'panel-ctrl-label';
+        rowLabel.textContent = 'Rows';
+
+        const rowInput = document.createElement('input');
+        rowInput.type      = 'number';
+        rowInput.className = 'field-input panel-ctrl-input';
+        rowInput.min       = '1';
+        rowInput.max       = '10';
+        rowInput.value     = rows;
+
+        const colLabel = document.createElement('label');
+        colLabel.className   = 'panel-ctrl-label';
+        colLabel.textContent = 'Cols';
+
+        const colInput = document.createElement('input');
+        colInput.type      = 'number';
+        colInput.className = 'field-input panel-ctrl-input';
+        colInput.min       = '1';
+        colInput.max       = '50';
+        colInput.value     = cols;
+
+        const applyBtn = document.createElement('button');
+        applyBtn.className   = 'btn btn-secondary btn-xs';
+        applyBtn.textContent = 'Apply';
+        applyBtn.addEventListener('click', async () => {
+            const r = parseInt(rowInput.value, 10);
+            const c = parseInt(colInput.value, 10);
+            if (r < 1 || r > 10 || c < 1 || c > 50) return;
+            try {
+                await apiFetch(`/api/devices/${device.id}/panel`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ panel_rows: r, panel_cols: c }),
+                });
+                const d = devices.find(x => String(x.id) === String(device.id));
+                if (d) { d.panel_rows = r; d.panel_cols = c; }
+                const newSection = makeDeviceSection({ ...device, panel_rows: r, panel_cols: c });
+                section.replaceWith(newSection);
+            } catch (err) {
+                alert('Failed to save: ' + err.message);
+            }
+        });
+
+        resizeWrap.appendChild(rowLabel);
+        resizeWrap.appendChild(rowInput);
+        resizeWrap.appendChild(colLabel);
+        resizeWrap.appendChild(colInput);
+        resizeWrap.appendChild(applyBtn);
+
+        header.appendChild(nameEl);
+        header.appendChild(resizeWrap);
+
+        // ── Port grid ─────────────────────────────────────────────────────
+        const gridWrap = document.createElement('div');
+        gridWrap.className = 'port-grid-wrap';
+
+        const grid = document.createElement('div');
+        grid.className = 'port-grid';
+        grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
+        grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
+
+        const map = {};
+        dPorts.forEach(p => {
+            if (!map[p.port_row]) map[p.port_row] = {};
+            map[p.port_row][p.port_col] = p;
+        });
+
+        for (let r = 1; r <= rows; r++) {
+            for (let c = 1; c <= cols; c++) {
+                const port = map[r]?.[c];
+                grid.appendChild(port
+                    ? makePortCard(port, device.id)
+                    : makeEmptyCell(device.id, r, c));
+            }
+        }
+
+        gridWrap.appendChild(grid);
+        section.appendChild(header);
+        section.appendChild(gridWrap);
+        return section;
+    }
+
+    // ── Port card ─────────────────────────────────────────────────────────
+    function makePortCard(port, deviceId) {
+        const el = document.createElement('div');
+        el.className        = 'port-card ' + portColorClass(port);
+        el.style.gridRow    = port.port_row;
+        el.style.gridColumn = port.port_col;
+        el.draggable        = true;
+        el.dataset.portId   = port.id;
+        el.dataset.deviceId = deviceId;
+
+        const numEl = document.createElement('span');
+        numEl.className   = 'port-number';
+        numEl.textContent = port.port_number;
+
+        const typeEl = document.createElement('span');
+        typeEl.className   = 'port-type-badge';
+        typeEl.textContent = port.port_type.toUpperCase();
+
+        const labelEl = document.createElement('span');
+        labelEl.className   = 'port-device';
+        labelEl.textContent = port.label || '';
+
+        el.appendChild(numEl);
+        el.appendChild(typeEl);
+        el.appendChild(labelEl);
+
+        el.addEventListener('click', () => openEditModal(port));
+
+        el.addEventListener('dragstart', e => {
+            dragPortId   = port.id;
+            dragDeviceId = String(deviceId);
+            e.dataTransfer.effectAllowed = 'move';
+            requestAnimationFrame(() => el.classList.add('dragging'));
+        });
+        el.addEventListener('dragend', () => {
+            dragPortId   = null;
+            dragDeviceId = null;
+            el.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        });
+        el.addEventListener('dragover', e => {
+            e.preventDefault();
+            // Only highlight swap targets within the same device
+            if (dragPortId && dragPortId !== port.id && dragDeviceId === String(deviceId)) {
+                el.classList.add('drag-over');
+            }
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            el.classList.remove('drag-over');
+            if (!dragPortId || dragPortId === port.id) return;
+            if (dragDeviceId === String(deviceId)) {
+                swapPorts(dragPortId, port.port_row, port.port_col, port.id, port.port_row, port.port_col);
+            }
+            // Cross-device drop on a card is not supported (drop on empty cell instead)
+        });
+
+        return el;
+    }
+
+    // ── Empty cell ────────────────────────────────────────────────────────
+    function makeEmptyCell(deviceId, r, c) {
+        const el = document.createElement('div');
+        el.className        = 'port-cell-empty';
+        el.style.gridRow    = r;
+        el.style.gridColumn = c;
+        el.dataset.deviceId = deviceId;
+
+        const icon = document.createElement('span');
+        icon.className   = 'cell-add-icon';
+        icon.textContent = '+';
+        el.appendChild(icon);
+
+        el.addEventListener('click', () => openCreateModal(deviceId, r, c));
+
+        el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('drag-over'); });
+        el.addEventListener('dragleave', ()  => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            el.classList.remove('drag-over');
+            if (!dragPortId) return;
+            if (dragDeviceId === String(deviceId)) {
+                movePort(dragPortId, r, c);
+            } else {
+                movePortToDevice(dragPortId, deviceId, r, c);
+            }
+        });
+
+        return el;
+    }
+
+    // ── Port color class ──────────────────────────────────────────────────
+    function portColorClass(port) {
+        if (port.status === 'disabled') return 'port-disabled';
+        if (port.port_type === 'wan')   return 'port-wan';
+        if (port.port_type === 'mgmt')  return 'port-mgmt';
+        if (port.device_id)             return 'port-connected';
+        return '';
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────
+    function openCreateModal(deviceId, r, c) {
+        editId         = null;
+        createDeviceId = deviceId;
+        createRow      = r;
+        createCol      = c;
+        const device   = devices.find(d => String(d.id) === String(deviceId));
+        modalTitle.textContent = `Add Port — ${device?.hostname ?? ''}`;
+        clearModal();
+        modalDelete?.classList.add('hidden');
+        overlay.classList.remove('hidden');
+        mPortNumber.focus();
+    }
+
+    function openEditModal(port) {
+        editId = port.id;
+        const device = devices.find(d => String(d.id) === String(port.device_id));
+        modalTitle.textContent = `Edit Port ${port.port_number} — ${device?.hostname ?? ''}`;
+        clearModal();
+        mPortNumber.value = port.port_number;
+        mLabel.value      = port.label      ?? '';
+        mPortType.value   = port.port_type;
+        mSpeed.value      = port.speed;
+        mStatus.value     = port.status;
+        mVlan.value       = port.vlan_id    ?? '';
+        mPoe.checked      = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        mNotes.value      = port.notes      ?? '';
+        modalDelete?.classList.remove('hidden');
+        overlay.classList.remove('hidden');
+        mPortNumber.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        hideError();
+    }
+
+    function clearModal() {
+        mPortNumber.value = '';
+        mLabel.value      = '';
+        mPortType.value   = 'rj45';
+        mSpeed.value      = '1G';
+        mStatus.value     = 'active';
+        mVlan.value       = '';
+        mPoe.checked      = false;
+        mNotes.value      = '';
+        hideError();
+    }
+
+    function showError(msg) {
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+    function hideError() {
+        modalError.textContent = '';
+        modalError.classList.add('hidden');
+    }
+
+    function buildPayload(deviceId, r, c) {
+        return {
+            port_number: parseInt(mPortNumber.value, 10) || null,
+            label:       mLabel.value.trim(),
+            port_type:   mPortType.value,
+            speed:       mSpeed.value,
+            status:      mStatus.value,
+            device_id:   deviceId !== null ? parseInt(deviceId, 10) : null,
+            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled: mPoe.checked,
+            notes:       mNotes.value.trim(),
+            port_row:    r,
+            port_col:    c,
+        };
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────
+    async function savePort() {
+        hideError();
+        modalSave.disabled = true;
+        try {
+            if (editId === null) {
+                const created = await apiFetch('/api/ports', {
+                    method: 'POST',
+                    body:   JSON.stringify(buildPayload(createDeviceId, createRow, createCol)),
+                });
+                ports.push(created);
+            } else {
+                const existing = ports.find(p => p.id === editId);
+                const updated  = await apiFetch(`/api/ports/${editId}`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify(buildPayload(
+                        existing?.device_id,
+                        existing?.port_row ?? 1,
+                        existing?.port_col ?? 1
+                    )),
+                });
+                const idx = ports.findIndex(p => p.id === editId);
+                if (idx !== -1) ports[idx] = updated;
+            }
+            closeModal();
+            renderAll();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalSave.disabled = false;
+        }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+    async function deletePort() {
+        if (!editId) return;
+        if (!window.confirm('Delete this port? This cannot be undone.')) return;
+        if (modalDelete) modalDelete.disabled = true;
+        try {
+            await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
+            ports = ports.filter(p => p.id !== editId);
+            closeModal();
+            renderAll();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            if (modalDelete) modalDelete.disabled = false;
+        }
+    }
+
+    // ── Move within same device ───────────────────────────────────────────
+    async function movePort(id, toRow, toCol) {
+        try {
+            const updated = await apiFetch(`/api/ports/${id}/position`, {
+                method: 'PATCH',
+                body:   JSON.stringify({ port_row: toRow, port_col: toCol }),
+            });
+            const idx = ports.findIndex(p => p.id === id);
+            if (idx !== -1) ports[idx] = updated;
+            renderAll();
+        } catch (err) {
+            alert('Move failed: ' + err.message);
+        }
+    }
+
+    // ── Move to different device ──────────────────────────────────────────
+    async function movePortToDevice(id, toDeviceId, toRow, toCol) {
+        const port = ports.find(p => p.id === id);
+        if (!port) return;
+        try {
+            const updated = await apiFetch(`/api/ports/${id}`, {
+                method: 'PATCH',
+                body:   JSON.stringify({
+                    port_number: port.port_number,
+                    label:       port.label       ?? '',
+                    port_type:   port.port_type,
+                    speed:       port.speed,
+                    status:      port.status,
+                    device_id:   parseInt(toDeviceId, 10),
+                    vlan_id:     port.vlan_id     ?? null,
+                    poe_enabled: port.poe_enabled === true || port.poe_enabled === 't',
+                    notes:       port.notes       ?? '',
+                    port_row:    toRow,
+                    port_col:    toCol,
+                }),
+            });
+            const idx = ports.findIndex(p => p.id === id);
+            if (idx !== -1) ports[idx] = updated;
+            renderAll();
+        } catch (err) {
+            alert('Move failed: ' + err.message);
+        }
+    }
+
+    // ── Swap within same device ───────────────────────────────────────────
+    async function swapPorts(idA, rowA, colA, idB, rowB, colB) {
+        try {
+            const [updA, updB] = await Promise.all([
+                apiFetch(`/api/ports/${idA}/position`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ port_row: rowB, port_col: colB }),
+                }),
+                apiFetch(`/api/ports/${idB}/position`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ port_row: rowA, port_col: colA }),
+                }),
+            ]);
+            [idA, idB].forEach((id, i) => {
+                const upd = i === 0 ? updA : updB;
+                const idx = ports.findIndex(p => p.id === id);
+                if (idx !== -1) ports[idx] = upd;
+            });
+            renderAll();
+        } catch (err) {
+            alert('Swap failed: ' + err.message);
+        }
+    }
+
+    // ── "Apply to all devices" ────────────────────────────────────────────
+    btnApplyAll?.addEventListener('click', async () => {
+        const r = parseInt(ctrlRows.value, 10);
+        const c = parseInt(ctrlCols.value, 10);
+        if (r < 1 || r > 10 || c < 1 || c > 50) return;
+        try {
+            await Promise.all(devices.map(d =>
+                apiFetch(`/api/devices/${d.id}/panel`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ panel_rows: r, panel_cols: c }),
+                })
+            ));
+            devices.forEach(d => { d.panel_rows = r; d.panel_cols = c; });
+            renderAll();
+        } catch (err) {
+            alert('Failed to apply: ' + err.message);
+        }
+    });
+
+    // ── Modal events ──────────────────────────────────────────────────────
+    modalSave.addEventListener('click',   savePort);
+    modalDelete?.addEventListener('click', deletePort);
+    modalCancel.addEventListener('click', closeModal);
+    modalClose.addEventListener('click',  closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+
+    // ── Bootstrap ─────────────────────────────────────────────────────────
+    loadData().catch(err => {
+        container.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load: ${err.message}</p>`;
     });
 }
