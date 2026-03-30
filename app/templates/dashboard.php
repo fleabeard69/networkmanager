@@ -37,7 +37,7 @@ foreach ($ports as $p) {
 <?php else: ?>
     <div class="dashboard-toolbar">
         <button id="btn-connect-ports" class="btn btn-secondary btn-sm">Connect Ports</button>
-        <div id="connect-color-picker" class="connect-color-picker" style="display:none">
+        <div id="connect-color-picker" class="connect-color-picker hidden">
             <?php
             $connColors = [
                 '#388bfd' => 'Blue',    '#2ea043' => 'Green',    '#d29922' => 'Amber',

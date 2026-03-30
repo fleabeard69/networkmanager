@@ -1152,7 +1152,7 @@ function initDashboardConnections() {
         selectedPortId = null;
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
-        if (colorPicker) colorPicker.style.display = '';
+        colorPicker?.classList.remove('hidden');
         container.querySelectorAll('.port-card[data-port-id]').forEach(c =>
             c.classList.add('connectable')
         );
@@ -1163,7 +1163,7 @@ function initDashboardConnections() {
         selectedPortId = null;
         connectBtn.textContent = 'Connect Ports';
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
-        if (colorPicker) colorPicker.style.display = 'none';
+        colorPicker?.classList.add('hidden');
         container.querySelectorAll('.port-card').forEach(c =>
             c.classList.remove('connectable', 'conn-selected')
         );
