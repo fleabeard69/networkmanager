@@ -30,6 +30,8 @@ CREATE TABLE switch_ports (
                     CHECK (status IN ('active', 'disabled', 'unknown')),
     device_id   INTEGER     REFERENCES devices(id) ON DELETE SET NULL,
     notes       TEXT        NOT NULL DEFAULT '',
+    port_row    INTEGER     NOT NULL DEFAULT 1 CHECK (port_row BETWEEN 1 AND 10),
+    port_col    INTEGER     NOT NULL DEFAULT 1 CHECK (port_col BETWEEN 1 AND 50),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -57,7 +59,8 @@ CREATE TABLE service_ports (
 );
 
 -- Indexes
-CREATE INDEX idx_switch_ports_device_id   ON switch_ports(device_id);
+CREATE INDEX idx_switch_ports_layout     ON switch_ports(port_row, port_col);
+CREATE INDEX idx_switch_ports_device_id  ON switch_ports(device_id);
 CREATE INDEX idx_ip_assignments_device_id ON ip_assignments(device_id);
 CREATE INDEX idx_service_ports_device_id  ON service_ports(device_id);
 
