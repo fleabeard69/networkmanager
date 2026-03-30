@@ -51,14 +51,18 @@ class DeviceController
             $this->notFound('Device not found.');
         }
 
-        $ips      = $this->deviceModel->ips($id);
-        $services = $this->deviceModel->services($id);
+        $ips             = $this->deviceModel->ips($id);
+        $services        = $this->deviceModel->services($id);
+        $switchPorts     = $this->portModel->allForDevice($id);
+        $unassignedPorts = $this->portModel->allUnassigned();
 
         render('device_detail', [
-            'navActive' => 'devices',
-            'device'    => $device,
-            'ips'       => $ips,
-            'services'  => $services,
+            'navActive'       => 'devices',
+            'device'          => $device,
+            'ips'             => $ips,
+            'services'        => $services,
+            'switchPorts'     => $switchPorts,
+            'unassignedPorts' => $unassignedPorts,
         ]);
     }
 
@@ -108,6 +112,60 @@ class DeviceController
         $this->deviceModel->delete($id);
         Session::flash('success', 'Device removed.');
         header('Location: /devices');
+        exit;
+    }
+
+    // ── Device Port Panel ─────────────────────────────────────────────────
+
+    public function portPanel(int $id): void
+    {
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        render('device_port_panel', [
+            'navActive' => 'devices',
+            'title'     => h($device['hostname']) . ' — Switch Ports',
+            'device'    => $device,
+        ]);
+    }
+
+    public function assignPortForm(int $deviceId): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($deviceId);
+        if (!$device) {
+            $this->notFound('Device not found.');
+        }
+
+        $portId = filter_var(
+            $_POST['port_id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+        if ($portId === false) {
+            Session::flash('error', 'Please select a port to assign.');
+            header("Location: /devices/{$deviceId}#switch-ports");
+            exit;
+        }
+
+        $port = $this->portModel->find($portId);
+        if (!$port) {
+            Session::flash('error', 'Port not found.');
+            header("Location: /devices/{$deviceId}#switch-ports");
+            exit;
+        }
+        if ($port['device_id'] !== null) {
+            Session::flash('error', 'That port is already assigned to a device.');
+            header("Location: /devices/{$deviceId}#switch-ports");
+            exit;
+        }
+
+        $this->portModel->assign($portId, $deviceId);
+        Session::flash('success', 'Port assigned to device.');
+        header("Location: /devices/{$deviceId}#switch-ports");
         exit;
     }
 

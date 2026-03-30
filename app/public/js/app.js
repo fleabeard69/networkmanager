@@ -89,40 +89,47 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Panel Editor Module ───────────────────────────────────────────────────
 function initPanelEditor() {
 
+    // ── Scope detection ───────────────────────────────────────────────────
+    const grid           = document.getElementById('panel-grid');
+    const scopedDeviceId = grid.dataset.deviceId
+                           ? parseInt(grid.dataset.deviceId, 10)
+                           : null;
+    const isDeviceScoped = scopedDeviceId !== null;
+
     // ── State ─────────────────────────────────────────────────────────────
-    let ports   = [];
-    let devices = [];
-    let rows    = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
-    let cols    = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
-    let editId  = null;   // null = create mode, number = edit mode
-    let createRow = 1;
-    let createCol = 1;
+    let ports      = [];
+    let devices    = [];
+    let rows       = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
+    let cols       = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
+    let editId     = null;   // null = create mode, number = edit mode
+    let createRow  = 1;
+    let createCol  = 1;
     let dragPortId = null;
 
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
     // ── DOM refs ──────────────────────────────────────────────────────────
-    const grid         = document.getElementById('panel-grid');
-    const overlay      = document.getElementById('port-modal-overlay');
-    const modalTitle   = document.getElementById('modal-title');
-    const modalError   = document.getElementById('modal-error');
-    const modalSave    = document.getElementById('modal-save');
-    const modalDelete  = document.getElementById('modal-delete');
-    const modalCancel  = document.getElementById('modal-cancel');
-    const modalClose   = document.getElementById('modal-close');
-    const mPortNumber  = document.getElementById('m-port-number');
-    const mLabel       = document.getElementById('m-label');
-    const mPortType    = document.getElementById('m-port-type');
-    const mSpeed       = document.getElementById('m-speed');
-    const mStatus      = document.getElementById('m-status');
-    const mDevice      = document.getElementById('m-device');
-    const mVlan        = document.getElementById('m-vlan');
-    const mPoe         = document.getElementById('m-poe');
-    const mNotes       = document.getElementById('m-notes');
-    const ctrlRows     = document.getElementById('ctrl-rows');
-    const ctrlCols     = document.getElementById('ctrl-cols');
-    const btnApply     = document.getElementById('btn-apply-dims');
+    const overlay       = document.getElementById('port-modal-overlay');
+    const modalTitle    = document.getElementById('modal-title');
+    const modalError    = document.getElementById('modal-error');
+    const modalSave     = document.getElementById('modal-save');
+    const modalDelete   = document.getElementById('modal-delete');
+    const modalUnassign = document.getElementById('modal-unassign');   // device panel only
+    const modalCancel   = document.getElementById('modal-cancel');
+    const modalClose    = document.getElementById('modal-close');
+    const mPortNumber   = document.getElementById('m-port-number');
+    const mLabel        = document.getElementById('m-label');
+    const mPortType     = document.getElementById('m-port-type');
+    const mSpeed        = document.getElementById('m-speed');
+    const mStatus       = document.getElementById('m-status');
+    const mDevice       = document.getElementById('m-device');         // global panel only
+    const mVlan         = document.getElementById('m-vlan');
+    const mPoe          = document.getElementById('m-poe');
+    const mNotes        = document.getElementById('m-notes');
+    const ctrlRows      = document.getElementById('ctrl-rows');
+    const ctrlCols      = document.getElementById('ctrl-cols');
+    const btnApply      = document.getElementById('btn-apply-dims');
 
     // ── API helpers ───────────────────────────────────────────────────────
     async function apiFetch(url, options = {}) {
@@ -130,7 +137,7 @@ function initPanelEditor() {
         if (options.method && options.method !== 'GET') {
             headers['X-CSRF-Token'] = csrfToken();
         }
-        const res = await fetch(url, { ...options, headers });
+        const res  = await fetch(url, { ...options, headers });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
         return data;
@@ -138,19 +145,26 @@ function initPanelEditor() {
 
     // ── Load data ─────────────────────────────────────────────────────────
     async function loadData() {
-        const [portsData, devicesData] = await Promise.all([
-            apiFetch('/api/ports'),
-            apiFetch('/api/devices'),
-        ]);
-        ports   = portsData;
-        devices = devicesData;
-        populateDeviceSelect();
+        const portsUrl = isDeviceScoped
+            ? `/api/devices/${scopedDeviceId}/ports`
+            : '/api/ports';
+
+        if (isDeviceScoped) {
+            ports = await apiFetch(portsUrl);
+        } else {
+            const [portsData, devicesData] = await Promise.all([
+                apiFetch(portsUrl),
+                apiFetch('/api/devices'),
+            ]);
+            ports   = portsData;
+            devices = devicesData;
+            if (mDevice) populateDeviceSelect();
+        }
         renderGrid();
     }
 
-    // ── Build device <select> options ─────────────────────────────────────
+    // ── Build device <select> options (global panel only) ─────────────────
     function populateDeviceSelect() {
-        // Keep the "— None —" option, replace the rest
         while (mDevice.options.length > 1) mDevice.remove(1);
         devices.forEach(d => {
             const opt = document.createElement('option');
@@ -162,13 +176,10 @@ function initPanelEditor() {
 
     // ── Render grid ───────────────────────────────────────────────────────
     function renderGrid() {
-        // Build occupied-cell map
         const map = {};
         ports.forEach(p => {
-            const r = p.port_row;
-            const c = p.port_col;
-            if (!map[r]) map[r] = {};
-            map[r][c] = p;
+            if (!map[p.port_row]) map[p.port_row] = {};
+            map[p.port_row][p.port_col] = p;
         });
 
         grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
@@ -178,11 +189,7 @@ function initPanelEditor() {
         for (let r = 1; r <= rows; r++) {
             for (let c = 1; c <= cols; c++) {
                 const port = map[r]?.[c];
-                if (port) {
-                    grid.appendChild(makePortCard(port));
-                } else {
-                    grid.appendChild(makeEmptyCell(r, c));
-                }
+                grid.appendChild(port ? makePortCard(port) : makeEmptyCell(r, c));
             }
         }
     }
@@ -190,32 +197,33 @@ function initPanelEditor() {
     // ── Build a port card element ─────────────────────────────────────────
     function makePortCard(port) {
         const el = document.createElement('div');
-        el.className = 'port-card ' + portColorClass(port);
+        el.className  = 'port-card ' + portColorClass(port);
         el.style.gridRow    = port.port_row;
         el.style.gridColumn = port.port_col;
-        el.draggable = true;
+        el.draggable  = true;
         el.dataset.portId = port.id;
 
-        const numEl    = document.createElement('span');
-        numEl.className = 'port-number';
+        const numEl = document.createElement('span');
+        numEl.className   = 'port-number';
         numEl.textContent = port.port_number;
 
-        const typeEl   = document.createElement('span');
-        typeEl.className = 'port-type-badge';
+        const typeEl = document.createElement('span');
+        typeEl.className   = 'port-type-badge';
         typeEl.textContent = port.port_type.toUpperCase();
 
         const deviceEl = document.createElement('span');
-        deviceEl.className = 'port-device';
-        deviceEl.textContent = port.device_hostname || '';
+        deviceEl.className   = 'port-device';
+        // In device scope show label/interface; globally show device name
+        deviceEl.textContent = isDeviceScoped
+            ? (port.label || '')
+            : (port.device_hostname || '');
 
         el.appendChild(numEl);
         el.appendChild(typeEl);
         el.appendChild(deviceEl);
 
-        // Click to edit
         el.addEventListener('click', () => openEditModal(port));
 
-        // Drag events
         el.addEventListener('dragstart', e => {
             dragPortId = port.id;
             e.dataTransfer.effectAllowed = 'move';
@@ -228,9 +236,7 @@ function initPanelEditor() {
         });
         el.addEventListener('dragover', e => {
             e.preventDefault();
-            if (dragPortId && dragPortId !== port.id) {
-                el.classList.add('drag-over');
-            }
+            if (dragPortId && dragPortId !== port.id) el.classList.add('drag-over');
         });
         el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
         el.addEventListener('drop', e => {
@@ -252,24 +258,18 @@ function initPanelEditor() {
         el.style.gridColumn = c;
 
         const icon = document.createElement('span');
-        icon.className = 'cell-add-icon';
+        icon.className   = 'cell-add-icon';
         icon.textContent = '+';
         el.appendChild(icon);
 
         el.addEventListener('click', () => openCreateModal(r, c));
 
-        // Drop target for drag
-        el.addEventListener('dragover', e => {
-            e.preventDefault();
-            el.classList.add('drag-over');
-        });
-        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('drag-over'); });
+        el.addEventListener('dragleave', ()  => el.classList.remove('drag-over'));
         el.addEventListener('drop', e => {
             e.preventDefault();
             el.classList.remove('drag-over');
-            if (dragPortId) {
-                movePort(dragPortId, r, c);
-            }
+            if (dragPortId) movePort(dragPortId, r, c);
         });
 
         return el;
@@ -291,7 +291,8 @@ function initPanelEditor() {
         createCol = c;
         modalTitle.textContent = 'Add Port';
         clearModal();
-        modalDelete.classList.add('hidden');
+        modalDelete?.classList.add('hidden');
+        modalUnassign?.classList.add('hidden');
         overlay.classList.remove('hidden');
         mPortNumber.focus();
     }
@@ -300,16 +301,22 @@ function initPanelEditor() {
         editId = port.id;
         modalTitle.textContent = `Edit Port ${port.port_number}`;
         clearModal();
-        mPortNumber.value      = port.port_number;
-        mLabel.value           = port.label ?? '';
-        mPortType.value        = port.port_type;
-        mSpeed.value           = port.speed;
-        mStatus.value          = port.status;
-        mDevice.value          = port.device_id ?? '';
-        mVlan.value            = port.vlan_id ?? '';
-        mPoe.checked           = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
-        mNotes.value           = port.notes ?? '';
-        modalDelete.classList.remove('hidden');
+        mPortNumber.value = port.port_number;
+        mLabel.value      = port.label      ?? '';
+        mPortType.value   = port.port_type;
+        mSpeed.value      = port.speed;
+        mStatus.value     = port.status;
+        if (mDevice) mDevice.value = port.device_id ?? '';
+        mVlan.value  = port.vlan_id ?? '';
+        mPoe.checked = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        mNotes.value = port.notes ?? '';
+
+        // Show delete always; show unassign only in device-scoped mode
+        modalDelete?.classList.remove('hidden');
+        if (modalUnassign) {
+            modalUnassign.classList.toggle('hidden', !isDeviceScoped);
+        }
+
         overlay.classList.remove('hidden');
         mPortNumber.focus();
     }
@@ -325,10 +332,10 @@ function initPanelEditor() {
         mPortType.value   = 'rj45';
         mSpeed.value      = '1G';
         mStatus.value     = 'active';
-        mDevice.value     = '';
-        mVlan.value       = '';
-        mPoe.checked      = false;
-        mNotes.value      = '';
+        if (mDevice) mDevice.value = '';
+        mVlan.value  = '';
+        mPoe.checked = false;
+        mNotes.value = '';
         hideError();
     }
 
@@ -344,14 +351,20 @@ function initPanelEditor() {
 
     // ── Build payload from modal fields ───────────────────────────────────
     function buildPayload(r, c) {
+        // In device-scoped mode the device is always the scoped device;
+        // in global mode it comes from the device <select>.
+        const deviceId = isDeviceScoped
+            ? scopedDeviceId
+            : (mDevice?.value ? parseInt(mDevice.value, 10) : null);
+
         return {
             port_number: parseInt(mPortNumber.value, 10) || null,
             label:       mLabel.value.trim(),
             port_type:   mPortType.value,
             speed:       mSpeed.value,
             status:      mStatus.value,
-            device_id:   mDevice.value ? parseInt(mDevice.value, 10) : null,
-            vlan_id:     mVlan.value   ? parseInt(mVlan.value, 10)   : null,
+            device_id:   deviceId,
+            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
             poe_enabled: mPoe.checked,
             notes:       mNotes.value.trim(),
             port_row:    r,
@@ -365,20 +378,16 @@ function initPanelEditor() {
         modalSave.disabled = true;
         try {
             if (editId === null) {
-                // Create
-                const payload = buildPayload(createRow, createCol);
                 const created = await apiFetch('/api/ports', {
-                    method:  'POST',
-                    body:    JSON.stringify(payload),
+                    method: 'POST',
+                    body:   JSON.stringify(buildPayload(createRow, createCol)),
                 });
                 ports.push(created);
             } else {
-                // Update: keep existing row/col
                 const existing = ports.find(p => p.id === editId);
-                const payload  = buildPayload(existing?.port_row ?? 1, existing?.port_col ?? 1);
                 const updated  = await apiFetch(`/api/ports/${editId}`, {
                     method: 'PATCH',
-                    body:   JSON.stringify(payload),
+                    body:   JSON.stringify(buildPayload(existing?.port_row ?? 1, existing?.port_col ?? 1)),
                 });
                 const idx = ports.findIndex(p => p.id === editId);
                 if (idx !== -1) ports[idx] = updated;
@@ -396,7 +405,7 @@ function initPanelEditor() {
     async function deletePort() {
         if (!editId) return;
         if (!window.confirm('Delete this port? This cannot be undone.')) return;
-        modalDelete.disabled = true;
+        if (modalDelete) modalDelete.disabled = true;
         try {
             await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
             ports = ports.filter(p => p.id !== editId);
@@ -405,7 +414,28 @@ function initPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalDelete.disabled = false;
+            if (modalDelete) modalDelete.disabled = false;
+        }
+    }
+
+    // ── Unassign (device panel only) ──────────────────────────────────────
+    async function unassignPort() {
+        if (!editId) return;
+        if (!window.confirm('Unassign this port from the device? The port record will be kept.')) return;
+        if (modalUnassign) modalUnassign.disabled = true;
+        try {
+            await apiFetch(`/api/ports/${editId}/assign`, {
+                method: 'PATCH',
+                body:   JSON.stringify({ device_id: null }),
+            });
+            // Remove from device-scoped view since it's no longer assigned here
+            ports = ports.filter(p => p.id !== editId);
+            closeModal();
+            renderGrid();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            if (modalUnassign) modalUnassign.disabled = false;
         }
     }
 
@@ -427,9 +457,6 @@ function initPanelEditor() {
     // ── Swap two ports' positions ─────────────────────────────────────────
     async function swapPorts(idA, rowA, colA, idB, rowB, colB) {
         try {
-            // Move A to a temp-safe spot first is tricky; instead use two
-            // sequential PATCH calls — the server allows duplicate positions
-            // transiently (no unique constraint on row/col).
             const [updatedA, updatedB] = await Promise.all([
                 apiFetch(`/api/ports/${idA}/position`, {
                     method: 'PATCH',
@@ -462,17 +489,16 @@ function initPanelEditor() {
     });
 
     // ── Modal button events ───────────────────────────────────────────────
-    modalSave.addEventListener('click',   savePort);
-    modalDelete.addEventListener('click', deletePort);
+    modalSave.addEventListener('click', savePort);
+    modalDelete?.addEventListener('click', deletePort);
+    modalUnassign?.addEventListener('click', unassignPort);
     modalCancel.addEventListener('click', closeModal);
     modalClose.addEventListener('click',  closeModal);
 
-    // Close on backdrop click
     overlay.addEventListener('click', e => {
         if (e.target === overlay) closeModal();
     });
 
-    // Close on Escape
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
             closeModal();

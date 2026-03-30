@@ -90,6 +90,37 @@ class PortModel
         );
     }
 
+    public function allForDevice(int $deviceId): array
+    {
+        return $this->db->fetchAll(
+            'SELECT p.*, d.hostname AS device_hostname, d.device_type
+             FROM switch_ports p
+             LEFT JOIN devices d ON d.id = p.device_id
+             WHERE p.device_id = :device_id
+             ORDER BY p.port_row, p.port_col, p.port_number',
+            [':device_id' => $deviceId]
+        );
+    }
+
+    public function allUnassigned(): array
+    {
+        return $this->db->fetchAll(
+            'SELECT * FROM switch_ports WHERE device_id IS NULL ORDER BY port_number'
+        );
+    }
+
+    /**
+     * Assigns or unassigns a switch port to/from a device.
+     * Pass null to unassign.
+     */
+    public function assign(int $id, ?int $deviceId): void
+    {
+        $this->db->execute(
+            'UPDATE switch_ports SET device_id = :dev, updated_at = NOW() WHERE id = :id',
+            [':dev' => $deviceId, ':id' => $id]
+        );
+    }
+
     public function move(int $id, int $row, int $col): void
     {
         $this->db->execute(

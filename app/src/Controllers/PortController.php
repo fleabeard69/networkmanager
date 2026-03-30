@@ -101,6 +101,27 @@ class PortController
         exit;
     }
 
+    public function unassign(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $port = $this->portModel->find($id);
+        if (!$port) {
+            $this->notFound('Port not found.');
+        }
+
+        $deviceId = $port['device_id'];
+        $this->portModel->assign($id, null);
+        Session::flash('success', 'Port unassigned from device.');
+
+        if ($deviceId) {
+            header("Location: /devices/{$deviceId}#switch-ports");
+        } else {
+            header('Location: /ports');
+        }
+        exit;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────
 
     /** @return array|string  Validated data array, or an error string. */

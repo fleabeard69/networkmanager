@@ -93,6 +93,47 @@ class ApiController
         $this->json($this->portModel->find($id));
     }
 
+    // ── GET /api/ports/unassigned ─────────────────────────────────────────
+    public function listUnassignedPorts(): void
+    {
+        $this->json($this->portModel->allUnassigned());
+    }
+
+    // ── GET /api/devices/{id}/ports ───────────────────────────────────────
+    public function listDevicePorts(int $deviceId): void
+    {
+        $device = $this->deviceModel->find($deviceId);
+        if (!$device) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+        $this->json($this->portModel->allForDevice($deviceId));
+    }
+
+    // ── PATCH /api/ports/{id}/assign ──────────────────────────────────────
+    public function assignPort(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $port = $this->portModel->find($id);
+        if (!$port) {
+            $this->json(['error' => 'Port not found.'], 404);
+        }
+
+        $body     = $this->body();
+        $deviceId = null;
+
+        if (array_key_exists('device_id', $body) && $body['device_id'] !== null) {
+            $deviceId = filter_var($body['device_id'], FILTER_VALIDATE_INT,
+                                   ['options' => ['min_range' => 1]]);
+            if ($deviceId === false) {
+                $this->json(['error' => 'Invalid device ID.'], 422);
+            }
+        }
+
+        $this->portModel->assign($id, $deviceId);
+        $this->json($this->portModel->find($id));
+    }
+
     // ── DELETE /api/ports/{id} ────────────────────────────────────────────
     public function deletePort(int $id): void
     {

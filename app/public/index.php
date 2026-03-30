@@ -87,17 +87,29 @@ switch (true) {
         (new ApiController($portModel, $deviceModel))->listPorts();
         break;
 
+    case $path === '/api/ports/unassigned' && $method === 'GET':
+        (new ApiController($portModel, $deviceModel))->listUnassignedPorts();
+        break;
+
     case $path === '/api/devices' && $method === 'GET':
         (new ApiController($portModel, $deviceModel))->listDevices();
+        break;
+
+    case preg_match('#^/api/devices/(\d+)/ports$#', $path, $m) && $method === 'GET':
+        (new ApiController($portModel, $deviceModel))->listDevicePorts((int) $m[1]);
         break;
 
     case $path === '/api/ports' && $method === 'POST':
         (new ApiController($portModel, $deviceModel))->createPort();
         break;
 
-    // /position must be matched before the bare /{id} pattern
+    // Specific sub-resource routes before the bare /{id} pattern
     case preg_match('#^/api/ports/(\d+)/position$#', $path, $m) && $method === 'PATCH':
         (new ApiController($portModel, $deviceModel))->movePort((int) $m[1]);
+        break;
+
+    case preg_match('#^/api/ports/(\d+)/assign$#', $path, $m) && $method === 'PATCH':
+        (new ApiController($portModel, $deviceModel))->assignPort((int) $m[1]);
         break;
 
     case preg_match('#^/api/ports/(\d+)$#', $path, $m) && $method === 'PATCH':
@@ -151,6 +163,15 @@ switch (true) {
         (new DeviceController($deviceModel, $portModel))->store();
         break;
 
+    // Device sub-resource routes before the bare /{id} pattern
+    case preg_match('#^/devices/(\d+)/ports/panel$#', $path, $m) && $method === 'GET':
+        (new DeviceController($deviceModel, $portModel))->portPanel((int) $m[1]);
+        break;
+
+    case preg_match('#^/devices/(\d+)/ports/assign$#', $path, $m) && $method === 'POST':
+        (new DeviceController($deviceModel, $portModel))->assignPortForm((int) $m[1]);
+        break;
+
     case preg_match('#^/devices/(\d+)$#', $path, $m) && $method === 'GET':
         (new DeviceController($deviceModel, $portModel))->show((int) $m[1]);
         break;
@@ -174,6 +195,11 @@ switch (true) {
 
     case preg_match('#^/ips/(\d+)/delete$#', $path, $m) && $method === 'POST':
         (new DeviceController($deviceModel, $portModel))->deleteIp((int) $m[1]);
+        break;
+
+    // ── Switch Port Assignment / Unassignment ─────────────────────────────────
+    case preg_match('#^/ports/(\d+)/unassign$#', $path, $m) && $method === 'POST':
+        (new PortController($portModel, $deviceModel))->unassign((int) $m[1]);
         break;
 
     // ── Service Ports ─────────────────────────────────────────────────────────

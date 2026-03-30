@@ -588,6 +588,10 @@ a:hover { text-decoration: underline; }
 .badge-proto-udp  { background: var(--purple-bg); border: 1px solid var(--purple-border); color: var(--purple); }
 .badge-proto-both { background: var(--surface-2); border: 1px solid var(--border);        color: var(--text-muted); }
 
+.badge-status-active   { background: var(--green-bg);  border: 1px solid var(--green-border);  color: #3fb950; }
+.badge-status-disabled { background: var(--red-bg);    border: 1px solid var(--red-border);    color: #ff7b72; }
+.badge-status-unknown  { background: var(--surface-2); border: 1px solid var(--border);        color: var(--text-muted); }
+
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {
     display: inline-flex;
@@ -641,6 +645,18 @@ a:hover { text-decoration: underline; }
     background: var(--red);
     border-color: var(--red);
     color: #fff;
+}
+
+.btn-warning {
+    background: var(--yellow-bg);
+    border-color: var(--yellow-border);
+    color: var(--yellow);
+}
+
+.btn-warning:hover {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: #000;
 }
 
 .btn-sm  { padding: 5px 11px; font-size: 12.5px; }
@@ -892,6 +908,13 @@ select.field-input { cursor: pointer; }
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.panel-device-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-right: 4px;
 }
 
 .panel-ctrl-label {

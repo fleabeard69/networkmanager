@@ -24,16 +24,12 @@
             <span class="meta-value mono"><?= $device['mac_address'] ? h($device['mac_address']) : '—' ?></span>
         </div>
         <div class="meta-item">
-            <span class="meta-label">Switch Port</span>
+            <span class="meta-label">Switch Ports</span>
             <span class="meta-value">
-                <?php if ($device['switch_port_number']): ?>
-                    <a href="/ports/<?= h($device['port_id']) ?>/edit" class="link mono">
-                        Port <?= h($device['switch_port_number']) ?>
-                        <?= $device['switch_port_label'] ? ' — ' . h($device['switch_port_label']) : '' ?>
-                    </a>
-                <?php else: ?>
-                    <span class="text-muted">Not assigned to a port</span>
-                <?php endif; ?>
+                <?php $portCount = count($switchPorts); ?>
+                <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="link">
+                    <?= $portCount ?> port<?= $portCount !== 1 ? 's' : '' ?> assigned — manage
+                </a>
             </span>
         </div>
         <?php if ($device['notes']): ?>
@@ -130,6 +126,104 @@
                             <button type="submit" class="btn btn-danger btn-xs"
                                     data-confirm="Remove <?= h($ip['ip_str']) ?>?">
                                 Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</section>
+
+<!-- ── Switch Ports ────────────────────────────────────────────────────────── -->
+<section class="panel" id="switch-ports">
+    <div class="panel-header">
+        <h3 class="panel-title">Switch Ports</h3>
+        <div class="header-actions">
+            <?php if (!empty($unassignedPorts)): ?>
+            <button class="btn btn-secondary btn-sm"
+                    data-toggle="assign-port-form"
+                    data-show-text="+ Assign Existing"
+                    data-hide-text="− Cancel">
+                + Assign Existing
+            </button>
+            <?php endif; ?>
+            <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="btn btn-primary btn-sm">
+                Open Panel Editor
+            </a>
+        </div>
+    </div>
+
+    <?php if (!empty($unassignedPorts)): ?>
+    <div id="assign-port-form" class="collapsible hidden">
+        <form method="post" action="/devices/<?= h($device['id']) ?>/ports/assign" class="form form-inline-section">
+            <?= Csrf::field() ?>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="port_id">Unassigned Port</label>
+                    <select class="field-input" id="port_id" name="port_id" required>
+                        <option value="">— Select a port —</option>
+                        <?php foreach ($unassignedPorts as $up): ?>
+                            <option value="<?= h($up['id']) ?>">
+                                Port <?= h($up['port_number']) ?>
+                                <?= $up['label'] ? ' — ' . h($up['label']) : '' ?>
+                                (<?= h(strtoupper($up['port_type'])) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-sm">Assign to Device</button>
+            </div>
+        </form>
+    </div>
+    <?php endif; ?>
+
+    <?php if (empty($switchPorts)): ?>
+        <div class="empty-state-sm">
+            No switch ports assigned.
+            <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="link">Open the panel editor</a>
+            to add and arrange ports.
+        </div>
+    <?php else: ?>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Port #</th>
+                    <th>Label</th>
+                    <th>Type</th>
+                    <th>Speed</th>
+                    <th>Status</th>
+                    <th>VLAN</th>
+                    <th>PoE</th>
+                    <th>Notes</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($switchPorts as $sp): ?>
+                <tr>
+                    <td class="mono"><?= h($sp['port_number']) ?></td>
+                    <td><?= $sp['label'] ? h($sp['label']) : '<span class="text-muted">—</span>' ?></td>
+                    <td><span class="badge badge-type"><?= h(strtoupper($sp['port_type'])) ?></span></td>
+                    <td class="mono"><?= h($sp['speed']) ?></td>
+                    <td>
+                        <span class="badge badge-status-<?= h($sp['status']) ?>">
+                            <?= h(ucfirst($sp['status'])) ?>
+                        </span>
+                    </td>
+                    <td class="mono"><?= $sp['vlan_id'] ? h($sp['vlan_id']) : '<span class="text-muted">—</span>' ?></td>
+                    <td><?= $sp['poe_enabled'] && $sp['poe_enabled'] !== 'f' ? '<span class="badge badge-success">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
+                    <td><?= $sp['notes'] ? h($sp['notes']) : '<span class="text-muted">—</span>' ?></td>
+                    <td class="actions-cell">
+                        <a href="/ports/<?= h($sp['id']) ?>/edit" class="btn btn-secondary btn-xs">Edit</a>
+                        <form method="post" action="/ports/<?= h($sp['id']) ?>/unassign" class="inline-form">
+                            <?= Csrf::field() ?>
+                            <button type="submit" class="btn btn-warning btn-xs"
+                                    data-confirm="Unassign Port <?= h($sp['port_number']) ?> from this device?">
+                                Unassign
                             </button>
                         </form>
                     </td>
