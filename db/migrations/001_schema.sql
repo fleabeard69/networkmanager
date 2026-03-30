@@ -1,5 +1,7 @@
--- Network Manager — initial schema
+-- Network Manager — complete database schema
+-- Schema changes: edit this file, then docker compose down -v && docker compose up -d
 
+-- ── Authentication ────────────────────────────────────────────────────────────
 CREATE TABLE users (
     id         SERIAL       PRIMARY KEY,
     username   VARCHAR(64)  NOT NULL UNIQUE,
@@ -7,6 +9,7 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+-- ── Devices ───────────────────────────────────────────────────────────────────
 CREATE TABLE devices (
     id          SERIAL       PRIMARY KEY,
     hostname    VARCHAR(128) NOT NULL,
@@ -17,6 +20,9 @@ CREATE TABLE devices (
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+-- ── Switch Ports ──────────────────────────────────────────────────────────────
+-- port_row / port_col position the port on the physical panel visualization.
+-- Row 1 = top row, col 1 = leftmost port, matching the UDM Pro front face.
 CREATE TABLE switch_ports (
     id          SERIAL      PRIMARY KEY,
     port_number INTEGER     NOT NULL UNIQUE CHECK (port_number > 0),
@@ -35,6 +41,7 @@ CREATE TABLE switch_ports (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── IP Assignments ────────────────────────────────────────────────────────────
 CREATE TABLE ip_assignments (
     id         SERIAL      PRIMARY KEY,
     device_id  INTEGER     NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -46,6 +53,7 @@ CREATE TABLE ip_assignments (
     notes      TEXT        NOT NULL DEFAULT ''
 );
 
+-- ── Service Ports ─────────────────────────────────────────────────────────────
 CREATE TABLE service_ports (
     id          SERIAL      PRIMARY KEY,
     device_id   INTEGER     NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -58,11 +66,11 @@ CREATE TABLE service_ports (
     UNIQUE (device_id, protocol, port_number)
 );
 
--- Indexes
-CREATE INDEX idx_switch_ports_layout     ON switch_ports(port_row, port_col);
-CREATE INDEX idx_switch_ports_device_id  ON switch_ports(device_id);
+-- ── Indexes ───────────────────────────────────────────────────────────────────
+CREATE INDEX idx_switch_ports_layout      ON switch_ports(port_row, port_col);
+CREATE INDEX idx_switch_ports_device_id   ON switch_ports(device_id);
 CREATE INDEX idx_ip_assignments_device_id ON ip_assignments(device_id);
 CREATE INDEX idx_service_ports_device_id  ON service_ports(device_id);
 
--- Enforce at most one primary IP per device at the database level
+-- Only one primary IP per device, enforced at the database level
 CREATE UNIQUE INDEX idx_one_primary_ip ON ip_assignments(device_id) WHERE is_primary = TRUE;
