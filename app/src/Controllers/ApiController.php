@@ -117,6 +117,31 @@ class ApiController
         $this->json($this->deviceModel->find($id));
     }
 
+    // ── PATCH /api/devices/reorder ────────────────────────────────────────
+    public function reorderDevices(): void
+    {
+        $this->verifyCsrf();
+
+        $body = $this->body();
+        $ids  = $body['ids'] ?? null;
+
+        if (!is_array($ids)) {
+            $this->json(['error' => 'ids must be an array.'], 422);
+        }
+
+        $validated = [];
+        foreach ($ids as $id) {
+            $val = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($val === false) {
+                $this->json(['error' => 'Invalid device ID.'], 422);
+            }
+            $validated[] = $val;
+        }
+
+        $this->deviceModel->reorder($validated);
+        $this->json(['reordered' => true]);
+    }
+
     // ── GET /api/ports/unassigned ─────────────────────────────────────────
     public function listUnassignedPorts(): void
     {

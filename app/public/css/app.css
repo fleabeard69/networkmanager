@@ -961,6 +961,34 @@ select.field-input { cursor: pointer; }
     min-width: 80px;
 }
 
+.drag-handle {
+    cursor: grab;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+    user-select: none;
+    flex-shrink: 0;
+}
+.drag-handle:hover {
+    color: var(--text-muted);
+    background: var(--surface);
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.device-panel-section.dragging {
+    opacity: 0.45;
+}
+.device-panel-section.drag-over-top {
+    border-top: 2px solid var(--accent);
+}
+.device-panel-section.drag-over-bottom {
+    border-bottom: 2px solid var(--accent);
+}
+
 .device-panel-resize {
     display: flex;
     align-items: center;

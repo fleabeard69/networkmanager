@@ -35,6 +35,7 @@ foreach ($ports as $p) {
         </div>
     </div>
 <?php else: ?>
+    <div id="dashboard-devices">
     <?php foreach ($devices as $device): ?>
         <?php
             $deviceId    = (int) $device['id'];
@@ -46,8 +47,9 @@ foreach ($ports as $p) {
             }
             $cols = $maxCol;
         ?>
-        <section class="device-panel-section">
+        <section class="device-panel-section" data-device-id="<?= h($deviceId) ?>">
             <div class="device-panel-section-header">
+                <span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
                 <a href="/devices/<?= h($device['id']) ?>" class="device-section-label link">
                     <?= h($device['hostname']) ?>
                 </a>
@@ -105,6 +107,7 @@ foreach ($ports as $p) {
             <?php endif; ?>
         </section>
     <?php endforeach; ?>
+    </div><!-- #dashboard-devices -->
 
     <div class="port-legend">
         <span class="legend-item"><span class="legend-dot legend-connected"></span> Active</span>

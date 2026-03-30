@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initPanelEditor();                // per-device scoped view
     }
 
+    // ── Dashboard device reorder ──────────────────────────────────────────
+    initDashboardReorder();
+
 });
 
 // ── Panel Editor Module ───────────────────────────────────────────────────
@@ -1022,5 +1025,96 @@ function initGlobalPanelEditor() {
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
         container.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load: ${err.message}</p>`;
+    });
+}
+
+// ── Dashboard Device Reorder ──────────────────────────────────────────────────
+function initDashboardReorder() {
+    const container = document.getElementById('dashboard-devices');
+    if (!container) return;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    let dragSrc = null;
+
+    function getSections() {
+        return [...container.querySelectorAll('.device-panel-section')];
+    }
+
+    function clearStates() {
+        getSections().forEach(s =>
+            s.classList.remove('drag-over-top', 'drag-over-bottom')
+        );
+    }
+
+    getSections().forEach(section => {
+        const handle = section.querySelector('.drag-handle');
+        if (!handle) return;
+
+        // Only allow drag when initiated from the handle
+        handle.addEventListener('mousedown', () => {
+            section.draggable = true;
+        });
+
+        section.addEventListener('dragstart', e => {
+            dragSrc = section;
+            e.dataTransfer.effectAllowed = 'move';
+            requestAnimationFrame(() => section.classList.add('dragging'));
+        });
+
+        section.addEventListener('dragend', () => {
+            section.draggable = false;
+            section.classList.remove('dragging');
+            clearStates();
+            dragSrc = null;
+        });
+
+        section.addEventListener('dragover', e => {
+            if (!dragSrc || dragSrc === section) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            clearStates();
+            const rect = section.getBoundingClientRect();
+            const mid  = rect.top + rect.height / 2;
+            section.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+        });
+
+        section.addEventListener('dragleave', e => {
+            if (!section.contains(e.relatedTarget)) {
+                section.classList.remove('drag-over-top', 'drag-over-bottom');
+            }
+        });
+
+        section.addEventListener('drop', async e => {
+            e.preventDefault();
+            if (!dragSrc || dragSrc === section) return;
+
+            clearStates();
+
+            const rect = section.getBoundingClientRect();
+            const mid  = rect.top + rect.height / 2;
+            if (e.clientY < mid) {
+                container.insertBefore(dragSrc, section);
+            } else {
+                section.after(dragSrc);
+            }
+
+            const newOrder = getSections().map(s => parseInt(s.dataset.deviceId, 10));
+
+            try {
+                const res = await fetch('/api/devices/reorder', {
+                    method:  'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken(),
+                    },
+                    body: JSON.stringify({ ids: newOrder }),
+                });
+                if (!res.ok) console.error('Failed to save device order');
+            } catch (err) {
+                console.error('Failed to save device order:', err);
+            }
+        });
     });
 }

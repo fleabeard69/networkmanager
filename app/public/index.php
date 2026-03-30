@@ -95,6 +95,10 @@ switch (true) {
         (new ApiController($portModel, $deviceModel))->listDevices();
         break;
 
+    case $path === '/api/devices/reorder' && $method === 'PATCH':
+        (new ApiController($portModel, $deviceModel))->reorderDevices();
+        break;
+
     case preg_match('#^/api/devices/(\d+)/ports$#', $path, $m) && $method === 'GET':
         (new ApiController($portModel, $deviceModel))->listDevicePorts((int) $m[1]);
         break;

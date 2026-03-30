@@ -13,8 +13,18 @@ class DeviceModel
                 (SELECT ip_address::text FROM ip_assignments
                  WHERE device_id = d.id AND is_primary = TRUE LIMIT 1)                       AS primary_ip
              FROM devices d
-             ORDER BY d.hostname"
+             ORDER BY d.sort_order, d.hostname"
         );
+    }
+
+    public function reorder(array $orderedIds): void
+    {
+        foreach ($orderedIds as $i => $id) {
+            $this->db->execute(
+                'UPDATE devices SET sort_order = :order WHERE id = :id',
+                [':order' => $i, ':id' => (int) $id]
+            );
+        }
     }
 
     public function find(int $id): array|false
