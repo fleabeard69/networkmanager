@@ -244,6 +244,11 @@ a:hover { text-decoration: underline; }
     color: #ff7b72;
 }
 
+.flash-hiding {
+    transition: opacity 0.4s ease;
+    opacity: 0;
+}
+
 /* ── Stats Grid ──────────────────────────────────────────────────────────── */
 .stats-grid {
     display: grid;
@@ -824,6 +829,11 @@ select.field-input { cursor: pointer; }
 
 .inline-form { display: inline-flex; }
 
+.error-message {
+    color: var(--red);
+    padding: 16px;
+}
+
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -1001,6 +1011,16 @@ select.field-input { cursor: pointer; }
 .port-card.conn-occupied {
     opacity: 0.35;
     cursor: not-allowed !important;
+}
+
+.conn-hit {
+    cursor: pointer;
+    pointer-events: stroke;
+}
+
+.conn-line,
+.conn-dot {
+    pointer-events: none;
 }
 
 /* Device panel sections in global panel editor */

@@ -71,8 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Auto-dismiss flash messages ───────────────────────────────────────
     document.querySelectorAll('.flash').forEach(flash => {
         setTimeout(() => {
-            flash.style.transition = 'opacity 0.4s ease';
-            flash.style.opacity = '0';
+            flash.classList.add('flash-hiding');
             setTimeout(() => flash.remove(), 400);
         }, 5000);
     });
@@ -516,7 +515,7 @@ function initPanelEditor() {
 
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
-        grid.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load ports: ${err.message}</p>`;
+        grid.innerHTML = `<p class="error-message">Failed to load ports: ${err.message}</p>`;
     });
 }
 
@@ -1027,7 +1026,7 @@ function initGlobalPanelEditor() {
 
     // ── Bootstrap ─────────────────────────────────────────────────────────
     loadData().catch(err => {
-        container.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load: ${err.message}</p>`;
+        container.innerHTML = `<p class="error-message">Failed to load: ${err.message}</p>`;
     });
 }
 
@@ -1097,35 +1096,34 @@ function initDashboardConnections() {
 
             // Invisible wide hit-test path
             const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            hit.setAttribute('class', 'conn-hit');
             hit.setAttribute('d', d);
             hit.setAttribute('stroke', 'transparent');
             hit.setAttribute('stroke-width', '18');
             hit.setAttribute('fill', 'none');
-            hit.style.cursor = 'pointer';
-            hit.style.pointerEvents = 'stroke';
             hit.title = 'Click to remove this connection';
             hit.addEventListener('click', () => removeConnection(conn));
             svg.appendChild(hit);
 
             // Visible dashed line
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('class', 'conn-line');
             path.setAttribute('d', d);
             path.setAttribute('stroke', color);
             path.setAttribute('stroke-width', '3');
             path.setAttribute('stroke-dasharray', '7 4');
             path.setAttribute('fill', 'none');
             path.setAttribute('opacity', '0.85');
-            path.style.pointerEvents = 'none';
             svg.appendChild(path);
 
             // Endpoint dots
             [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(({ x, y }) => {
                 const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('class', 'conn-dot');
                 dot.setAttribute('cx', x);
                 dot.setAttribute('cy', y);
                 dot.setAttribute('r', '4');
                 dot.setAttribute('fill', color);
-                dot.style.pointerEvents = 'none';
                 svg.appendChild(dot);
             });
         });
