@@ -27,7 +27,7 @@ CREATE TABLE devices (
 -- Row 1 = top row, col 1 = leftmost port, matching the UDM Pro front face.
 CREATE TABLE switch_ports (
     id          SERIAL      PRIMARY KEY,
-    port_number INTEGER     NOT NULL UNIQUE CHECK (port_number > 0),
+    port_number INTEGER     NOT NULL CHECK (port_number > 0),
     label       VARCHAR(64) NOT NULL DEFAULT '',
     port_type   VARCHAR(8)  NOT NULL DEFAULT 'rj45'
                     CHECK (port_type IN ('rj45', 'sfp', 'sfp+', 'wan', 'mgmt')),
@@ -40,7 +40,8 @@ CREATE TABLE switch_ports (
     notes       TEXT        NOT NULL DEFAULT '',
     port_row    INTEGER     NOT NULL DEFAULT 1 CHECK (port_row BETWEEN 1 AND 10),
     port_col    INTEGER     NOT NULL DEFAULT 1 CHECK (port_col BETWEEN 1 AND 50),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (device_id, port_number)
 );
 
 -- ── IP Assignments ────────────────────────────────────────────────────────────

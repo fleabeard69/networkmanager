@@ -45,7 +45,7 @@ class PortController
             Session::flash('success', 'Port added successfully.');
             header('Location: /ports');
         } catch (PDOException $e) {
-            Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists.'));
+            Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists on this device.'));
             header('Location: /ports/new');
         }
         exit;
@@ -86,7 +86,7 @@ class PortController
             Session::flash('success', 'Port updated.');
             header('Location: /ports');
         } catch (PDOException $e) {
-            Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists.'));
+            Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists on this device.'));
             header("Location: /ports/{$id}/edit");
         }
         exit;

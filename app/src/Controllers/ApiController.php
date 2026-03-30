@@ -36,7 +36,7 @@ class ApiController
             $this->json($port, 201);
         } catch (PDOException $e) {
             $msg = str_contains(strtolower($e->getMessage()), 'unique')
-                ? 'Port number already exists.'
+                ? 'Port number already exists on this device.'
                 : 'Database error. Please try again.';
             $this->json(['error' => $msg], 409);
         }
@@ -62,7 +62,7 @@ class ApiController
             $this->json($this->portModel->find($id));
         } catch (PDOException $e) {
             $msg = str_contains(strtolower($e->getMessage()), 'unique')
-                ? 'Port number already exists.'
+                ? 'Port number already exists on this device.'
                 : 'Database error. Please try again.';
             $this->json(['error' => $msg], 409);
         }
