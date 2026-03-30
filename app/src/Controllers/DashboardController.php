@@ -12,13 +12,15 @@ class DashboardController
     {
         $ports       = $this->portModel->all();
         $portStats   = $this->portModel->stats();
-        $deviceCount = $this->deviceModel->count();
+        $devices     = $this->deviceModel->all();
+        $deviceCount = count($devices);
         $ipCount     = $this->deviceModel->ipCount();
 
         render('dashboard', [
             'navActive'   => 'dashboard',
             'ports'       => $ports,
             'portStats'   => $portStats,
+            'devices'     => $devices,
             'deviceCount' => $deviceCount,
             'ipCount'     => $ipCount,
         ]);

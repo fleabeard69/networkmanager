@@ -1,12 +1,10 @@
 <?php
 $title = 'Dashboard';
 
-// Compute grid dimensions from port data
-$maxRow = 1;
-$maxCol = 1;
+// Group ports by device_id for per-section rendering
+$portsByDevice = [];
 foreach ($ports as $p) {
-    if ($p['port_row'] > $maxRow) $maxRow = (int) $p['port_row'];
-    if ($p['port_col'] > $maxCol) $maxCol = (int) $p['port_col'];
+    $portsByDevice[(int) $p['device_id']][] = $p;
 }
 ?>
 
@@ -29,66 +27,85 @@ foreach ($ports as $p) {
     </div>
 </div>
 
-<section class="panel">
-    <div class="panel-header">
-        <h2 class="panel-title">Switch Panel</h2>
-        <a href="/ports/new" class="btn btn-primary btn-sm">+ Add Port</a>
-    </div>
-
-    <?php if (empty($ports)): ?>
+<?php if (empty($devices)): ?>
+    <div class="panel">
         <div class="empty-state">
-            <p>No switch ports configured yet.</p>
-            <a href="/ports/new" class="btn btn-primary">Add Your First Port</a>
+            <p>No devices configured yet.</p>
+            <a href="/devices/new" class="btn btn-primary">Add a Device</a>
         </div>
-    <?php else: ?>
-        <div class="port-grid-wrap">
-            <div class="port-grid"
-                 data-rows="<?= $maxRow ?>"
-                 data-cols="<?= $maxCol ?>">
-                <?php foreach ($ports as $port): ?>
-                    <?php
-                        $cssClass = 'port-card';
-                        if ($port['port_type'] === 'wan') {
-                            $cssClass .= ' port-wan';
-                        } elseif ($port['port_type'] === 'mgmt') {
-                            $cssClass .= ' port-mgmt';
-                        } elseif ($port['status'] === 'disabled') {
-                            $cssClass .= ' port-disabled';
-                        } elseif (!empty($port['device_id'])) {
-                            $cssClass .= ' port-connected';
-                        } else {
-                            $cssClass .= ' port-empty';
-                        }
-
-                        $row = max(1, (int) $port['port_row']);
-                        $col = max(1, (int) $port['port_col']);
-                    ?>
-                    <div class="<?= $cssClass ?> gr-<?= $row ?> gc-<?= $col ?>"
-                         data-href="/ports/<?= h($port['id']) ?>/edit"
-                         title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?><?= $port['device_hostname'] ? ' · ' . h($port['device_hostname']) : '' ?>">
-                        <div class="port-number"><?= h($port['port_number']) ?></div>
-                        <div class="port-type-badge"><?= h(strtoupper($port['port_type'])) ?></div>
-                        <div class="port-device">
-                            <?php if ($port['device_hostname']): ?>
-                                <?= h($port['device_hostname']) ?>
-                            <?php else: ?>
-                                <span class="port-empty-label"><?= $port['status'] === 'disabled' ? 'Disabled' : 'Empty' ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <?php if ($port['vlan_id']): ?>
-                            <div class="port-vlan">VLAN <?= h($port['vlan_id']) ?></div>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
+    </div>
+<?php else: ?>
+    <?php foreach ($devices as $device): ?>
+        <?php
+            $deviceId    = (int) $device['id'];
+            $devicePorts = $portsByDevice[$deviceId] ?? [];
+            $rows        = max(1, (int) $device['panel_rows']);
+            $cols        = max(1, (int) $device['panel_cols']);
+        ?>
+        <section class="device-panel-section">
+            <div class="device-panel-section-header">
+                <a href="/devices/<?= h($device['id']) ?>" class="device-section-label link">
+                    <?= h($device['hostname']) ?>
+                </a>
+                <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="btn btn-secondary btn-xs">
+                    Edit Ports
+                </a>
             </div>
-        </div>
 
-        <div class="port-legend">
-            <span class="legend-item"><span class="legend-dot legend-connected"></span> Connected</span>
-            <span class="legend-item"><span class="legend-dot legend-empty"></span> Empty</span>
-            <span class="legend-item"><span class="legend-dot legend-wan"></span> WAN</span>
-            <span class="legend-item"><span class="legend-dot legend-mgmt"></span> Mgmt</span>
-            <span class="legend-item"><span class="legend-dot legend-disabled"></span> Disabled</span>
-        </div>
-    <?php endif; ?>
-</section>
+            <?php if (empty($devicePorts)): ?>
+                <div class="empty-state-sm">
+                    No ports configured.
+                    <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="link">Open panel editor</a>
+                </div>
+            <?php else: ?>
+                <div class="port-grid-wrap">
+                    <div class="port-grid"
+                         data-rows="<?= $rows ?>"
+                         data-cols="<?= $cols ?>">
+                        <?php foreach ($devicePorts as $port): ?>
+                            <?php
+                                $cssClass = 'port-card';
+                                if ($port['status'] === 'disabled') {
+                                    $cssClass .= ' port-disabled';
+                                } elseif ($port['port_type'] === 'wan') {
+                                    $cssClass .= ' port-wan';
+                                } elseif ($port['port_type'] === 'mgmt') {
+                                    $cssClass .= ' port-mgmt';
+                                } else {
+                                    $cssClass .= ' port-connected';
+                                }
+                                $row = max(1, (int) $port['port_row']);
+                                $col = max(1, (int) $port['port_col']);
+                            ?>
+                            <div class="<?= $cssClass ?> gr-<?= $row ?> gc-<?= $col ?>"
+                                 data-href="/ports/<?= h($port['id']) ?>/edit"
+                                 title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?>">
+                                <div class="port-number"><?= h($port['port_number']) ?></div>
+                                <div class="port-type-badge"><?= h(strtoupper($port['port_type'])) ?></div>
+                                <div class="port-device">
+                                    <?php if ($port['label']): ?>
+                                        <?= h($port['label']) ?>
+                                    <?php elseif ($port['status'] === 'disabled'): ?>
+                                        <span class="port-empty-label">Disabled</span>
+                                    <?php else: ?>
+                                        <span class="port-empty-label">&nbsp;</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($port['vlan_id']): ?>
+                                    <div class="port-vlan">VLAN <?= h($port['vlan_id']) ?></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </section>
+    <?php endforeach; ?>
+
+    <div class="port-legend">
+        <span class="legend-item"><span class="legend-dot legend-connected"></span> Active</span>
+        <span class="legend-item"><span class="legend-dot legend-wan"></span> WAN</span>
+        <span class="legend-item"><span class="legend-dot legend-mgmt"></span> Mgmt</span>
+        <span class="legend-item"><span class="legend-dot legend-disabled"></span> Disabled</span>
+    </div>
+<?php endif; ?>
