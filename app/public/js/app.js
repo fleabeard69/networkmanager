@@ -1033,10 +1033,10 @@ function initGlobalPanelEditor() {
 
 // ── Dashboard Port Connection Lines ──────────────────────────────────────────
 function initDashboardConnections() {
-    const container  = document.getElementById('dashboard-devices');
-    const svg        = document.getElementById('connections-svg');
-    const connectBtn = document.getElementById('btn-connect-ports');
-    const hint       = document.getElementById('connect-hint');
+    const container   = document.getElementById('dashboard-devices');
+    const svg         = document.getElementById('connections-svg');
+    const connectBtn  = document.getElementById('btn-connect-ports');
+    const colorPicker = document.getElementById('connect-color-picker');
     if (!container || !svg || !connectBtn) return;
 
     const csrfToken = () =>
@@ -1045,6 +1045,18 @@ function initDashboardConnections() {
     let connections    = [];
     let connectMode    = false;
     let selectedPortId = null;
+    let selectedColor  = '#388bfd';
+
+    // ── Color swatch selection ────────────────────────────────────────────
+    colorPicker?.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            colorPicker.querySelectorAll('.color-swatch').forEach(s =>
+                s.classList.remove('color-swatch-active')
+            );
+            swatch.classList.add('color-swatch-active');
+            selectedColor = swatch.dataset.color;
+        });
+    });
 
     // ── Port card center coords relative to #dashboard-devices ───────────
     function portAnchor(portId) {
@@ -1063,13 +1075,14 @@ function initDashboardConnections() {
     // ── Draw all connection lines ─────────────────────────────────────────
     function drawConnections() {
         svg.innerHTML = '';
-        // Sync SVG height to container scroll height so lines reach bottom sections
         svg.setAttribute('height', container.scrollHeight);
 
         connections.forEach(conn => {
             const a = portAnchor(conn.port_a);
             const b = portAnchor(conn.port_b);
             if (!a || !b) return;
+
+            const color = conn.color || '#388bfd';
 
             // Always draw top→bottom
             const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
@@ -1078,11 +1091,11 @@ function initDashboardConnections() {
             const cp = Math.max(30, Math.abs(y2 - y1) * 0.45);
             const d  = `M ${x1},${y1} C ${x1},${y1+cp} ${x2},${y2-cp} ${x2},${y2}`;
 
-            // Invisible wide hit-test path (clickable)
+            // Invisible wide hit-test path
             const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hit.setAttribute('d', d);
             hit.setAttribute('stroke', 'transparent');
-            hit.setAttribute('stroke-width', '14');
+            hit.setAttribute('stroke-width', '18');
             hit.setAttribute('fill', 'none');
             hit.style.cursor = 'pointer';
             hit.style.pointerEvents = 'stroke';
@@ -1093,21 +1106,21 @@ function initDashboardConnections() {
             // Visible dashed line
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('d', d);
-            path.setAttribute('stroke', 'var(--accent)');
-            path.setAttribute('stroke-width', '1.5');
-            path.setAttribute('stroke-dasharray', '5 3');
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '3');
+            path.setAttribute('stroke-dasharray', '7 4');
             path.setAttribute('fill', 'none');
-            path.setAttribute('opacity', '0.75');
+            path.setAttribute('opacity', '0.85');
             path.style.pointerEvents = 'none';
             svg.appendChild(path);
 
-            // Small dot endpoints
+            // Endpoint dots
             [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(({ x, y }) => {
                 const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 dot.setAttribute('cx', x);
                 dot.setAttribute('cy', y);
-                dot.setAttribute('r', '3');
-                dot.setAttribute('fill', 'var(--accent)');
+                dot.setAttribute('r', '4');
+                dot.setAttribute('fill', color);
                 dot.style.pointerEvents = 'none';
                 svg.appendChild(dot);
             });
@@ -1133,13 +1146,13 @@ function initDashboardConnections() {
         }
     }
 
-    // ── Toggle connect mode ───────────────────────────────────────────────
+    // ── Connect mode ──────────────────────────────────────────────────────
     function enterConnectMode() {
         connectMode    = true;
         selectedPortId = null;
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
-        if (hint) hint.style.display = '';
+        if (colorPicker) colorPicker.style.display = '';
         container.querySelectorAll('.port-card[data-port-id]').forEach(c =>
             c.classList.add('connectable')
         );
@@ -1150,7 +1163,7 @@ function initDashboardConnections() {
         selectedPortId = null;
         connectBtn.textContent = 'Connect Ports';
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
-        if (hint) hint.style.display = 'none';
+        if (colorPicker) colorPicker.style.display = 'none';
         container.querySelectorAll('.port-card').forEach(c =>
             c.classList.remove('connectable', 'conn-selected')
         );
@@ -1171,17 +1184,15 @@ function initDashboardConnections() {
         const portId = parseInt(card.dataset.portId, 10);
 
         if (selectedPortId === null) {
-            // First port selected
             selectedPortId = portId;
             card.classList.add('conn-selected');
         } else if (selectedPortId === portId) {
-            // Deselect
             selectedPortId = null;
             card.classList.remove('conn-selected');
         } else {
-            // Second port — create connection
             const portA = selectedPortId;
             const portB = portId;
+            const color = selectedColor;
             exitConnectMode();
             try {
                 const res = await fetch('/api/connections', {
@@ -1190,7 +1201,7 @@ function initDashboardConnections() {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken(),
                     },
-                    body: JSON.stringify({ port_a: portA, port_b: portB }),
+                    body: JSON.stringify({ port_a: portA, port_b: portB, color }),
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -1209,10 +1220,8 @@ function initDashboardConnections() {
         if (e.key === 'Escape' && connectMode) exitConnectMode();
     });
 
-    // Redraw on resize so lines track port positions
     window.addEventListener('resize', drawConnections);
 
-    // ── Load connections and initial draw ─────────────────────────────────
     fetch('/api/connections')
         .then(r => r.json())
         .then(data => { connections = data; drawConnections(); })

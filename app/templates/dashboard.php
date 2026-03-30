@@ -37,9 +37,25 @@ foreach ($ports as $p) {
 <?php else: ?>
     <div class="dashboard-toolbar">
         <button id="btn-connect-ports" class="btn btn-secondary btn-sm">Connect Ports</button>
-        <span class="dashboard-toolbar-hint" id="connect-hint" style="display:none">
-            Click a port to start, then click another port to connect them. Press Esc to cancel.
-        </span>
+        <div id="connect-color-picker" class="connect-color-picker" style="display:none">
+            <?php
+            $connColors = [
+                '#388bfd' => 'Blue',    '#2ea043' => 'Green',    '#d29922' => 'Amber',
+                '#da3633' => 'Red',     '#bc8cff' => 'Purple',   '#ff7b72' => 'Coral',
+                '#ffa657' => 'Orange',  '#39d353' => 'Lime',     '#79c0ff' => 'Sky',
+                '#d2a8ff' => 'Lavender','#e3b341' => 'Gold',     '#f08bb4' => 'Pink',
+                '#58a6ff' => 'Lt Blue', '#7ee787' => 'Mint',     '#c9d1d9' => 'Silver',
+                '#8b949e' => 'Gray',
+            ];
+            $first = true;
+            foreach ($connColors as $hex => $name): ?>
+                <span class="color-swatch<?= $first ? ' color-swatch-active' : '' ?>"
+                      data-color="<?= h($hex) ?>"
+                      style="background:<?= h($hex) ?>"
+                      title="<?= h($name) ?>"></span>
+            <?php $first = false; endforeach; ?>
+            <span class="connect-color-hint">Click a port, then another to connect. Esc to cancel.</span>
+        </div>
     </div>
 
     <div id="dashboard-devices">

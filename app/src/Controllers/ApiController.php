@@ -137,8 +137,18 @@ class ApiController
             $this->json(['error' => 'Two distinct valid port IDs are required.'], 422);
         }
 
+        $validColors = [
+            '#388bfd', '#2ea043', '#d29922', '#da3633', '#bc8cff', '#ff7b72',
+            '#ffa657', '#39d353', '#79c0ff', '#d2a8ff', '#e3b341', '#f08bb4',
+            '#58a6ff', '#7ee787', '#c9d1d9', '#8b949e',
+        ];
+        $color = $body['color'] ?? '#388bfd';
+        if (!in_array($color, $validColors, true)) {
+            $color = '#388bfd';
+        }
+
         try {
-            $id = $this->connectionModel->create($portA, $portB);
+            $id = $this->connectionModel->create($portA, $portB, $color);
             $this->json($this->connectionModel->find($id), 201);
         } catch (PDOException $e) {
             $msg = str_contains(strtolower($e->getMessage()), 'unique')

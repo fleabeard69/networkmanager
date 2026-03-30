@@ -34,11 +34,11 @@ class ConnectionModel
     }
 
     /** @throws PDOException on duplicate connection */
-    public function create(int $portA, int $portB): int
+    public function create(int $portA, int $portB, string $color = '#388bfd'): int
     {
         $this->db->execute(
-            'INSERT INTO port_connections (port_a, port_b) VALUES (:a, :b)',
-            [':a' => $portA, ':b' => $portB]
+            'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :color)',
+            [':a' => $portA, ':b' => $portB, ':color' => $color]
         );
         return (int) $this->db->lastInsertId();
     }
