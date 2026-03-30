@@ -228,7 +228,6 @@ function initPanelEditor() {
 
         el.appendChild(numEl);
         el.appendChild(typeEl);
-        el.appendChild(deviceEl);
 
         const isPoe = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
         if (isPoe) {
@@ -238,6 +237,8 @@ function initPanelEditor() {
             poeEl.title = 'PoE Enabled';
             el.appendChild(poeEl);
         }
+
+        el.appendChild(deviceEl);
 
         el.addEventListener('click', () => openEditModal(port));
 
@@ -739,7 +740,6 @@ function initGlobalPanelEditor() {
 
         el.appendChild(numEl);
         el.appendChild(typeEl);
-        el.appendChild(labelEl);
 
         const isPoe = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
         if (isPoe) {
@@ -749,6 +749,8 @@ function initGlobalPanelEditor() {
             poeEl.title = 'PoE Enabled';
             el.appendChild(poeEl);
         }
+
+        el.appendChild(labelEl);
 
         el.addEventListener('click', () => openEditModal(port));
 

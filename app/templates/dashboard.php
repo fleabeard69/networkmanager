@@ -112,6 +112,9 @@ foreach ($ports as $p) {
                                  title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?>">
                                 <div class="port-number"><?= h($port['port_number']) ?></div>
                                 <div class="port-type-badge"><?= h(strtoupper($port['port_type'])) ?></div>
+                                <?php if ($port['poe_enabled']): ?>
+                                    <span class="port-poe-badge" title="PoE Enabled">⚡</span>
+                                <?php endif; ?>
                                 <div class="port-device">
                                     <?php if ($port['label']): ?>
                                         <?= h($port['label']) ?>
@@ -123,9 +126,6 @@ foreach ($ports as $p) {
                                 </div>
                                 <?php if ($port['vlan_id']): ?>
                                     <div class="port-vlan">VLAN <?= h($port['vlan_id']) ?></div>
-                                <?php endif; ?>
-                                <?php if ($port['poe_enabled']): ?>
-                                    <span class="port-poe-badge" title="PoE Enabled">⚡</span>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
