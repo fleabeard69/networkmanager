@@ -124,6 +124,9 @@ foreach ($ports as $p) {
                                 <?php if ($port['vlan_id']): ?>
                                     <div class="port-vlan">VLAN <?= h($port['vlan_id']) ?></div>
                                 <?php endif; ?>
+                                <?php if ($port['poe_enabled']): ?>
+                                    <span class="port-poe-badge" title="PoE Enabled">⚡</span>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
