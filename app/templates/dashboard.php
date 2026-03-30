@@ -51,7 +51,6 @@ foreach ($ports as $p) {
             foreach ($connColors as $hex => $name): ?>
                 <span class="color-swatch<?= $first ? ' color-swatch-active' : '' ?>"
                       data-color="<?= h($hex) ?>"
-                      style="background:<?= h($hex) ?>"
                       title="<?= h($name) ?>"></span>
             <?php $first = false; endforeach; ?>
             <span class="connect-color-hint">Click a port, then another to connect. Esc to cancel.</span>

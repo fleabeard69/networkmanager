@@ -1047,8 +1047,11 @@ function initDashboardConnections() {
     let selectedPortId = null;
     let selectedColor  = '#388bfd';
 
-    // ── Color swatch selection ────────────────────────────────────────────
+    // ── Color swatch setup ────────────────────────────────────────────────
     colorPicker?.querySelectorAll('.color-swatch').forEach(swatch => {
+        // Apply background via JS (avoids CSP restrictions on HTML inline styles)
+        swatch.style.backgroundColor = swatch.dataset.color;
+
         swatch.addEventListener('click', () => {
             colorPicker.querySelectorAll('.color-swatch').forEach(s =>
                 s.classList.remove('color-swatch-active')
