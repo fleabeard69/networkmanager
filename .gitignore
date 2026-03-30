@@ -1,5 +1,4 @@
 .env
-db/data/
 
 # Ignore swag runtime data but keep proxy-confs tracked
 swag/*

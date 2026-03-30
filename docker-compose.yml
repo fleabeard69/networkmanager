@@ -68,7 +68,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
     volumes:
-      - ./db/data:/var/lib/postgresql/data
+      - netmanager_db:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -82,3 +82,6 @@ services:
 networks:
   netmanager_net:
     driver: bridge
+
+volumes:
+  netmanager_db:
