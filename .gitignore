@@ -1,5 +1,10 @@
 .env
 db/data/
-swag/
+
+# Ignore swag runtime data but keep proxy-confs tracked
+swag/*
 !swag/nginx/
+swag/nginx/*
 !swag/nginx/proxy-confs/
+swag/nginx/proxy-confs/*
+!swag/nginx/proxy-confs/*.conf
