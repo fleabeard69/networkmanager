@@ -35,7 +35,15 @@ foreach ($ports as $p) {
         </div>
     </div>
 <?php else: ?>
+    <div class="dashboard-toolbar">
+        <button id="btn-connect-ports" class="btn btn-secondary btn-sm">Connect Ports</button>
+        <span class="dashboard-toolbar-hint" id="connect-hint" style="display:none">
+            Click a port to start, then click another port to connect them. Press Esc to cancel.
+        </span>
+    </div>
+
     <div id="dashboard-devices">
+    <svg id="connections-svg" aria-hidden="true"></svg>
     <?php foreach ($devices as $device): ?>
         <?php
             $deviceId    = (int) $device['id'];
@@ -85,6 +93,7 @@ foreach ($ports as $p) {
                             ?>
                             <div class="<?= $cssClass ?> gr-<?= $row ?> gc-<?= $col ?>"
                                  data-href="/ports/<?= h($port['id']) ?>/edit"
+                                 data-port-id="<?= h($port['id']) ?>"
                                  title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?>">
                                 <div class="port-number"><?= h($port['port_number']) ?></div>
                                 <div class="port-type-badge"><?= h(strtoupper($port['port_type'])) ?></div>

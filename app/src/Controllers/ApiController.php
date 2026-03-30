@@ -5,7 +5,8 @@ class ApiController
 {
     public function __construct(
         private PortModel $portModel,
-        private DeviceModel $deviceModel
+        private DeviceModel $deviceModel,
+        private ?ConnectionModel $connectionModel = null
     ) {}
 
     // ── GET /api/ports ────────────────────────────────────────────────────
@@ -115,6 +116,50 @@ class ApiController
 
         $this->deviceModel->updatePanelDims($id, $rows, $cols);
         $this->json($this->deviceModel->find($id));
+    }
+
+    // ── GET /api/connections ──────────────────────────────────────────────
+    public function listConnections(): void
+    {
+        $this->json($this->connectionModel->all());
+    }
+
+    // ── POST /api/connections ─────────────────────────────────────────────
+    public function createConnection(): void
+    {
+        $this->verifyCsrf();
+
+        $body  = $this->body();
+        $portA = filter_var($body['port_a'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $portB = filter_var($body['port_b'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        if ($portA === false || $portB === false || $portA === $portB) {
+            $this->json(['error' => 'Two distinct valid port IDs are required.'], 422);
+        }
+
+        try {
+            $id = $this->connectionModel->create($portA, $portB);
+            $this->json($this->connectionModel->find($id), 201);
+        } catch (PDOException $e) {
+            $msg = str_contains(strtolower($e->getMessage()), 'unique')
+                ? 'These ports are already connected.'
+                : 'Database error.';
+            $this->json(['error' => $msg], 409);
+        }
+    }
+
+    // ── DELETE /api/connections/{id} ──────────────────────────────────────
+    public function deleteConnection(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $conn = $this->connectionModel->find($id);
+        if (!$conn) {
+            $this->json(['error' => 'Connection not found.'], 404);
+        }
+
+        $this->connectionModel->delete($id);
+        $this->json(['deleted' => true]);
     }
 
     // ── PATCH /api/devices/reorder ────────────────────────────────────────

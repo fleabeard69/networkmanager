@@ -10,6 +10,7 @@ require APP_ROOT . '/src/Helpers/Auth.php';
 require APP_ROOT . '/src/Helpers/Csrf.php';
 require APP_ROOT . '/src/Models/PortModel.php';
 require APP_ROOT . '/src/Models/DeviceModel.php';
+require APP_ROOT . '/src/Models/ConnectionModel.php';
 require APP_ROOT . '/src/Controllers/AuthController.php';
 require APP_ROOT . '/src/Controllers/DashboardController.php';
 require APP_ROOT . '/src/Controllers/PortController.php';
@@ -71,8 +72,9 @@ if (!$auth->check()) {
 }
 
 // ── Authenticated models ──────────────────────────────────────────────────────
-$portModel   = new PortModel($db);
-$deviceModel = new DeviceModel($db);
+$portModel       = new PortModel($db);
+$deviceModel     = new DeviceModel($db);
+$connectionModel = new ConnectionModel($db);
 
 // ── Router ────────────────────────────────────────────────────────────────────
 switch (true) {
@@ -93,6 +95,18 @@ switch (true) {
 
     case $path === '/api/devices' && $method === 'GET':
         (new ApiController($portModel, $deviceModel))->listDevices();
+        break;
+
+    case $path === '/api/connections' && $method === 'GET':
+        (new ApiController($portModel, $deviceModel, $connectionModel))->listConnections();
+        break;
+
+    case $path === '/api/connections' && $method === 'POST':
+        (new ApiController($portModel, $deviceModel, $connectionModel))->createConnection();
+        break;
+
+    case preg_match('#^/api/connections/(\d+)$#', $path, $m) && $method === 'DELETE':
+        (new ApiController($portModel, $deviceModel, $connectionModel))->deleteConnection((int) $m[1]);
         break;
 
     case $path === '/api/devices/reorder' && $method === 'PATCH':

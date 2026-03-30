@@ -70,6 +70,15 @@ CREATE TABLE service_ports (
     UNIQUE (device_id, protocol, port_number)
 );
 
+-- ── Port Connections ─────────────────────────────────────────────────────────
+-- Records a physical cable connection between two switch ports on any devices.
+CREATE TABLE port_connections (
+    id     SERIAL  PRIMARY KEY,
+    port_a INTEGER NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
+    port_b INTEGER NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
+    CHECK (port_a <> port_b)
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 CREATE INDEX idx_switch_ports_layout      ON switch_ports(port_row, port_col);
 CREATE INDEX idx_switch_ports_device_id   ON switch_ports(device_id);
@@ -78,3 +87,7 @@ CREATE INDEX idx_service_ports_device_id  ON service_ports(device_id);
 
 -- Only one primary IP per device, enforced at the database level
 CREATE UNIQUE INDEX idx_one_primary_ip ON ip_assignments(device_id) WHERE is_primary = TRUE;
+
+-- Prevent duplicate connections regardless of which port is A or B
+CREATE UNIQUE INDEX idx_port_connections_pair
+    ON port_connections (LEAST(port_a, port_b), GREATEST(port_a, port_b));

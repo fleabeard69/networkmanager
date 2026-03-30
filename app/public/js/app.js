@@ -90,6 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Dashboard device reorder ──────────────────────────────────────────
     initDashboardReorder();
 
+    // ── Dashboard port connection lines ───────────────────────────────────
+    initDashboardConnections();
+
 });
 
 // ── Panel Editor Module ───────────────────────────────────────────────────
@@ -1026,6 +1029,194 @@ function initGlobalPanelEditor() {
     loadData().catch(err => {
         container.innerHTML = `<p style="color:var(--red);padding:16px">Failed to load: ${err.message}</p>`;
     });
+}
+
+// ── Dashboard Port Connection Lines ──────────────────────────────────────────
+function initDashboardConnections() {
+    const container  = document.getElementById('dashboard-devices');
+    const svg        = document.getElementById('connections-svg');
+    const connectBtn = document.getElementById('btn-connect-ports');
+    const hint       = document.getElementById('connect-hint');
+    if (!container || !svg || !connectBtn) return;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    let connections    = [];
+    let connectMode    = false;
+    let selectedPortId = null;
+
+    // ── Port card center coords relative to #dashboard-devices ───────────
+    function portAnchor(portId) {
+        const el = container.querySelector(`[data-port-id="${portId}"]`);
+        if (!el) return null;
+        const pr = el.getBoundingClientRect();
+        const cr = container.getBoundingClientRect();
+        return {
+            cx:  pr.left - cr.left + pr.width  / 2,
+            top: pr.top  - cr.top,
+            bot: pr.top  - cr.top + pr.height,
+            mid: pr.top  - cr.top + pr.height  / 2,
+        };
+    }
+
+    // ── Draw all connection lines ─────────────────────────────────────────
+    function drawConnections() {
+        svg.innerHTML = '';
+        // Sync SVG height to container scroll height so lines reach bottom sections
+        svg.setAttribute('height', container.scrollHeight);
+
+        connections.forEach(conn => {
+            const a = portAnchor(conn.port_a);
+            const b = portAnchor(conn.port_b);
+            if (!a || !b) return;
+
+            // Always draw top→bottom
+            const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
+            const x1 = top.cx, y1 = top.bot;
+            const x2 = bot.cx, y2 = bot.top;
+            const cp = Math.max(30, Math.abs(y2 - y1) * 0.45);
+            const d  = `M ${x1},${y1} C ${x1},${y1+cp} ${x2},${y2-cp} ${x2},${y2}`;
+
+            // Invisible wide hit-test path (clickable)
+            const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            hit.setAttribute('d', d);
+            hit.setAttribute('stroke', 'transparent');
+            hit.setAttribute('stroke-width', '14');
+            hit.setAttribute('fill', 'none');
+            hit.style.cursor = 'pointer';
+            hit.style.pointerEvents = 'stroke';
+            hit.title = 'Click to remove this connection';
+            hit.addEventListener('click', () => removeConnection(conn));
+            svg.appendChild(hit);
+
+            // Visible dashed line
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', 'var(--accent)');
+            path.setAttribute('stroke-width', '1.5');
+            path.setAttribute('stroke-dasharray', '5 3');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('opacity', '0.75');
+            path.style.pointerEvents = 'none';
+            svg.appendChild(path);
+
+            // Small dot endpoints
+            [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(({ x, y }) => {
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('cx', x);
+                dot.setAttribute('cy', y);
+                dot.setAttribute('r', '3');
+                dot.setAttribute('fill', 'var(--accent)');
+                dot.style.pointerEvents = 'none';
+                svg.appendChild(dot);
+            });
+        });
+    }
+
+    // ── Remove a connection ───────────────────────────────────────────────
+    async function removeConnection(conn) {
+        const labelA = conn.port_a_label || `Port ${conn.port_a_number}`;
+        const labelB = conn.port_b_label || `Port ${conn.port_b_number}`;
+        if (!window.confirm(`Remove connection between ${labelA} and ${labelB}?`)) return;
+        try {
+            const res = await fetch(`/api/connections/${conn.id}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-Token': csrfToken() },
+            });
+            if (res.ok) {
+                connections = connections.filter(c => c.id !== conn.id);
+                drawConnections();
+            }
+        } catch (err) {
+            alert('Failed to remove connection: ' + err.message);
+        }
+    }
+
+    // ── Toggle connect mode ───────────────────────────────────────────────
+    function enterConnectMode() {
+        connectMode    = true;
+        selectedPortId = null;
+        connectBtn.textContent = 'Cancel';
+        connectBtn.classList.replace('btn-secondary', 'btn-warning');
+        if (hint) hint.style.display = '';
+        container.querySelectorAll('.port-card[data-port-id]').forEach(c =>
+            c.classList.add('connectable')
+        );
+    }
+
+    function exitConnectMode() {
+        connectMode    = false;
+        selectedPortId = null;
+        connectBtn.textContent = 'Connect Ports';
+        connectBtn.classList.replace('btn-warning', 'btn-secondary');
+        if (hint) hint.style.display = 'none';
+        container.querySelectorAll('.port-card').forEach(c =>
+            c.classList.remove('connectable', 'conn-selected')
+        );
+    }
+
+    connectBtn.addEventListener('click', () => {
+        connectMode ? exitConnectMode() : enterConnectMode();
+    });
+
+    // ── Port click in connect mode (capture phase to block navigation) ────
+    container.addEventListener('click', async e => {
+        if (!connectMode) return;
+        const card = e.target.closest('.port-card[data-port-id]');
+        if (!card) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        const portId = parseInt(card.dataset.portId, 10);
+
+        if (selectedPortId === null) {
+            // First port selected
+            selectedPortId = portId;
+            card.classList.add('conn-selected');
+        } else if (selectedPortId === portId) {
+            // Deselect
+            selectedPortId = null;
+            card.classList.remove('conn-selected');
+        } else {
+            // Second port — create connection
+            const portA = selectedPortId;
+            const portB = portId;
+            exitConnectMode();
+            try {
+                const res = await fetch('/api/connections', {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken(),
+                    },
+                    body: JSON.stringify({ port_a: portA, port_b: portB }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || 'Failed to create connection.');
+                } else {
+                    connections.push(data);
+                    drawConnections();
+                }
+            } catch (err) {
+                alert('Failed to create connection: ' + err.message);
+            }
+        }
+    }, true); // capture phase
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && connectMode) exitConnectMode();
+    });
+
+    // Redraw on resize so lines track port positions
+    window.addEventListener('resize', drawConnections);
+
+    // ── Load connections and initial draw ─────────────────────────────────
+    fetch('/api/connections')
+        .then(r => r.json())
+        .then(data => { connections = data; drawConnections(); })
+        .catch(err => console.error('Failed to load connections:', err));
 }
 
 // ── Dashboard Device Reorder ──────────────────────────────────────────────────
