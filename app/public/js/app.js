@@ -38,6 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // ── Switch panel grid sizing ──────────────────────────────────────────
+    // Reads data-rows / data-cols from the grid container and sets
+    // grid-template-columns / grid-template-rows so the panel matches
+    // the exact physical dimensions of the switch.
+    const portGrid = document.querySelector('.port-grid[data-cols]');
+    if (portGrid) {
+        const cols = parseInt(portGrid.dataset.cols, 10) || 1;
+        const rows = parseInt(portGrid.dataset.rows, 10) || 1;
+        portGrid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
+        portGrid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
+    }
+
     // ── Port card navigation ──────────────────────────────────────────────
     // Clicking a port card navigates to its edit page.
     // data-href="/ports/{id}/edit"

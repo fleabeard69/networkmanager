@@ -11,7 +11,7 @@ class PortModel
             'SELECT p.*, d.hostname AS device_hostname, d.device_type AS device_type
              FROM switch_ports p
              LEFT JOIN devices d ON d.id = p.device_id
-             ORDER BY p.port_number'
+             ORDER BY p.port_row, p.port_col, p.port_number'
         );
     }
 
@@ -33,8 +33,8 @@ class PortModel
     {
         $this->db->execute(
             'INSERT INTO switch_ports
-             (port_number, label, port_type, speed, poe_enabled, vlan_id, status, device_id, notes)
-             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes)',
+             (port_number, label, port_type, speed, poe_enabled, vlan_id, status, device_id, notes, port_row, port_col)
+             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes, :row, :col)',
             [
                 ':num'    => $data['port_number'],
                 ':label'  => $data['label'],
@@ -45,6 +45,8 @@ class PortModel
                 ':status' => $data['status'],
                 ':dev'    => $data['device_id'],
                 ':notes'  => $data['notes'],
+                ':row'    => $data['port_row'],
+                ':col'    => $data['port_col'],
             ]
         );
         return (int) $this->db->lastInsertId();
@@ -66,6 +68,8 @@ class PortModel
              status      = :status,
              device_id   = :dev,
              notes       = :notes,
+             port_row    = :row,
+             port_col    = :col,
              updated_at  = NOW()
              WHERE id = :id',
             [
@@ -78,6 +82,8 @@ class PortModel
                 ':status' => $data['status'],
                 ':dev'    => $data['device_id'],
                 ':notes'  => $data['notes'],
+                ':row'    => $data['port_row'],
+                ':col'    => $data['port_col'],
                 ':id'     => $id,
             ]
         );
@@ -92,10 +98,10 @@ class PortModel
     {
         $row = $this->db->fetchOne(
             "SELECT
-                COUNT(*)                                        AS total,
-                COUNT(device_id)                               AS in_use,
-                COUNT(*) FILTER (WHERE status = 'disabled')   AS disabled,
-                COUNT(*) FILTER (WHERE port_type = 'wan')      AS wan
+                COUNT(*)                                       AS total,
+                COUNT(device_id)                              AS in_use,
+                COUNT(*) FILTER (WHERE status = 'disabled')  AS disabled,
+                COUNT(*) FILTER (WHERE port_type = 'wan')    AS wan
              FROM switch_ports"
         );
         return $row ?: ['total' => 0, 'in_use' => 0, 'disabled' => 0, 'wan' => 0];

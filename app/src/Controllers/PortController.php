@@ -148,6 +148,24 @@ class PortController
             }
         }
 
+        $portRow = filter_var(
+            $post['port_row'] ?? 1,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 10]]
+        );
+        if ($portRow === false) {
+            return 'Row must be between 1 and 10.';
+        }
+
+        $portCol = filter_var(
+            $post['port_col'] ?? 1,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 50]]
+        );
+        if ($portCol === false) {
+            return 'Column must be between 1 and 50.';
+        }
+
         return [
             'port_number' => $portNumber,
             'label'       => substr(trim($post['label'] ?? ''), 0, 64),
@@ -158,6 +176,8 @@ class PortController
             'status'      => $status,
             'device_id'   => $deviceId,
             'notes'       => trim($post['notes'] ?? ''),
+            'port_row'    => $portRow,
+            'port_col'    => $portCol,
         ];
     }
 

@@ -60,6 +60,24 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
         </div>
 
         <div class="form-row">
+            <div class="field-group field-group-narrow">
+                <label class="field-label" for="port_row">Panel Row <span class="required">*</span></label>
+                <input class="field-input mono" type="number" id="port_row" name="port_row"
+                       min="1" max="10" required
+                       value="<?= $val('port_row', '1') ?>">
+                <p class="field-hint">Top row = 1</p>
+            </div>
+
+            <div class="field-group field-group-narrow">
+                <label class="field-label" for="port_col">Panel Column <span class="required">*</span></label>
+                <input class="field-input mono" type="number" id="port_col" name="port_col"
+                       min="1" max="50" required
+                       value="<?= $val('port_col', '1') ?>">
+                <p class="field-hint">Left column = 1</p>
+            </div>
+        </div>
+
+        <div class="form-row">
             <div class="field-group">
                 <label class="field-label" for="vlan_id">VLAN ID</label>
                 <input class="field-input mono" type="number" id="vlan_id" name="vlan_id"
