@@ -95,6 +95,12 @@ class BackupController
             exit;
         }
 
+        if (($_FILES['backup_file']['size'] ?? 0) > 5 * 1024 * 1024) {
+            Session::flash('error', 'Backup file is too large (5 MB maximum).');
+            header('Location: /backup');
+            exit;
+        }
+
         $json = file_get_contents($_FILES['backup_file']['tmp_name']);
         $data = $json !== false ? json_decode($json, true) : null;
 
