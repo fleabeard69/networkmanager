@@ -818,7 +818,6 @@ select.field-input { cursor: pointer; }
     flex-direction: column;
     gap: 4px;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-soft);
     border-right: 1px solid var(--border-soft);
 }
 
