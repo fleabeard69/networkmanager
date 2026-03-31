@@ -9,7 +9,8 @@ class Session
             return;
         }
 
-        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $proto  = strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '');
+        $secure = $proto === 'https' || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
         session_set_cookie_params([
             'lifetime' => 0,
