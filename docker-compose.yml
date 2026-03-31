@@ -10,7 +10,7 @@ services:
       - PGID=1000
       - TZ=${TZ}
       - URL=${DOMAIN}
-      - SUBDOMAINS=
+      - SUBDOMAINS=${SUBDOMAINS}
       - VALIDATION=dns
       - CERTPROVIDER=
       - DNSPLUGIN=cloudflare
