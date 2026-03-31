@@ -298,6 +298,7 @@ a:hover { text-decoration: underline; }
     padding: 16px 20px;
     border-bottom: 1px solid var(--border);
     gap: 12px;
+    background: var(--surface-2);
 }
 
 .panel-title {
@@ -808,7 +809,7 @@ select.field-input { cursor: pointer; }
 
 .device-meta-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0;
     padding: 0;
 }
@@ -818,7 +819,7 @@ select.field-input { cursor: pointer; }
     flex-direction: column;
     gap: 4px;
     padding: 16px 20px;
-    border-right: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border);
 }
 
 .meta-item:last-child,
