@@ -1006,16 +1006,9 @@ select.field-input { cursor: pointer; }
 
 #dashboard-devices {
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    align-items: start;
-}
-
-@media (max-width: 900px) {
-    #dashboard-devices {
-        grid-template-columns: 1fr;
-    }
 }
 
 #connections-svg {
