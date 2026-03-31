@@ -11,7 +11,6 @@ $name  = getenv('DB_NAME');
 $user  = getenv('DB_USER');
 $pass  = getenv('DB_PASS');
 $admin = getenv('ADMIN_USER') ?: 'admin';
-$pw    = getenv('ADMIN_PASS') ?: 'changeme';
 
 $dsn = "pgsql:host={$host};dbname={$name}";
 
@@ -33,6 +32,12 @@ for ($i = 1; $i <= $maxAttempts; $i++) {
 
 $count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 if ($count === 0) {
+    $pw = getenv('ADMIN_PASS');
+    if ($pw === false || $pw === '') {
+        fwrite(STDERR, "[bootstrap] Error: ADMIN_PASS is required for initial setup but is not set.\n");
+        fwrite(STDERR, "[bootstrap] Set ADMIN_PASS in your .env file and restart the container.\n");
+        exit(1);
+    }
     $hash = password_hash($pw, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (:u, :p)");
     $stmt->execute([':u' => $admin, ':p' => $hash]);
