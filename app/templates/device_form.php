@@ -60,6 +60,13 @@ $deviceTypes = [
         </div>
 
         <div class="field-group">
+            <label class="field-label" for="panel_rear_rows">Rear Panel Rows</label>
+            <input class="field-input" type="number" id="panel_rear_rows" name="panel_rear_rows"
+                   min="0" max="10" value="<?= $val('panel_rear_rows', 0) ?>">
+            <p class="field-hint">Set to 0 if the device has no rear-facing ports. Front rows are configured in the panel editor.</p>
+        </div>
+
+        <div class="field-group">
             <label class="field-label" for="notes">Notes</label>
             <textarea class="field-input" id="notes" name="notes" rows="3"
                       placeholder="Any additional notes about this device…"><?= $val('notes') ?></textarea>

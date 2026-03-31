@@ -108,6 +108,7 @@ function initPanelEditor() {
     let ports      = [];
     let devices    = [];
     let rows       = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
+    let rearRows   = parseInt(document.getElementById('ctrl-rear-rows')?.value ?? '0', 10) || 0;
     let cols       = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
     let editId     = null;   // null = create mode, number = edit mode
     let createRow  = 1;
@@ -136,6 +137,7 @@ function initPanelEditor() {
     const mPoe          = document.getElementById('m-poe');
     const mNotes        = document.getElementById('m-notes');
     const ctrlRows      = document.getElementById('ctrl-rows');
+    const ctrlRearRows  = document.getElementById('ctrl-rear-rows');
     const ctrlCols      = document.getElementById('ctrl-cols');
     const btnApply      = document.getElementById('btn-apply-dims');
 
@@ -190,6 +192,7 @@ function initPanelEditor() {
             map[p.port_row][p.port_col] = p;
         });
 
+        // Front grid
         grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
         grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
         grid.innerHTML = '';
@@ -200,13 +203,49 @@ function initPanelEditor() {
                 grid.appendChild(port ? makePortCard(port) : makeEmptyCell(r, c));
             }
         }
+
+        // Rear panel — rebuild labels and rear grid
+        const gridWrap = grid.parentElement;
+        gridWrap.querySelectorAll('.panel-face-label, .rear-panel-section').forEach(el => el.remove());
+
+        if (rearRows > 0) {
+            const frontLabel = document.createElement('div');
+            frontLabel.className = 'panel-face-label';
+            frontLabel.textContent = 'Front';
+            gridWrap.insertBefore(frontLabel, grid);
+
+            const rearSection = document.createElement('div');
+            rearSection.className = 'rear-panel-section';
+
+            const rearLabel = document.createElement('div');
+            rearLabel.className = 'panel-face-label panel-face-label-rear';
+            rearLabel.textContent = 'Rear';
+
+            const rearGrid = document.createElement('div');
+            rearGrid.className = 'port-grid';
+            rearGrid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
+            rearGrid.style.gridTemplateRows    = `repeat(${rearRows}, auto)`;
+
+            for (let r = rows + 1; r <= rows + rearRows; r++) {
+                for (let c = 1; c <= cols; c++) {
+                    const port = map[r]?.[c];
+                    rearGrid.appendChild(port
+                        ? makePortCard(port, rows)
+                        : makeEmptyCell(r, c, rows));
+                }
+            }
+
+            rearSection.appendChild(rearLabel);
+            rearSection.appendChild(rearGrid);
+            gridWrap.appendChild(rearSection);
+        }
     }
 
     // ── Build a port card element ─────────────────────────────────────────
-    function makePortCard(port) {
+    function makePortCard(port, rowOffset = 0) {
         const el = document.createElement('div');
         el.className  = 'port-card ' + portColorClass(port);
-        el.style.gridRow    = port.port_row;
+        el.style.gridRow    = port.port_row - rowOffset;
         el.style.gridColumn = port.port_col;
         el.draggable  = true;
         el.dataset.portId = port.id;
@@ -269,10 +308,10 @@ function initPanelEditor() {
     }
 
     // ── Build an empty cell element ───────────────────────────────────────
-    function makeEmptyCell(r, c) {
+    function makeEmptyCell(r, c, rowOffset = 0) {
         const el = document.createElement('div');
         el.className = 'port-cell-empty';
-        el.style.gridRow    = r;
+        el.style.gridRow    = r - rowOffset;
         el.style.gridColumn = c;
 
         const icon = document.createElement('span');
@@ -497,14 +536,26 @@ function initPanelEditor() {
     }
 
     // ── Grid dimension controls ───────────────────────────────────────────
-    btnApply.addEventListener('click', () => {
-        const r = parseInt(ctrlRows.value, 10);
-        const c = parseInt(ctrlCols.value, 10);
-        if (r >= 1 && r <= 10 && c >= 1 && c <= 50) {
-            rows = r;
-            cols = c;
-            renderGrid();
+    btnApply.addEventListener('click', async () => {
+        const r    = parseInt(ctrlRows.value, 10);
+        const rear = parseInt(ctrlRearRows?.value ?? '0', 10);
+        const c    = parseInt(ctrlCols.value, 10);
+        if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
+        if (isDeviceScoped) {
+            try {
+                await apiFetch(`/api/devices/${scopedDeviceId}/panel`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ panel_rows: r, panel_rear_rows: rear, panel_cols: c }),
+                });
+            } catch (err) {
+                alert('Failed to save dimensions: ' + err.message);
+                return;
+            }
         }
+        rows     = r;
+        rearRows = rear;
+        cols     = c;
+        renderGrid();
     });
 
     // ── Modal button events ───────────────────────────────────────────────
@@ -613,9 +664,10 @@ function initGlobalPanelEditor() {
 
     // ── Build one device section ──────────────────────────────────────────
     function makeDeviceSection(device) {
-        const rows  = device.panel_rows || 2;
-        const cols  = device.panel_cols || 28;
-        const dPorts = portsForDevice(device.id);
+        const rows     = device.panel_rows      || 2;
+        const rearRows = device.panel_rear_rows || 0;
+        const cols     = device.panel_cols      || 28;
+        const dPorts   = portsForDevice(device.id);
 
         const section = document.createElement('div');
         section.className    = 'device-panel-section';
@@ -636,7 +688,7 @@ function initGlobalPanelEditor() {
 
         const rowLabel = document.createElement('label');
         rowLabel.className   = 'panel-ctrl-label';
-        rowLabel.textContent = 'Rows';
+        rowLabel.textContent = 'Front Rows';
 
         const rowInput = document.createElement('input');
         rowInput.type      = 'number';
@@ -644,6 +696,17 @@ function initGlobalPanelEditor() {
         rowInput.min       = '1';
         rowInput.max       = '10';
         rowInput.value     = rows;
+
+        const rearRowLabel = document.createElement('label');
+        rearRowLabel.className   = 'panel-ctrl-label';
+        rearRowLabel.textContent = 'Rear Rows';
+
+        const rearRowInput = document.createElement('input');
+        rearRowInput.type      = 'number';
+        rearRowInput.className = 'field-input panel-ctrl-input';
+        rearRowInput.min       = '0';
+        rearRowInput.max       = '10';
+        rearRowInput.value     = rearRows;
 
         const colLabel = document.createElement('label');
         colLabel.className   = 'panel-ctrl-label';
@@ -660,17 +723,18 @@ function initGlobalPanelEditor() {
         applyBtn.className   = 'btn btn-secondary btn-xs';
         applyBtn.textContent = 'Apply';
         applyBtn.addEventListener('click', async () => {
-            const r = parseInt(rowInput.value, 10);
-            const c = parseInt(colInput.value, 10);
-            if (r < 1 || r > 10 || c < 1 || c > 50) return;
+            const r    = parseInt(rowInput.value, 10);
+            const rear = parseInt(rearRowInput.value, 10);
+            const c    = parseInt(colInput.value, 10);
+            if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
             try {
                 await apiFetch(`/api/devices/${device.id}/panel`, {
                     method: 'PATCH',
-                    body:   JSON.stringify({ panel_rows: r, panel_cols: c }),
+                    body:   JSON.stringify({ panel_rows: r, panel_rear_rows: rear, panel_cols: c }),
                 });
                 const d = devices.find(x => String(x.id) === String(device.id));
-                if (d) { d.panel_rows = r; d.panel_cols = c; }
-                const newSection = makeDeviceSection({ ...device, panel_rows: r, panel_cols: c });
+                if (d) { d.panel_rows = r; d.panel_rear_rows = rear; d.panel_cols = c; }
+                const newSection = makeDeviceSection({ ...device, panel_rows: r, panel_rear_rows: rear, panel_cols: c });
                 section.replaceWith(newSection);
             } catch (err) {
                 alert('Failed to save: ' + err.message);
@@ -679,6 +743,8 @@ function initGlobalPanelEditor() {
 
         resizeWrap.appendChild(rowLabel);
         resizeWrap.appendChild(rowInput);
+        resizeWrap.appendChild(rearRowLabel);
+        resizeWrap.appendChild(rearRowInput);
         resizeWrap.appendChild(colLabel);
         resizeWrap.appendChild(colInput);
         resizeWrap.appendChild(applyBtn);
@@ -690,37 +756,55 @@ function initGlobalPanelEditor() {
         const gridWrap = document.createElement('div');
         gridWrap.className = 'port-grid-wrap';
 
-        const grid = document.createElement('div');
-        grid.className = 'port-grid';
-        grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
-        grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
-
         const map = {};
         dPorts.forEach(p => {
             if (!map[p.port_row]) map[p.port_row] = {};
             map[p.port_row][p.port_col] = p;
         });
 
-        for (let r = 1; r <= rows; r++) {
-            for (let c = 1; c <= cols; c++) {
-                const port = map[r]?.[c];
-                grid.appendChild(port
-                    ? makePortCard(port, device.id)
-                    : makeEmptyCell(device.id, r, c));
+        const buildGrid = (fromRow, toRow, rowOffset) => {
+            const g = document.createElement('div');
+            g.className = 'port-grid';
+            g.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
+            g.style.gridTemplateRows    = `repeat(${toRow - fromRow + 1}, auto)`;
+            for (let r = fromRow; r <= toRow; r++) {
+                for (let c = 1; c <= cols; c++) {
+                    const port = map[r]?.[c];
+                    g.appendChild(port
+                        ? makePortCard(port, device.id, rowOffset)
+                        : makeEmptyCell(device.id, r, c, rowOffset));
+                }
             }
+            return g;
+        };
+
+        if (rearRows > 0) {
+            const frontLabel = document.createElement('div');
+            frontLabel.className = 'panel-face-label';
+            frontLabel.textContent = 'Front';
+            gridWrap.appendChild(frontLabel);
         }
 
-        gridWrap.appendChild(grid);
+        gridWrap.appendChild(buildGrid(1, rows, 0));
+
+        if (rearRows > 0) {
+            const rearLabel = document.createElement('div');
+            rearLabel.className = 'panel-face-label panel-face-label-rear';
+            rearLabel.textContent = 'Rear';
+            gridWrap.appendChild(rearLabel);
+            gridWrap.appendChild(buildGrid(rows + 1, rows + rearRows, rows));
+        }
+
         section.appendChild(header);
         section.appendChild(gridWrap);
         return section;
     }
 
     // ── Port card ─────────────────────────────────────────────────────────
-    function makePortCard(port, deviceId) {
+    function makePortCard(port, deviceId, rowOffset = 0) {
         const el = document.createElement('div');
         el.className        = 'port-card ' + portColorClass(port);
-        el.style.gridRow    = port.port_row;
+        el.style.gridRow    = port.port_row - rowOffset;
         el.style.gridColumn = port.port_col;
         el.draggable        = true;
         el.dataset.portId   = port.id;
@@ -788,10 +872,10 @@ function initGlobalPanelEditor() {
     }
 
     // ── Empty cell ────────────────────────────────────────────────────────
-    function makeEmptyCell(deviceId, r, c) {
+    function makeEmptyCell(deviceId, r, c, rowOffset = 0) {
         const el = document.createElement('div');
         el.className        = 'port-cell-empty';
-        el.style.gridRow    = r;
+        el.style.gridRow    = r - rowOffset;
         el.style.gridColumn = c;
         el.dataset.deviceId = deviceId;
 

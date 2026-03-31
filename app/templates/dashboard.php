@@ -64,11 +64,14 @@ foreach ($ports as $p) {
             $deviceId    = (int) $device['id'];
             $devicePorts = $portsByDevice[$deviceId] ?? [];
             $rows        = max(1, (int) $device['panel_rows']);
+            $rearRows    = max(0, (int) $device['panel_rear_rows']);
             $maxCol      = 1;
             foreach ($devicePorts as $dp) {
                 $maxCol = max($maxCol, (int) $dp['port_col']);
             }
-            $cols = $maxCol;
+            $cols      = $maxCol;
+            $frontPorts = array_values(array_filter($devicePorts, fn($p) => (int)$p['port_row'] <= $rows));
+            $rearPorts  = array_values(array_filter($devicePorts, fn($p) => (int)$p['port_row'] > $rows));
         ?>
         <section class="device-panel-section" data-device-id="<?= h($deviceId) ?>">
             <div class="device-panel-section-header">
@@ -87,11 +90,12 @@ foreach ($ports as $p) {
                     <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="link">Open panel editor</a>
                 </div>
             <?php else: ?>
-                <div class="port-grid-wrap">
-                    <div class="port-grid"
-                         data-rows="<?= $rows ?>"
-                         data-cols="<?= $cols ?>">
-                        <?php foreach ($devicePorts as $port): ?>
+                <?php
+                // Reusable helper to render a grid of ports
+                $renderPortGrid = function(array $gridPorts, int $gridRows, int $gridCols, int $rowOffset) use ($h): void {
+                    ?>
+                    <div class="port-grid" data-rows="<?= $gridRows ?>" data-cols="<?= $gridCols ?>">
+                        <?php foreach ($gridPorts as $port): ?>
                             <?php
                                 $cssClass = 'port-card';
                                 if ($port['status'] === 'disabled') {
@@ -103,8 +107,8 @@ foreach ($ports as $p) {
                                 } else {
                                     $cssClass .= ' port-connected';
                                 }
-                                $row = max(1, (int) $port['port_row']);
-                                $col = max(1, (int) $port['port_col']);
+                                $row = max(1, (int)$port['port_row'] - $rowOffset);
+                                $col = max(1, (int)$port['port_col']);
                             ?>
                             <div class="<?= $cssClass ?> gr-<?= $row ?> gc-<?= $col ?>"
                                  data-href="/ports/<?= h($port['id']) ?>/edit"
@@ -130,6 +134,18 @@ foreach ($ports as $p) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php
+                };
+                ?>
+                <div class="port-grid-wrap">
+                    <?php if ($rearRows > 0): ?>
+                        <div class="panel-face-label">Front</div>
+                    <?php endif; ?>
+                    <?php $renderPortGrid($frontPorts, $rows, $cols, 0); ?>
+                    <?php if ($rearRows > 0): ?>
+                        <div class="panel-face-label panel-face-label-rear">Rear</div>
+                        <?php $renderPortGrid($rearPorts, $rearRows, $cols, $rows); ?>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </section>

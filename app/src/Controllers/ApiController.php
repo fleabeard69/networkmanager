@@ -104,17 +104,19 @@ class ApiController
             $this->json(['error' => 'Device not found.'], 404);
         }
 
-        $body = $this->body();
-        $rows = filter_var($body['panel_rows'] ?? null, FILTER_VALIDATE_INT,
-                           ['options' => ['min_range' => 1, 'max_range' => 10]]);
-        $cols = filter_var($body['panel_cols'] ?? null, FILTER_VALIDATE_INT,
-                           ['options' => ['min_range' => 1, 'max_range' => 50]]);
+        $body     = $this->body();
+        $rows     = filter_var($body['panel_rows']      ?? null, FILTER_VALIDATE_INT,
+                               ['options' => ['min_range' => 1, 'max_range' => 10]]);
+        $rearRows = filter_var($body['panel_rear_rows'] ?? 0,    FILTER_VALIDATE_INT,
+                               ['options' => ['min_range' => 0, 'max_range' => 10]]);
+        $cols     = filter_var($body['panel_cols']      ?? null, FILTER_VALIDATE_INT,
+                               ['options' => ['min_range' => 1, 'max_range' => 50]]);
 
-        if ($rows === false || $cols === false) {
-            $this->json(['error' => 'panel_rows must be 1–10 and panel_cols must be 1–50.'], 422);
+        if ($rows === false || $rearRows === false || $cols === false) {
+            $this->json(['error' => 'panel_rows must be 1–10, panel_rear_rows 0–10, panel_cols 1–50.'], 422);
         }
 
-        $this->deviceModel->updatePanelDims($id, $rows, $cols);
+        $this->deviceModel->updatePanelDims($id, $rows, $rearRows, $cols);
         $this->json($this->deviceModel->find($id));
     }
 

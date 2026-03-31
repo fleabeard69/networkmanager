@@ -276,11 +276,15 @@ class DeviceController
             $deviceType = 'unknown';
         }
 
+        $rearRows = filter_var($post['panel_rear_rows'] ?? 0, FILTER_VALIDATE_INT,
+                               ['options' => ['min_range' => 0, 'max_range' => 10]]);
+
         return [
-            'hostname'    => $hostname,
-            'mac_address' => $mac !== '' ? $mac : null,
-            'device_type' => $deviceType,
-            'notes'       => trim($post['notes'] ?? ''),
+            'hostname'        => $hostname,
+            'mac_address'     => $mac !== '' ? $mac : null,
+            'device_type'     => $deviceType,
+            'notes'           => trim($post['notes'] ?? ''),
+            'panel_rear_rows' => $rearRows !== false ? $rearRows : 0,
         ];
     }
 

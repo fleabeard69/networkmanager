@@ -312,6 +312,21 @@ a:hover { text-decoration: underline; }
     padding: 20px;
 }
 
+.panel-face-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 0 6px 2px;
+}
+
+.panel-face-label-rear {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+}
+
 .port-grid {
     display: grid;
     /* grid-template-columns and grid-template-rows are set by app.js

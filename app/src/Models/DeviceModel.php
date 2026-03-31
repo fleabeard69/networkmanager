@@ -38,11 +38,11 @@ class DeviceModel
         );
     }
 
-    public function updatePanelDims(int $id, int $rows, int $cols): void
+    public function updatePanelDims(int $id, int $rows, int $rearRows, int $cols): void
     {
         $this->db->execute(
-            'UPDATE devices SET panel_rows = :rows, panel_cols = :cols, updated_at = NOW() WHERE id = :id',
-            [':rows' => $rows, ':cols' => $cols, ':id' => $id]
+            'UPDATE devices SET panel_rows = :rows, panel_rear_rows = :rear, panel_cols = :cols, updated_at = NOW() WHERE id = :id',
+            [':rows' => $rows, ':rear' => $rearRows, ':cols' => $cols, ':id' => $id]
         );
     }
 
@@ -76,13 +76,14 @@ class DeviceModel
     public function create(array $data): int
     {
         $this->db->execute(
-            'INSERT INTO devices (hostname, mac_address, device_type, notes)
-             VALUES (:host, :mac, :type, :notes)',
+            'INSERT INTO devices (hostname, mac_address, device_type, notes, panel_rear_rows)
+             VALUES (:host, :mac, :type, :notes, :rear)',
             [
                 ':host'  => $data['hostname'],
                 ':mac'   => $data['mac_address'],
                 ':type'  => $data['device_type'],
                 ':notes' => $data['notes'],
+                ':rear'  => $data['panel_rear_rows'] ?? 0,
             ]
         );
         return (int) $this->db->lastInsertId();
@@ -92,17 +93,19 @@ class DeviceModel
     {
         $this->db->execute(
             'UPDATE devices SET
-             hostname    = :host,
-             mac_address = :mac,
-             device_type = :type,
-             notes       = :notes,
-             updated_at  = NOW()
+             hostname        = :host,
+             mac_address     = :mac,
+             device_type     = :type,
+             notes           = :notes,
+             panel_rear_rows = :rear,
+             updated_at      = NOW()
              WHERE id = :id',
             [
                 ':host'  => $data['hostname'],
                 ':mac'   => $data['mac_address'],
                 ':type'  => $data['device_type'],
                 ':notes' => $data['notes'],
+                ':rear'  => $data['panel_rear_rows'] ?? 0,
                 ':id'    => $id,
             ]
         );
