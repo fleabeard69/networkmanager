@@ -1443,6 +1443,7 @@ function initDashboardConnections() {
     });
 
     window.addEventListener('resize', drawConnections);
+    container.addEventListener('deviceReordered', drawConnections);
 
     fetch('/api/connections')
         .then(r => r.json())
@@ -1541,6 +1542,8 @@ function initDashboardReorder() {
             } catch (err) {
                 console.error('Failed to save device order:', err);
             }
+
+            container.dispatchEvent(new CustomEvent('deviceReordered'));
         });
     });
 }
