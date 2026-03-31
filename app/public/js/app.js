@@ -1106,17 +1106,18 @@ function initGlobalPanelEditor() {
 
     // ── "Apply to all devices" ────────────────────────────────────────────
     btnApplyAll?.addEventListener('click', async () => {
-        const r = parseInt(ctrlRows.value, 10);
-        const c = parseInt(ctrlCols.value, 10);
-        if (r < 1 || r > 10 || c < 1 || c > 50) return;
+        const r    = parseInt(ctrlRows.value, 10);
+        const rear = parseInt(document.getElementById('ctrl-rear-rows')?.value ?? '0', 10);
+        const c    = parseInt(ctrlCols.value, 10);
+        if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
         try {
             await Promise.all(devices.map(d =>
                 apiFetch(`/api/devices/${d.id}/panel`, {
                     method: 'PATCH',
-                    body:   JSON.stringify({ panel_rows: r, panel_cols: c }),
+                    body:   JSON.stringify({ panel_rows: r, panel_rear_rows: rear, panel_cols: c }),
                 })
             ));
-            devices.forEach(d => { d.panel_rows = r; d.panel_cols = c; });
+            devices.forEach(d => { d.panel_rows = r; d.panel_rear_rows = rear; d.panel_cols = c; });
             renderAll();
         } catch (err) {
             alert('Failed to apply: ' + err.message);

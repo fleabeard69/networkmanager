@@ -82,12 +82,12 @@ class ApiController
         $body = $this->body();
 
         $row = filter_var($body['port_row'] ?? null, FILTER_VALIDATE_INT,
-                          ['options' => ['min_range' => 1, 'max_range' => 10]]);
+                          ['options' => ['min_range' => 1, 'max_range' => 20]]);
         $col = filter_var($body['port_col'] ?? null, FILTER_VALIDATE_INT,
                           ['options' => ['min_range' => 1, 'max_range' => 50]]);
 
         if ($row === false || $col === false) {
-            $this->json(['error' => 'Invalid position (row 1–10, col 1–50).'], 422);
+            $this->json(['error' => 'Invalid position (row 1–20, col 1–50).'], 422);
         }
 
         $this->portModel->move($id, $row, $col);
@@ -307,10 +307,10 @@ class ApiController
         }
 
         $row = filter_var($body['port_row'] ?? 1, FILTER_VALIDATE_INT,
-                          ['options' => ['min_range' => 1, 'max_range' => 10]]);
+                          ['options' => ['min_range' => 1, 'max_range' => 20]]);
         $col = filter_var($body['port_col'] ?? 1, FILTER_VALIDATE_INT,
                           ['options' => ['min_range' => 1, 'max_range' => 50]]);
-        if ($row === false) return 'Row must be between 1 and 10.';
+        if ($row === false) return 'Row must be between 1 and 20.';
         if ($col === false) return 'Column must be between 1 and 50.';
 
         return [

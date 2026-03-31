@@ -40,7 +40,7 @@ CREATE TABLE switch_ports (
                     CHECK (status IN ('active', 'disabled', 'unknown')),
     device_id   INTEGER     REFERENCES devices(id) ON DELETE SET NULL,
     notes       TEXT        NOT NULL DEFAULT '',
-    port_row    INTEGER     NOT NULL DEFAULT 1 CHECK (port_row BETWEEN 1 AND 10),
+    port_row    INTEGER     NOT NULL DEFAULT 1 CHECK (port_row BETWEEN 1 AND 20),
     port_col    INTEGER     NOT NULL DEFAULT 1 CHECK (port_col BETWEEN 1 AND 50),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (device_id, port_number)
