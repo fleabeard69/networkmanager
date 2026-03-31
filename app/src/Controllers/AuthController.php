@@ -69,13 +69,15 @@ class AuthController
     }
 
     /**
-     * Resolves the real client IP from the SWAG/nginx proxy chain.
-     * Trusts X-Real-IP set by nginx, falls back to REMOTE_ADDR for direct access.
-     * Returns '0.0.0.0' if the resolved value is not a valid IP.
+     * Returns the client IP for rate limiting.
+     * nginx resolves $remote_addr via the real_ip_module (trusting X-Real-IP only
+     * from SWAG's known static IP), so REMOTE_ADDR is always the correct value —
+     * real client IP via SWAG, actual connecting IP for direct localhost access.
+     * Returns '0.0.0.0' if the value is not a valid IP.
      */
     private function getClientIp(): string
     {
-        $ip = $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $ip = trim($ip);
         return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '0.0.0.0';
     }

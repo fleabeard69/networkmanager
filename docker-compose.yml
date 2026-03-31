@@ -24,7 +24,8 @@ services:
       - 443:443
     restart: unless-stopped
     networks:
-      - netmanager_net
+      netmanager_net:
+        ipv4_address: 172.25.0.2
 
   nginx:
     image: nginx:1.27-alpine
@@ -83,6 +84,9 @@ services:
 networks:
   netmanager_net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24
 
 volumes:
   netmanager_db:
