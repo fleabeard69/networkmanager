@@ -277,14 +277,6 @@ function initPanelEditor() {
             el.appendChild(poeEl);
         }
 
-        if (port.port_type === 'sfp' || port.port_type === 'sfp+') {
-            const sfpEl = document.createElement('span');
-            sfpEl.className = 'port-sfp-badge';
-            sfpEl.textContent = '◈';
-            sfpEl.title = port.port_type.toUpperCase() + ' Module';
-            el.appendChild(sfpEl);
-        }
-
         el.appendChild(deviceEl);
 
         el.addEventListener('click', () => openEditModal(port));
@@ -840,14 +832,6 @@ function initGlobalPanelEditor() {
             poeEl.textContent = '⚡';
             poeEl.title = 'PoE Enabled';
             el.appendChild(poeEl);
-        }
-
-        if (port.port_type === 'sfp' || port.port_type === 'sfp+') {
-            const sfpEl = document.createElement('span');
-            sfpEl.className = 'port-sfp-badge';
-            sfpEl.textContent = '◈';
-            sfpEl.title = port.port_type.toUpperCase() + ' Module';
-            el.appendChild(sfpEl);
         }
 
         el.appendChild(labelEl);
