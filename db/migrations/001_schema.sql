@@ -81,7 +81,15 @@ CREATE TABLE port_connections (
     CHECK (port_a <> port_b)
 );
 
+-- ── Login Rate Limiting ───────────────────────────────────────────────────────
+CREATE TABLE login_attempts (
+    id           BIGSERIAL    PRIMARY KEY,
+    ip_address   TEXT         NOT NULL,
+    attempted_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
+CREATE INDEX idx_login_attempts_ip_time   ON login_attempts (ip_address, attempted_at);
 CREATE INDEX idx_switch_ports_layout      ON switch_ports(port_row, port_col);
 CREATE INDEX idx_switch_ports_device_id   ON switch_ports(device_id);
 CREATE INDEX idx_ip_assignments_device_id ON ip_assignments(device_id);

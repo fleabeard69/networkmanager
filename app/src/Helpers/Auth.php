@@ -56,6 +56,38 @@ class Auth
         Session::destroy();
     }
 
+    /** Returns true if this IP has reached the failed-attempt threshold. */
+    public function isRateLimited(string $ip): bool
+    {
+        $row = $this->db->fetchOne(
+            "SELECT COUNT(*) AS c FROM login_attempts
+             WHERE ip_address = :ip AND attempted_at > NOW() - INTERVAL '15 minutes'",
+            [':ip' => $ip]
+        );
+        return (int)($row['c'] ?? 0) >= 10;
+    }
+
+    /** Records one failed attempt for this IP and lazily purges old records. */
+    public function recordFailedAttempt(string $ip): void
+    {
+        $this->db->execute(
+            'INSERT INTO login_attempts (ip_address) VALUES (:ip)',
+            [':ip' => $ip]
+        );
+        $this->db->execute(
+            "DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '24 hours'"
+        );
+    }
+
+    /** Clears all failed attempts for this IP on successful login. */
+    public function clearFailedAttempts(string $ip): void
+    {
+        $this->db->execute(
+            'DELETE FROM login_attempts WHERE ip_address = :ip',
+            [':ip' => $ip]
+        );
+    }
+
     public function username(): string
     {
         return (string) Session::get('username', '');
