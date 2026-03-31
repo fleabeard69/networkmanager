@@ -305,8 +305,17 @@ class DeviceController
         }
 
         $subnet = trim($post['subnet'] ?? '');
-        if ($subnet !== '' && !preg_match('/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/', $subnet)) {
-            return 'Invalid subnet format. Expected: 192.168.1.0/24';
+        if ($subnet !== '') {
+            $parts      = explode('/', $subnet, 2);
+            $ipPart     = $parts[0] ?? '';
+            $prefixPart = $parts[1] ?? '';
+            $maxPrefix  = filter_var($ipPart, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 32 : 128;
+            if (count($parts) !== 2
+                || !filter_var($ipPart, FILTER_VALIDATE_IP)
+                || !ctype_digit($prefixPart)
+                || (int)$prefixPart > $maxPrefix) {
+                return 'Invalid subnet format. Expected: 192.168.1.0/24';
+            }
         }
 
         $gateway = trim($post['gateway'] ?? '');
