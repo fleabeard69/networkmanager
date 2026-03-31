@@ -328,7 +328,7 @@ class ApiController
             'vlan_id'     => $vlanId,
             'status'      => $status,
             'device_id'   => $deviceId,
-            'notes'       => trim((string)($body['notes'] ?? '')),
+            'notes'       => substr(trim((string)($body['notes'] ?? '')), 0, 1000),
             'port_row'    => $row,
             'port_col'    => $col,
         ];

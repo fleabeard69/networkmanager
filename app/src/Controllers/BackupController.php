@@ -182,7 +182,7 @@ class BackupController
                         ':h'  => $hostname,
                         ':m'  => $mac !== '' ? $mac : null,
                         ':t'  => $deviceType,
-                        ':n'  => (string)($d['notes']         ?? ''),
+                        ':n'  => substr((string)($d['notes'] ?? ''), 0, 1000),
                         ':r'  => (int)($d['panel_rows']      ?? 2),
                         ':rr' => (int)($d['panel_rear_rows'] ?? 0),
                         ':c'  => (int)($d['panel_cols']      ?? 28),
@@ -213,7 +213,7 @@ class BackupController
                         ':gw' => $ip['gateway'] ?: null,
                         ':if' => (string)($ip['interface'] ?? ''),
                         ':pr' => $ip['is_primary'] ? 'true' : 'false',
-                        ':n'  => (string)($ip['notes'] ?? ''),
+                        ':n'  => substr((string)($ip['notes'] ?? ''), 0, 1000),
                     ]
                 );
             }
@@ -239,7 +239,7 @@ class BackupController
                         ':pr' => $protocol,
                         ':pn' => (int)$s['port_number'],
                         ':sv' => (string)($s['service']     ?? ''),
-                        ':de' => (string)($s['description'] ?? ''),
+                        ':de' => substr((string)($s['description'] ?? ''), 0, 1000),
                         ':ex' => $s['is_external'] ? 'true' : 'false',
                     ]
                 );
@@ -284,7 +284,7 @@ class BackupController
                         ':pe' => $p['poe_enabled'] ? 'true' : 'false',
                         ':vl' => !empty($p['vlan_id']) ? (int)$p['vlan_id'] : null,
                         ':st' => $status,
-                        ':nt' => (string)($p['notes'] ?? ''),
+                        ':nt' => substr((string)($p['notes'] ?? ''), 0, 1000),
                         ':pr' => (int)($p['port_row'] ?? 1),
                         ':pc' => (int)($p['port_col'] ?? 1),
                     ]

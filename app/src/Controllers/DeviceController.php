@@ -291,7 +291,7 @@ class DeviceController
             'hostname'        => $hostname,
             'mac_address'     => $mac !== '' ? $mac : null,
             'device_type'     => $deviceType,
-            'notes'           => trim($post['notes'] ?? ''),
+            'notes'           => substr(trim($post['notes'] ?? ''), 0, 1000),
             'panel_rear_rows' => $rearRows !== false ? $rearRows : 0,
         ];
     }
@@ -320,7 +320,7 @@ class DeviceController
             'gateway'    => $gateway !== '' ? $gateway : null,
             'interface'  => substr(trim($post['interface'] ?? ''), 0, 32),
             'is_primary' => !empty($post['is_primary']),
-            'notes'      => trim($post['notes'] ?? ''),
+            'notes'      => substr(trim($post['notes'] ?? ''), 0, 1000),
         ];
     }
 
@@ -346,7 +346,7 @@ class DeviceController
             'protocol'    => $protocol,
             'port_number' => $portNum,
             'service'     => substr(trim($post['service'] ?? ''), 0, 64),
-            'description' => trim($post['description'] ?? ''),
+            'description' => substr(trim($post['description'] ?? ''), 0, 1000),
             'is_external' => !empty($post['is_external']),
         ];
     }
