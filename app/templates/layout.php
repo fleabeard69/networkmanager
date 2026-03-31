@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= h($title ?? 'Network Manager') ?> — Network Manager</title>
-    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="/css/app.css?v=<?= filemtime($_SERVER['DOCUMENT_ROOT'] . '/css/app.css') ?>">
     <meta name="csrf-token" content="<?= Csrf::token() ?>">
 </head>
 <body>
@@ -73,6 +73,6 @@
     <?= $content ?>
 <?php endif; ?>
 
-<script src="/js/app.js"></script>
+<script src="/js/app.js?v=<?= filemtime($_SERVER['DOCUMENT_ROOT'] . '/js/app.js') ?>"></script>
 </body>
 </html>
