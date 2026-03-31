@@ -1193,6 +1193,11 @@ function initDashboardConnections() {
         svg.innerHTML = '';
         svg.setAttribute('height', container.scrollHeight);
 
+        // Reset all port card borders to CSS default
+        container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
+            card.style.borderColor = '';
+        });
+
         const BRIDGE_R = 7;
         const f = v => v.toFixed(1);
 
@@ -1334,6 +1339,15 @@ function initDashboardConnections() {
                 dot.setAttribute('r', '4');
                 dot.setAttribute('fill', pd.color);
                 svg.appendChild(dot);
+            });
+        });
+
+        // Tint connected port card borders to match their line color
+        connections.forEach(conn => {
+            const color = conn.color || '#388bfd';
+            [conn.port_a, conn.port_b].forEach(pid => {
+                const card = container.querySelector(`[data-port-id="${pid}"]`);
+                if (card) card.style.borderColor = color;
             });
         });
     }
