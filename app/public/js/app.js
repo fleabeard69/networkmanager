@@ -1262,11 +1262,13 @@ function initDashboardConnections() {
                 while (bi < brs.length && brs[bi].dist + BRIDGE_R < arcDist) bi++;
 
                 // Insert bridges whose entry falls within this segment
+                // Sweep direction: always arc toward screen top (smaller y)
+                const sweep = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 1) : (dy >= 0 ? 1 : 0);
                 while (bi < brs.length && brs[bi].dist - BRIDGE_R < segEnd
                                        && brs[bi].dist - BRIDGE_R >= arcDist) {
                     const br = brs[bi++];
                     d += ` L${f(br.x - BRIDGE_R*dx)},${f(br.y - BRIDGE_R*dy)}`;
-                    d += ` A${BRIDGE_R},${BRIDGE_R} 0 0,0 ${f(br.x + BRIDGE_R*dx)},${f(br.y + BRIDGE_R*dy)}`;
+                    d += ` A${BRIDGE_R},${BRIDGE_R} 0 0,${sweep} ${f(br.x + BRIDGE_R*dx)},${f(br.y + BRIDGE_R*dy)}`;
                 }
 
                 d += ` L${f(p1.x)},${f(p1.y)}`;
@@ -1286,10 +1288,11 @@ function initDashboardConnections() {
             const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
             const x1 = top.cx, y1 = top.bot;
             const x2 = bot.cx, y2 = bot.top;
+            const midY = (y1 + y2) / 2;
 
             pathInfos.push({
                 conn, color, x1, y1, x2, y2,
-                pts: [{ x: x1, y: y1 }, { x: x2, y: y2 }],
+                pts: [{ x: x1, y: y1 }, { x: x1, y: midY }, { x: x2, y: midY }, { x: x2, y: y2 }],
             });
         }
 
