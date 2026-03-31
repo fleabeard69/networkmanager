@@ -97,7 +97,9 @@ class PortController
     public function delete(int $id): void
     {
         $this->verifyCsrf();
-        $this->portModel->delete($id);
+        if (!$this->portModel->delete($id)) {
+            $this->notFound('Port not found.');
+        }
         Session::flash('success', 'Port removed.');
         header('Location: /ports');
         exit;

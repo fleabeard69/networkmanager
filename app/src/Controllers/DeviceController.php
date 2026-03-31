@@ -111,7 +111,9 @@ class DeviceController
     public function delete(int $id): void
     {
         $this->verifyCsrf();
-        $this->deviceModel->delete($id);
+        if (!$this->deviceModel->delete($id)) {
+            $this->notFound('Device not found.');
+        }
         Session::flash('success', 'Device removed.');
         header('Location: /devices');
         exit;

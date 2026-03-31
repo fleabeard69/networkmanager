@@ -118,9 +118,9 @@ class DeviceModel
         );
     }
 
-    public function delete(int $id): void
+    public function delete(int $id): bool
     {
-        $this->db->execute('DELETE FROM devices WHERE id = :id', [':id' => $id]);
+        return $this->db->execute('DELETE FROM devices WHERE id = :id', [':id' => $id]) > 0;
     }
 
     // ── IP Assignments ────────────────────────────────────────────────────

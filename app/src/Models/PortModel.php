@@ -129,9 +129,9 @@ class PortModel
         );
     }
 
-    public function delete(int $id): void
+    public function delete(int $id): bool
     {
-        $this->db->execute('DELETE FROM switch_ports WHERE id = :id', [':id' => $id]);
+        return $this->db->execute('DELETE FROM switch_ports WHERE id = :id', [':id' => $id]) > 0;
     }
 
     public function stats(): array
