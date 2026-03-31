@@ -289,6 +289,7 @@ a:hover { text-decoration: underline; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .panel-header {
