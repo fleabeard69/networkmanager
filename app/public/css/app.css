@@ -1270,3 +1270,41 @@ select.field-input { cursor: pointer; }
     .form-row { flex-direction: column; }
     .field-group-narrow { flex: 1; }
 }
+
+/* ── Backup & Restore ────────────────────────────────────────────────────── */
+.backup-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 640px;
+}
+
+.backup-panel {
+    padding: 24px;
+}
+
+.backup-section-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--text);
+}
+
+.backup-desc {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+}
+
+.backup-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.backup-file-input {
+    font-size: 13px;
+    color: var(--text-dim);
+}

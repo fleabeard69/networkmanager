@@ -16,6 +16,7 @@ require APP_ROOT . '/src/Controllers/DashboardController.php';
 require APP_ROOT . '/src/Controllers/PortController.php';
 require APP_ROOT . '/src/Controllers/DeviceController.php';
 require APP_ROOT . '/src/Controllers/ApiController.php';
+require APP_ROOT . '/src/Controllers/BackupController.php';
 
 // ── View renderer ─────────────────────────────────────────────────────────────
 function render(string $template, array $data = []): void
@@ -231,6 +232,19 @@ switch (true) {
 
     case preg_match('#^/services/(\d+)/delete$#', $path, $m) && $method === 'POST':
         (new DeviceController($deviceModel, $portModel))->deleteService((int) $m[1]);
+        break;
+
+    // ── Backup & Restore ──────────────────────────────────────────────────────
+    case $path === '/backup' && $method === 'GET':
+        (new BackupController($db))->show();
+        break;
+
+    case $path === '/backup/export' && $method === 'GET':
+        (new BackupController($db))->export();
+        break;
+
+    case $path === '/backup/import' && $method === 'POST':
+        (new BackupController($db))->import();
         break;
 
     // ── 404 ───────────────────────────────────────────────────────────────────
