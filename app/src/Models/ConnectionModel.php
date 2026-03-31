@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 class ConnectionModel
 {
+    private const VALID_COLORS = [
+        '#388bfd', '#2ea043', '#d29922', '#da3633', '#bc8cff', '#ff7b72',
+        '#ffa657', '#39d353', '#79c0ff', '#d2a8ff', '#e3b341', '#f08bb4',
+        '#58a6ff', '#7ee787', '#c9d1d9', '#8b949e',
+    ];
+
     public function __construct(private Database $db) {}
 
     public function all(): array
@@ -53,6 +59,10 @@ class ConnectionModel
      */
     public function create(int $portA, int $portB, string $color = '#388bfd'): int
     {
+        if (!in_array($color, self::VALID_COLORS, true)) {
+            $color = '#388bfd';
+        }
+
         // Application-level check for a friendly error message
         $row = $this->db->fetchOne(
             'SELECT id FROM port_connections
