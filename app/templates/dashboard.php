@@ -119,6 +119,9 @@ foreach ($ports as $p) {
                                 <?php if ($port['poe_enabled']): ?>
                                     <span class="port-poe-badge" title="PoE Enabled">⚡</span>
                                 <?php endif; ?>
+                                <?php if (in_array($port['port_type'], ['sfp', 'sfp+'], true)): ?>
+                                    <span class="port-sfp-badge" title="<?= h(strtoupper($port['port_type'])) ?> Module">◈</span>
+                                <?php endif; ?>
                                 <div class="port-device">
                                     <?php if ($port['label']): ?>
                                         <?= h($port['label']) ?>
