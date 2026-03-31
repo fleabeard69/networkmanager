@@ -1366,6 +1366,7 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
         colorPicker?.classList.remove('hidden');
+        svg.classList.add('connect-mode-active');
         container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
             const pid = parseInt(card.dataset.portId, 10);
             if (occupiedPortIds.has(pid)) {
@@ -1382,6 +1383,7 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Connect Ports';
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
         colorPicker?.classList.add('hidden');
+        svg.classList.remove('connect-mode-active');
         container.querySelectorAll('.port-card').forEach(c =>
             c.classList.remove('connectable', 'conn-selected', 'conn-occupied')
         );

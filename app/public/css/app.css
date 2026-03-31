@@ -1048,6 +1048,12 @@ select.field-input { cursor: pointer; }
     pointer-events: none;
 }
 
+/* Disable connection hit areas while connect mode is active so they
+   don't intercept clicks intended for port cards underneath */
+#connections-svg.connect-mode-active .conn-hit {
+    pointer-events: none;
+}
+
 /* Device panel sections in global panel editor */
 #panel-editor-container {
     display: flex;
