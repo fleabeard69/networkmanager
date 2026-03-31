@@ -7,7 +7,9 @@ class ApiController
         private PortModel $portModel,
         private DeviceModel $deviceModel,
         private ?ConnectionModel $connectionModel = null
-    ) {}
+    ) {
+        Auth::requireLogin();
+    }
 
     // ── GET /api/ports ────────────────────────────────────────────────────
     public function listPorts(): void

@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 class BackupController
 {
-    public function __construct(private Database $db) {}
+    public function __construct(private Database $db)
+    {
+        Auth::requireLogin();
+    }
 
     // ── GET /backup ───────────────────────────────────────────────────────────
     public function show(): void

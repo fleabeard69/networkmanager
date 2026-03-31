@@ -6,7 +6,9 @@ class DeviceController
     public function __construct(
         private DeviceModel $deviceModel,
         private PortModel $portModel
-    ) {}
+    ) {
+        Auth::requireLogin();
+    }
 
     public function index(): void
     {

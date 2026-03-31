@@ -6,7 +6,9 @@ class DashboardController
     public function __construct(
         private PortModel $portModel,
         private DeviceModel $deviceModel
-    ) {}
+    ) {
+        Auth::requireLogin();
+    }
 
     public function index(): void
     {

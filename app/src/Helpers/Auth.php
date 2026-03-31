@@ -10,6 +10,25 @@ class Auth
         return (bool) Session::get('user_id');
     }
 
+    /**
+     * Abort with a 401/redirect if the session has no authenticated user.
+     * Call from controller constructors to provide defense-in-depth
+     * independent of the global gate in index.php.
+     */
+    public static function requireLogin(): void
+    {
+        if (!Session::get('user_id')) {
+            if (str_starts_with($_SERVER['REQUEST_URI'] ?? '/', '/api/')) {
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Unauthenticated']);
+                exit;
+            }
+            header('Location: /login');
+            exit;
+        }
+    }
+
     public function attempt(string $username, string $password): bool
     {
         $user = $this->db->fetchOne(
