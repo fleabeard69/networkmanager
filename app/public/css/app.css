@@ -1077,6 +1077,16 @@ select.field-input { cursor: pointer; }
     gap: 12px;
     background: var(--surface-2);
     flex-wrap: wrap;
+    cursor: grab;
+    user-select: none;
+}
+.device-panel-section-header:active {
+    cursor: grabbing;
+}
+.device-panel-section-header a,
+.device-panel-section-header button {
+    cursor: pointer;
+    user-select: auto;
 }
 
 .device-section-label {
@@ -1084,24 +1094,6 @@ select.field-input { cursor: pointer; }
     font-weight: 600;
     color: var(--text);
     min-width: 80px;
-}
-
-.drag-handle {
-    cursor: grab;
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1;
-    padding: 2px 4px;
-    border-radius: var(--radius-sm);
-    user-select: none;
-    flex-shrink: 0;
-}
-.drag-handle:hover {
-    color: var(--text-muted);
-    background: var(--surface);
-}
-.drag-handle:active {
-    cursor: grabbing;
 }
 
 .device-panel-section.dragging {

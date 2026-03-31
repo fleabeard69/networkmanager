@@ -75,8 +75,7 @@ foreach ($ports as $p) {
         ?>
         <section class="device-panel-section" data-device-id="<?= h($deviceId) ?>">
             <div class="device-panel-section-header">
-                <span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
-                <a href="/devices/<?= h($device['id']) ?>" class="device-section-label link">
+<a href="/devices/<?= h($device['id']) ?>" class="device-section-label link">
                     <?= h($device['hostname']) ?>
                 </a>
                 <a href="/devices/<?= h($device['id']) ?>/ports/panel" class="btn btn-secondary btn-xs">

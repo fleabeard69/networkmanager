@@ -1493,11 +1493,12 @@ function initDashboardReorder() {
     }
 
     getSections().forEach(section => {
-        const handle = section.querySelector('.drag-handle');
-        if (!handle) return;
+        const header = section.querySelector('.device-panel-section-header');
+        if (!header) return;
 
-        // Only allow drag when initiated from the handle
-        handle.addEventListener('mousedown', () => {
+        // Only allow drag when initiated from the header (not links/buttons inside it)
+        header.addEventListener('mousedown', e => {
+            if (e.target.closest('a, button')) return;
             section.draggable = true;
         });
 
