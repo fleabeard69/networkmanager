@@ -216,8 +216,8 @@ switch (true) {
         (new DeviceController($deviceModel, $portModel))->addIp((int) $m[1]);
         break;
 
-    case preg_match('#^/ips/(\d+)/delete$#', $path, $m) && $method === 'POST':
-        (new DeviceController($deviceModel, $portModel))->deleteIp((int) $m[1]);
+    case preg_match('#^/devices/(\d+)/ips/(\d+)/delete$#', $path, $m) && $method === 'POST':
+        (new DeviceController($deviceModel, $portModel))->deleteIp((int) $m[1], (int) $m[2]);
         break;
 
     // ── Switch Port Assignment / Unassignment ─────────────────────────────────
@@ -230,8 +230,8 @@ switch (true) {
         (new DeviceController($deviceModel, $portModel))->addService((int) $m[1]);
         break;
 
-    case preg_match('#^/services/(\d+)/delete$#', $path, $m) && $method === 'POST':
-        (new DeviceController($deviceModel, $portModel))->deleteService((int) $m[1]);
+    case preg_match('#^/devices/(\d+)/services/(\d+)/delete$#', $path, $m) && $method === 'POST':
+        (new DeviceController($deviceModel, $portModel))->deleteService((int) $m[1], (int) $m[2]);
         break;
 
     // ── Backup & Restore ──────────────────────────────────────────────────────

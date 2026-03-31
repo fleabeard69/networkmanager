@@ -121,7 +121,7 @@
                     <td><?= $ip['is_primary'] ? '<span class="badge badge-success">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
                     <td><?= $ip['notes'] ? h($ip['notes']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="actions-cell">
-                        <form method="post" action="/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
+                        <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-danger btn-xs"
                                     data-confirm="Remove <?= h($ip['ip_str']) ?>?">
@@ -309,7 +309,7 @@
                     <td><?= $svc['description'] ? h($svc['description']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= $svc['is_external'] ? '<span class="badge badge-warning">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
                     <td class="actions-cell">
-                        <form method="post" action="/services/<?= h($svc['id']) ?>/delete" class="inline-form">
+                        <form method="post" action="/devices/<?= h($device['id']) ?>/services/<?= h($svc['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-danger btn-xs"
                                     data-confirm="Remove <?= h(strtoupper($svc['protocol'])) ?>/<?= h($svc['port_number']) ?>?">

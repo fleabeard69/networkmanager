@@ -140,19 +140,15 @@ class DeviceModel
     }
 
     /**
-     * Deletes an IP assignment and returns the owning device_id, or 0 if not found.
+     * Deletes an IP assignment owned by the given device.
+     * Returns true if a row was deleted, false if not found or device mismatch.
      */
-    public function deleteIp(int $ipId): int
+    public function deleteIp(int $deviceId, int $ipId): bool
     {
-        $row = $this->db->fetchOne(
-            'SELECT device_id FROM ip_assignments WHERE id = :id',
-            [':id' => $ipId]
-        );
-        if (!$row) {
-            return 0;
-        }
-        $this->db->execute('DELETE FROM ip_assignments WHERE id = :id', [':id' => $ipId]);
-        return (int) $row['device_id'];
+        return $this->db->execute(
+            'DELETE FROM ip_assignments WHERE id = :id AND device_id = :device_id',
+            [':id' => $ipId, ':device_id' => $deviceId]
+        ) > 0;
     }
 
     // ── Service Ports ─────────────────────────────────────────────────────
@@ -182,19 +178,15 @@ class DeviceModel
     }
 
     /**
-     * Deletes a service port and returns the owning device_id, or 0 if not found.
+     * Deletes a service port owned by the given device.
+     * Returns true if a row was deleted, false if not found or device mismatch.
      */
-    public function deleteService(int $serviceId): int
+    public function deleteService(int $deviceId, int $serviceId): bool
     {
-        $row = $this->db->fetchOne(
-            'SELECT device_id FROM service_ports WHERE id = :id',
-            [':id' => $serviceId]
-        );
-        if (!$row) {
-            return 0;
-        }
-        $this->db->execute('DELETE FROM service_ports WHERE id = :id', [':id' => $serviceId]);
-        return (int) $row['device_id'];
+        return $this->db->execute(
+            'DELETE FROM service_ports WHERE id = :id AND device_id = :device_id',
+            [':id' => $serviceId, ':device_id' => $deviceId]
+        ) > 0;
     }
 
     // ── Stats ─────────────────────────────────────────────────────────────

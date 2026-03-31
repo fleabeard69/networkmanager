@@ -201,10 +201,12 @@ class DeviceController
         exit;
     }
 
-    public function deleteIp(int $ipId): void
+    public function deleteIp(int $deviceId, int $ipId): void
     {
         $this->verifyCsrf();
-        $deviceId = $this->deviceModel->deleteIp($ipId);
+        if (!$this->deviceModel->deleteIp($deviceId, $ipId)) {
+            $this->notFound('IP address not found.');
+        }
         Session::flash('success', 'IP address removed.');
         header("Location: /devices/{$deviceId}#ips");
         exit;
@@ -239,10 +241,12 @@ class DeviceController
         exit;
     }
 
-    public function deleteService(int $serviceId): void
+    public function deleteService(int $deviceId, int $serviceId): void
     {
         $this->verifyCsrf();
-        $deviceId = $this->deviceModel->deleteService($serviceId);
+        if (!$this->deviceModel->deleteService($deviceId, $serviceId)) {
+            $this->notFound('Service port not found.');
+        }
         Session::flash('success', 'Service port removed.');
         header("Location: /devices/{$deviceId}#services");
         exit;
