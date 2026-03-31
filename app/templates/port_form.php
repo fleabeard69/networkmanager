@@ -63,7 +63,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
             <div class="field-group field-group-narrow">
                 <label class="field-label" for="port_row">Panel Row <span class="required">*</span></label>
                 <input class="field-input mono" type="number" id="port_row" name="port_row"
-                       min="1" max="10" required
+                       min="1" max="20" required
                        value="<?= $val('port_row', '1') ?>">
                 <p class="field-hint">Top row = 1</p>
             </div>

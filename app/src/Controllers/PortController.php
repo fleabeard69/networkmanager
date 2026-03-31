@@ -177,10 +177,10 @@ class PortController
         $portRow = filter_var(
             $post['port_row'] ?? 1,
             FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1, 'max_range' => 10]]
+            ['options' => ['min_range' => 1, 'max_range' => 20]]
         );
         if ($portRow === false) {
-            return 'Row must be between 1 and 10.';
+            return 'Row must be between 1 and 20.';
         }
 
         $portCol = filter_var(
