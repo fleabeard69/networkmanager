@@ -243,6 +243,10 @@ class ApiController
             }
         }
 
+        if ($deviceId !== null && !$this->deviceModel->find($deviceId)) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
         $this->portModel->assign($id, $deviceId);
         $this->json($this->portModel->find($id));
     }
