@@ -1192,20 +1192,8 @@ function initDashboardConnections() {
         svg.innerHTML = '';
         svg.setAttribute('height', container.scrollHeight);
 
-        const BRIDGE_R  = 7;
-        const N_SAMPLES = 60;
+        const BRIDGE_R = 7;
         const f = v => v.toFixed(1);
-
-        // Sample a cubic bezier into N_SAMPLES+1 points
-        function sampleBezier(x1, y1, cx1, cy1, cx2, cy2, x2, y2) {
-            return Array.from({ length: N_SAMPLES + 1 }, (_, i) => {
-                const t = i / N_SAMPLES, u = 1 - t;
-                return {
-                    x: u*u*u*x1 + 3*u*u*t*cx1 + 3*u*t*t*cx2 + t*t*t*x2,
-                    y: u*u*u*y1 + 3*u*u*t*cy1 + 3*u*t*t*cy2 + t*t*t*y2,
-                };
-            });
-        }
 
         // Test two segments for intersection; returns t along segment A or null
         function segCross(ax, ay, bx, by, cx, cy, dx, dy) {
@@ -1298,11 +1286,10 @@ function initDashboardConnections() {
             const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
             const x1 = top.cx, y1 = top.bot;
             const x2 = bot.cx, y2 = bot.top;
-            const cp = Math.max(30, Math.abs(y2 - y1) * 0.45);
 
             pathInfos.push({
                 conn, color, x1, y1, x2, y2,
-                pts: sampleBezier(x1, y1, x1, y1+cp, x2, y2-cp, x2, y2),
+                pts: [{ x: x1, y: y1 }, { x: x2, y: y2 }],
             });
         }
 
