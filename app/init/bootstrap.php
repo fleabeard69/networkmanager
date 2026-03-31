@@ -47,6 +47,10 @@ if ($count === 0) {
         fwrite(STDERR, "[bootstrap] Set ADMIN_PASS in your .env file and restart the container.\n");
         exit(1);
     }
+    if ($pw === 'changeme_strong_password') {
+        fwrite(STDERR, "[bootstrap] Warning: ADMIN_PASS uses the default example value.\n");
+        fwrite(STDERR, "[bootstrap] Change it in your .env file before exposing this service.\n");
+    }
     $hash = password_hash($pw, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (:u, :p)");
     $stmt->execute([':u' => $admin, ':p' => $hash]);
