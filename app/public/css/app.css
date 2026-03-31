@@ -179,6 +179,10 @@ a:hover { text-decoration: underline; }
     white-space: nowrap;
 }
 
+.logout-form {
+    display: contents;
+}
+
 .btn-logout {
     font-size: 12px;
     color: var(--text-dim);
@@ -189,6 +193,9 @@ a:hover { text-decoration: underline; }
     transition: color var(--transition), border-color var(--transition);
     white-space: nowrap;
     flex-shrink: 0;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .btn-logout:hover {

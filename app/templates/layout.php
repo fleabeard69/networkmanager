@@ -47,7 +47,10 @@
 
         <div class="sidebar-footer">
             <span class="sidebar-user"><?= h(Session::get('username', '')) ?></span>
-            <a href="/logout" class="btn-logout">Logout</a>
+            <form method="POST" action="/logout" class="logout-form">
+                <?= Csrf::field() ?>
+                <button type="submit" class="btn-logout">Logout</button>
+            </form>
         </div>
     </nav>
 

@@ -55,6 +55,10 @@ if ($path === '/login') {
 }
 
 if ($path === '/logout') {
+    if ($method !== 'POST') {
+        header('Location: /');
+        exit;
+    }
     (new AuthController($auth))->logout();
     exit;
 }

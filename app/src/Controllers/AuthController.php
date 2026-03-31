@@ -84,6 +84,10 @@ class AuthController
 
     public function logout(): void
     {
+        if (!Csrf::verify($_POST['_csrf'] ?? null)) {
+            header('Location: /');
+            exit;
+        }
         $this->auth->logout();
         header('Location: /login');
         exit;
