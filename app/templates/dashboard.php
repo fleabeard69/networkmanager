@@ -92,7 +92,7 @@ foreach ($ports as $p) {
             <?php else: ?>
                 <?php
                 // Reusable helper to render a grid of ports
-                $renderPortGrid = function(array $gridPorts, int $gridRows, int $gridCols, int $rowOffset) use ($h): void {
+                $renderPortGrid = function(array $gridPorts, int $gridRows, int $gridCols, int $rowOffset): void {
                     ?>
                     <div class="port-grid" data-rows="<?= $gridRows ?>" data-cols="<?= $gridCols ?>">
                         <?php foreach ($gridPorts as $port): ?>
