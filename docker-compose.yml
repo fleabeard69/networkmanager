@@ -53,7 +53,7 @@ services:
       - ADMIN_PASS=${ADMIN_PASS}
       - APP_SECRET=${APP_SECRET}
     volumes:
-      - ./app:/var/www/html
+      - ./app:/var/www/html:ro
     depends_on:
       db:
         condition: service_healthy
