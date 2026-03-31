@@ -183,9 +183,9 @@ class BackupController
                         ':m'  => $mac !== '' ? $mac : null,
                         ':t'  => $deviceType,
                         ':n'  => substr((string)($d['notes'] ?? ''), 0, 1000),
-                        ':r'  => (int)($d['panel_rows']      ?? 2),
-                        ':rr' => (int)($d['panel_rear_rows'] ?? 0),
-                        ':c'  => (int)($d['panel_cols']      ?? 28),
+                        ':r'  => max(1, min(10, (int)($d['panel_rows']      ?? 2))),
+                        ':rr' => max(0, min(10, (int)($d['panel_rear_rows'] ?? 0))),
+                        ':c'  => max(1, min(50, (int)($d['panel_cols']      ?? 28))),
                         ':s'  => (int)($d['sort_order']      ?? 0),
                     ]
                 );
@@ -236,7 +236,7 @@ class BackupController
                         ':ip' => $ipAddress,
                         ':sn' => $subnet  !== '' ? $subnet  : null,
                         ':gw' => $gateway !== '' ? $gateway : null,
-                        ':if' => (string)($ip['interface'] ?? ''),
+                        ':if' => substr((string)($ip['interface'] ?? ''), 0, 32),
                         ':pr' => $ip['is_primary'] ? 'true' : 'false',
                         ':n'  => substr((string)($ip['notes'] ?? ''), 0, 1000),
                     ]
@@ -255,6 +255,13 @@ class BackupController
                     $protocol = 'tcp';
                 }
 
+                $servicePort = (int)($s['port_number'] ?? 0);
+                if ($servicePort < 1 || $servicePort > 65535) {
+                    throw new InvalidArgumentException(
+                        "Invalid service port_number \"{$servicePort}\" — must be between 1 and 65535."
+                    );
+                }
+
                 $this->db->execute(
                     'INSERT INTO service_ports
                          (device_id, protocol, port_number, service, description, is_external)
@@ -262,8 +269,8 @@ class BackupController
                     [
                         ':d'  => $newDev,
                         ':pr' => $protocol,
-                        ':pn' => (int)$s['port_number'],
-                        ':sv' => (string)($s['service']     ?? ''),
+                        ':pn' => $servicePort,
+                        ':sv' => substr((string)($s['service'] ?? ''), 0, 64),
                         ':de' => substr((string)($s['description'] ?? ''), 0, 1000),
                         ':ex' => $s['is_external'] ? 'true' : 'false',
                     ]
@@ -303,15 +310,15 @@ class BackupController
                     [
                         ':d'  => $newDev,
                         ':pn' => (int)$p['port_number'],
-                        ':lb' => (string)($p['label'] ?? ''),
+                        ':lb' => substr((string)($p['label'] ?? ''), 0, 64),
                         ':pt' => $portType,
                         ':sp' => $speed,
                         ':pe' => $p['poe_enabled'] ? 'true' : 'false',
                         ':vl' => !empty($p['vlan_id']) ? (int)$p['vlan_id'] : null,
                         ':st' => $status,
                         ':nt' => substr((string)($p['notes'] ?? ''), 0, 1000),
-                        ':pr' => (int)($p['port_row'] ?? 1),
-                        ':pc' => (int)($p['port_col'] ?? 1),
+                        ':pr' => max(1, min(20, (int)($p['port_row'] ?? 1))),
+                        ':pc' => max(1, min(50, (int)($p['port_col'] ?? 1))),
                     ]
                 );
                 $portMap[(int)$p['id']] = (int)$stmt->fetchColumn();

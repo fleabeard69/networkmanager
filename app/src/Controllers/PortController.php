@@ -205,7 +205,7 @@ class PortController
             'vlan_id'     => $vlanId,
             'status'      => $status,
             'device_id'   => $deviceId,
-            'notes'       => trim($post['notes'] ?? ''),
+            'notes'       => substr(trim($post['notes'] ?? ''), 0, 1000),
             'port_row'    => $portRow,
             'port_col'    => $portCol,
         ];
