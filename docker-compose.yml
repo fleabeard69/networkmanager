@@ -30,7 +30,7 @@ services:
     image: nginx:1.27-alpine
     container_name: netmanager_nginx
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"  # localhost only — LAN/WAN access must go through SWAG on 443
     volumes:
       - ./app/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./app/public:/var/www/html/public:ro
