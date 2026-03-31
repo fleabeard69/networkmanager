@@ -1187,26 +1187,134 @@ function initDashboardConnections() {
         };
     }
 
-    // ── Draw all connection lines ─────────────────────────────────────────
+    // ── Draw all connection lines (with bridge arcs at crossings) ────────
     function drawConnections() {
         svg.innerHTML = '';
         svg.setAttribute('height', container.scrollHeight);
 
-        connections.forEach(conn => {
+        const BRIDGE_R  = 7;
+        const N_SAMPLES = 60;
+        const f = v => v.toFixed(1);
+
+        // Sample a cubic bezier into N_SAMPLES+1 points
+        function sampleBezier(x1, y1, cx1, cy1, cx2, cy2, x2, y2) {
+            return Array.from({ length: N_SAMPLES + 1 }, (_, i) => {
+                const t = i / N_SAMPLES, u = 1 - t;
+                return {
+                    x: u*u*u*x1 + 3*u*u*t*cx1 + 3*u*t*t*cx2 + t*t*t*x2,
+                    y: u*u*u*y1 + 3*u*u*t*cy1 + 3*u*t*t*cy2 + t*t*t*y2,
+                };
+            });
+        }
+
+        // Test two segments for intersection; returns t along segment A or null
+        function segCross(ax, ay, bx, by, cx, cy, dx, dy) {
+            const ex = bx-ax, ey = by-ay, fx = dx-cx, fy = dy-cy;
+            const den = ex*fy - ey*fx;
+            if (Math.abs(den) < 1e-8) return null;
+            const gx = cx-ax, gy = cy-ay;
+            const t = (gx*fy - gy*fx) / den;
+            const u = (gx*ey - gy*ex) / den;
+            return (t > 0.02 && t < 0.98 && u > 0.02 && u < 0.98) ? t : null;
+        }
+
+        // Find arc-length positions where polyline B crosses polyline A
+        function findCrossings(ptsA, ptsB) {
+            const hits = [];
+            let dist = 0;
+            for (let i = 0; i < ptsA.length - 1; i++) {
+                const a0 = ptsA[i], a1 = ptsA[i+1];
+                const slen = Math.hypot(a1.x-a0.x, a1.y-a0.y);
+                for (let j = 0; j < ptsB.length - 1; j++) {
+                    const b0 = ptsB[j], b1 = ptsB[j+1];
+                    const t = segCross(a0.x,a0.y,a1.x,a1.y,b0.x,b0.y,b1.x,b1.y);
+                    if (t !== null)
+                        hits.push({ x: a0.x + t*(a1.x-a0.x), y: a0.y + t*(a1.y-a0.y), dist: dist + t*slen });
+                }
+                dist += slen;
+            }
+            return hits.sort((a, b) => a.dist - b.dist);
+        }
+
+        function arcLength(pts) {
+            let len = 0;
+            for (let i = 1; i < pts.length; i++)
+                len += Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
+            return len;
+        }
+
+        // Build SVG path string with semicircular bridge arcs at each crossing
+        function buildPath(pts, crossings) {
+            const total = arcLength(pts);
+            // Deduplicate and filter crossings too near endpoints or each other
+            const brs = [];
+            let lastDist = -Infinity;
+            for (const c of crossings) {
+                if (c.dist > BRIDGE_R * 2 && c.dist < total - BRIDGE_R * 2
+                        && c.dist - lastDist > BRIDGE_R * 3) {
+                    brs.push(c);
+                    lastDist = c.dist;
+                }
+            }
+
+            if (brs.length === 0)
+                return pts.map((p, i) => `${i ? 'L' : 'M'}${f(p.x)},${f(p.y)}`).join(' ');
+
+            let d = `M${f(pts[0].x)},${f(pts[0].y)}`;
+            let arcDist = 0, bi = 0;
+
+            for (let i = 1; i < pts.length; i++) {
+                const p0 = pts[i-1], p1 = pts[i];
+                const slen = Math.hypot(p1.x-p0.x, p1.y-p0.y);
+                if (slen < 0.1) { arcDist += slen; continue; }
+                const dx = (p1.x-p0.x)/slen, dy = (p1.y-p0.y)/slen;
+                const segEnd = arcDist + slen;
+
+                // Skip bridges already passed
+                while (bi < brs.length && brs[bi].dist + BRIDGE_R < arcDist) bi++;
+
+                // Insert bridges whose entry falls within this segment
+                while (bi < brs.length && brs[bi].dist - BRIDGE_R < segEnd
+                                       && brs[bi].dist - BRIDGE_R >= arcDist) {
+                    const br = brs[bi++];
+                    d += ` L${f(br.x - BRIDGE_R*dx)},${f(br.y - BRIDGE_R*dy)}`;
+                    d += ` A${BRIDGE_R},${BRIDGE_R} 0 0,0 ${f(br.x + BRIDGE_R*dx)},${f(br.y + BRIDGE_R*dy)}`;
+                }
+
+                d += ` L${f(p1.x)},${f(p1.y)}`;
+                arcDist = segEnd;
+            }
+            return d;
+        }
+
+        // Gather bezier params + sampled points for every connection
+        const pathInfos = [];
+        for (const conn of connections) {
             const a = portAnchor(conn.port_a);
             const b = portAnchor(conn.port_b);
-            if (!a || !b) return;
+            if (!a || !b) continue;
 
             const color = conn.color || '#388bfd';
-
-            // Always draw top→bottom
             const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
             const x1 = top.cx, y1 = top.bot;
             const x2 = bot.cx, y2 = bot.top;
             const cp = Math.max(30, Math.abs(y2 - y1) * 0.45);
-            const d  = `M ${x1},${y1} C ${x1},${y1+cp} ${x2},${y2-cp} ${x2},${y2}`;
 
-            // Invisible wide hit-test path
+            pathInfos.push({
+                conn, color, x1, y1, x2, y2,
+                pts: sampleBezier(x1, y1, x1, y1+cp, x2, y2-cp, x2, y2),
+            });
+        }
+
+        // Draw each path; later paths arc over earlier ones at crossings
+        pathInfos.forEach((pd, idx) => {
+            const bridges = [];
+            for (let j = 0; j < idx; j++)
+                bridges.push(...findCrossings(pd.pts, pathInfos[j].pts));
+            bridges.sort((a, b) => a.dist - b.dist);
+
+            const d = buildPath(pd.pts, bridges);
+
             const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hit.setAttribute('class', 'conn-hit');
             hit.setAttribute('d', d);
@@ -1214,28 +1322,26 @@ function initDashboardConnections() {
             hit.setAttribute('stroke-width', '18');
             hit.setAttribute('fill', 'none');
             hit.title = 'Click to remove this connection';
-            hit.addEventListener('click', () => removeConnection(conn));
+            hit.addEventListener('click', () => removeConnection(pd.conn));
             svg.appendChild(hit);
 
-            // Visible dashed line
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('class', 'conn-line');
             path.setAttribute('d', d);
-            path.setAttribute('stroke', color);
+            path.setAttribute('stroke', pd.color);
             path.setAttribute('stroke-width', '3');
             path.setAttribute('stroke-dasharray', '7 4');
             path.setAttribute('fill', 'none');
             path.setAttribute('opacity', '0.85');
             svg.appendChild(path);
 
-            // Endpoint dots
-            [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(({ x, y }) => {
+            [{ x: pd.x1, y: pd.y1 }, { x: pd.x2, y: pd.y2 }].forEach(({ x, y }) => {
                 const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 dot.setAttribute('class', 'conn-dot');
                 dot.setAttribute('cx', x);
                 dot.setAttribute('cy', y);
                 dot.setAttribute('r', '4');
-                dot.setAttribute('fill', color);
+                dot.setAttribute('fill', pd.color);
                 svg.appendChild(dot);
             });
         });
