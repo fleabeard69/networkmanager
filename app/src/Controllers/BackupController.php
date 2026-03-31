@@ -201,6 +201,31 @@ class BackupController
                 if ($ipAddress === '') {
                     throw new InvalidArgumentException('An IP assignment is missing a valid ip_address.');
                 }
+                if (!filter_var($ipAddress, FILTER_VALIDATE_IP)) {
+                    throw new InvalidArgumentException(
+                        "Invalid ip_address \"{$ipAddress}\" in an IP assignment."
+                    );
+                }
+
+                $subnet = is_string($ip['subnet'] ?? null) ? trim($ip['subnet']) : '';
+                if ($subnet !== '') {
+                    $parts = explode('/', $subnet, 2);
+                    if (count($parts) !== 2
+                        || !filter_var($parts[0], FILTER_VALIDATE_IP)
+                        || !ctype_digit($parts[1])
+                        || (int)$parts[1] > 128) {
+                        throw new InvalidArgumentException(
+                            "Invalid subnet \"{$subnet}\" in an IP assignment."
+                        );
+                    }
+                }
+
+                $gateway = is_string($ip['gateway'] ?? null) ? trim($ip['gateway']) : '';
+                if ($gateway !== '' && !filter_var($gateway, FILTER_VALIDATE_IP)) {
+                    throw new InvalidArgumentException(
+                        "Invalid gateway \"{$gateway}\" in an IP assignment."
+                    );
+                }
 
                 $this->db->execute(
                     'INSERT INTO ip_assignments
@@ -209,8 +234,8 @@ class BackupController
                     [
                         ':d'  => $newDev,
                         ':ip' => $ipAddress,
-                        ':sn' => $ip['subnet']  ?: null,
-                        ':gw' => $ip['gateway'] ?: null,
+                        ':sn' => $subnet  !== '' ? $subnet  : null,
+                        ':gw' => $gateway !== '' ? $gateway : null,
                         ':if' => (string)($ip['interface'] ?? ''),
                         ':pr' => $ip['is_primary'] ? 'true' : 'false',
                         ':n'  => substr((string)($ip['notes'] ?? ''), 0, 1000),
