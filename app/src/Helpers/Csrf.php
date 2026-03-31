@@ -8,7 +8,11 @@ class Csrf
     public static function token(): string
     {
         if (empty($_SESSION[self::SESSION_KEY])) {
-            $_SESSION[self::SESSION_KEY] = bin2hex(random_bytes(32));
+            // HMAC folds APP_SECRET into the token so rotating the secret
+            // immediately invalidates all outstanding tokens across all sessions.
+            // random_bytes(32) provides the entropy regardless of secret strength.
+            $secret = (string)(getenv('APP_SECRET') ?: '');
+            $_SESSION[self::SESSION_KEY] = hash_hmac('sha256', bin2hex(random_bytes(32)), $secret);
         }
         return $_SESSION[self::SESSION_KEY];
     }

@@ -30,6 +30,15 @@ for ($i = 1; $i <= $maxAttempts; $i++) {
     }
 }
 
+// ── APP_SECRET validation ─────────────────────────────────────────────────────
+$appSecret = getenv('APP_SECRET');
+if ($appSecret === false || $appSecret === '' || $appSecret === 'change-this-to-a-long-random-string') {
+    fwrite(STDERR, "[bootstrap] Warning: APP_SECRET is not set or uses the default example value.\n");
+    fwrite(STDERR, "[bootstrap] Set a unique random APP_SECRET in your .env file.\n");
+    fwrite(STDERR, "[bootstrap] Generate one with: openssl rand -hex 32\n");
+}
+unset($appSecret);
+
 $count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 if ($count === 0) {
     $pw = getenv('ADMIN_PASS');
