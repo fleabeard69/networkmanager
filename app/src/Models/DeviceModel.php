@@ -82,9 +82,10 @@ class DeviceModel
      */
     public function create(array $data): int
     {
-        $this->db->execute(
+        $stmt = $this->db->query(
             'INSERT INTO devices (hostname, mac_address, device_type, notes, panel_rear_rows)
-             VALUES (:host, :mac, :type, :notes, :rear)',
+             VALUES (:host, :mac, :type, :notes, :rear)
+             RETURNING id',
             [
                 ':host'  => $data['hostname'],
                 ':mac'   => $data['mac_address'],
@@ -93,7 +94,7 @@ class DeviceModel
                 ':rear'  => $data['panel_rear_rows'] ?? 0,
             ]
         );
-        return (int) $this->db->lastInsertId();
+        return (int) $stmt->fetchColumn();
     }
 
     public function update(int $id, array $data): void

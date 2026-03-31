@@ -172,11 +172,12 @@ class BackupController
                     $deviceType = 'unknown';
                 }
 
-                $this->db->execute(
+                $stmt = $this->db->query(
                     'INSERT INTO devices
                          (hostname, mac_address, device_type, notes,
                           panel_rows, panel_rear_rows, panel_cols, sort_order)
-                     VALUES (:h, :m, :t, :n, :r, :rr, :c, :s)',
+                     VALUES (:h, :m, :t, :n, :r, :rr, :c, :s)
+                     RETURNING id',
                     [
                         ':h'  => $hostname,
                         ':m'  => $mac !== '' ? $mac : null,
@@ -188,7 +189,7 @@ class BackupController
                         ':s'  => (int)($d['sort_order']      ?? 0),
                     ]
                 );
-                $deviceMap[(int)$d['id']] = (int)$this->db->lastInsertId();
+                $deviceMap[(int)$d['id']] = (int)$stmt->fetchColumn();
             }
 
             // ── IP assignments ────────────────────────────────────────────────
@@ -268,11 +269,12 @@ class BackupController
                     $speed = '1G';
                 }
 
-                $this->db->execute(
+                $stmt = $this->db->query(
                     'INSERT INTO switch_ports
                          (device_id, port_number, label, port_type, speed,
                           poe_enabled, vlan_id, status, notes, port_row, port_col)
-                     VALUES (:d, :pn, :lb, :pt, :sp, :pe, :vl, :st, :nt, :pr, :pc)',
+                     VALUES (:d, :pn, :lb, :pt, :sp, :pe, :vl, :st, :nt, :pr, :pc)
+                     RETURNING id',
                     [
                         ':d'  => $newDev,
                         ':pn' => (int)$p['port_number'],
@@ -287,7 +289,7 @@ class BackupController
                         ':pc' => (int)($p['port_col'] ?? 1),
                     ]
                 );
-                $portMap[(int)$p['id']] = (int)$this->db->lastInsertId();
+                $portMap[(int)$p['id']] = (int)$stmt->fetchColumn();
             }
 
             // ── Connections ───────────────────────────────────────────────────

@@ -43,8 +43,4 @@ class Database
         return $this->query($sql, $params)->rowCount();
     }
 
-    public function lastInsertId(): string
-    {
-        return $this->pdo->lastInsertId();
-    }
 }

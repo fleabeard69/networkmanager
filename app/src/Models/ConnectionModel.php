@@ -74,11 +74,12 @@ class ConnectionModel
             throw new RuntimeException('One of those ports is already connected.');
         }
 
-        $this->db->execute(
-            'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :color)',
+        $stmt = $this->db->query(
+            'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :color)
+             RETURNING id',
             [':a' => $portA, ':b' => $portB, ':color' => $color]
         );
-        return (int) $this->db->lastInsertId();
+        return (int) $stmt->fetchColumn();
     }
 
     public function delete(int $id): void
