@@ -111,8 +111,10 @@ class BackupController
             $cc = count($data['connections']  ?? []);
             Session::flash('success',
                 "Restore complete: {$dc} device(s), {$pc} port(s), {$cc} connection(s) imported.");
-        } catch (Throwable $e) {
+        } catch (InvalidArgumentException $e) {
             Session::flash('error', 'Import failed: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Session::flash('error', 'Import failed: a database error occurred. Please check the backup file.');
         }
 
         header('Location: /backup');
@@ -131,18 +133,46 @@ class BackupController
             $this->db->execute('DELETE FROM devices'); // cascades IPs + services
 
             // ── Devices ───────────────────────────────────────────────────────
+            $validDeviceTypes = [
+                'server', 'workstation', 'laptop', 'router', 'switch',
+                'access-point', 'nas', 'iot', 'printer', 'camera',
+                'phone', 'tv', 'game-console', 'other', 'unknown',
+            ];
+
             $deviceMap = []; // old id → new id
             foreach ($data['devices'] ?? [] as $d) {
+                $hostname = is_string($d['hostname'] ?? null) ? trim($d['hostname']) : '';
+                if ($hostname === '') {
+                    throw new InvalidArgumentException('A device is missing a valid hostname.');
+                }
+                if (strlen($hostname) > 128) {
+                    throw new InvalidArgumentException(
+                        "Device hostname \"{$hostname}\" exceeds 128 characters."
+                    );
+                }
+
+                $mac = strtoupper(trim((string)($d['mac_address'] ?? '')));
+                if ($mac !== '' && !preg_match('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+                    throw new InvalidArgumentException(
+                        "Invalid MAC address \"{$mac}\" for device \"{$hostname}\"."
+                    );
+                }
+
+                $deviceType = $d['device_type'] ?? 'unknown';
+                if (!in_array($deviceType, $validDeviceTypes, true)) {
+                    $deviceType = 'unknown';
+                }
+
                 $this->db->execute(
                     'INSERT INTO devices
                          (hostname, mac_address, device_type, notes,
                           panel_rows, panel_rear_rows, panel_cols, sort_order)
                      VALUES (:h, :m, :t, :n, :r, :rr, :c, :s)',
                     [
-                        ':h'  => $d['hostname'],
-                        ':m'  => $d['mac_address'] ?: null,
-                        ':t'  => $d['device_type']  ?? 'unknown',
-                        ':n'  => $d['notes']         ?? '',
+                        ':h'  => $hostname,
+                        ':m'  => $mac !== '' ? $mac : null,
+                        ':t'  => $deviceType,
+                        ':n'  => (string)($d['notes']         ?? ''),
                         ':r'  => (int)($d['panel_rows']      ?? 2),
                         ':rr' => (int)($d['panel_rear_rows'] ?? 0),
                         ':c'  => (int)($d['panel_cols']      ?? 28),
@@ -156,45 +186,79 @@ class BackupController
             foreach ($data['ip_assignments'] ?? [] as $ip) {
                 $newDev = $deviceMap[(int)$ip['device_id']] ?? null;
                 if (!$newDev) continue;
+
+                $ipAddress = is_string($ip['ip_address'] ?? null) ? trim($ip['ip_address']) : '';
+                if ($ipAddress === '') {
+                    throw new InvalidArgumentException('An IP assignment is missing a valid ip_address.');
+                }
+
                 $this->db->execute(
                     'INSERT INTO ip_assignments
                          (device_id, ip_address, subnet, gateway, interface, is_primary, notes)
                      VALUES (:d, :ip, :sn, :gw, :if, :pr, :n)',
                     [
                         ':d'  => $newDev,
-                        ':ip' => $ip['ip_address'],
-                        ':sn' => $ip['subnet']    ?: null,
-                        ':gw' => $ip['gateway']   ?: null,
-                        ':if' => $ip['interface'] ?? '',
+                        ':ip' => $ipAddress,
+                        ':sn' => $ip['subnet']  ?: null,
+                        ':gw' => $ip['gateway'] ?: null,
+                        ':if' => (string)($ip['interface'] ?? ''),
                         ':pr' => $ip['is_primary'] ? 'true' : 'false',
-                        ':n'  => $ip['notes'] ?? '',
+                        ':n'  => (string)($ip['notes'] ?? ''),
                     ]
                 );
             }
 
             // ── Service ports ─────────────────────────────────────────────────
+            $validProtocols = ['tcp', 'udp', 'both'];
+
             foreach ($data['service_ports'] ?? [] as $s) {
                 $newDev = $deviceMap[(int)$s['device_id']] ?? null;
                 if (!$newDev) continue;
+
+                $protocol = $s['protocol'] ?? 'tcp';
+                if (!in_array($protocol, $validProtocols, true)) {
+                    $protocol = 'tcp';
+                }
+
                 $this->db->execute(
                     'INSERT INTO service_ports
                          (device_id, protocol, port_number, service, description, is_external)
                      VALUES (:d, :pr, :pn, :sv, :de, :ex)',
                     [
                         ':d'  => $newDev,
-                        ':pr' => $s['protocol']    ?? 'tcp',
+                        ':pr' => $protocol,
                         ':pn' => (int)$s['port_number'],
-                        ':sv' => $s['service']     ?? '',
-                        ':de' => $s['description'] ?? '',
+                        ':sv' => (string)($s['service']     ?? ''),
+                        ':de' => (string)($s['description'] ?? ''),
                         ':ex' => $s['is_external'] ? 'true' : 'false',
                     ]
                 );
             }
 
             // ── Switch ports ──────────────────────────────────────────────────
+            $validPortTypes = ['rj45', 'sfp', 'sfp+', 'wan', 'mgmt'];
+            $validStatuses  = ['active', 'disabled', 'unknown'];
+            $validSpeeds    = ['10M', '100M', '1G', '2.5G', '5G', '10G'];
+
             $portMap = []; // old id → new id
             foreach ($data['ports'] ?? [] as $p) {
                 $newDev = isset($p['device_id']) ? ($deviceMap[(int)$p['device_id']] ?? null) : null;
+
+                $portType = $p['port_type'] ?? 'rj45';
+                if (!in_array($portType, $validPortTypes, true)) {
+                    $portType = 'rj45';
+                }
+
+                $status = $p['status'] ?? 'active';
+                if (!in_array($status, $validStatuses, true)) {
+                    $status = 'active';
+                }
+
+                $speed = $p['speed'] ?? '1G';
+                if (!in_array($speed, $validSpeeds, true)) {
+                    $speed = '1G';
+                }
+
                 $this->db->execute(
                     'INSERT INTO switch_ports
                          (device_id, port_number, label, port_type, speed,
@@ -203,13 +267,13 @@ class BackupController
                     [
                         ':d'  => $newDev,
                         ':pn' => (int)$p['port_number'],
-                        ':lb' => $p['label']    ?? '',
-                        ':pt' => $p['port_type'] ?? 'rj45',
-                        ':sp' => $p['speed']     ?? '1G',
+                        ':lb' => (string)($p['label'] ?? ''),
+                        ':pt' => $portType,
+                        ':sp' => $speed,
                         ':pe' => $p['poe_enabled'] ? 'true' : 'false',
                         ':vl' => !empty($p['vlan_id']) ? (int)$p['vlan_id'] : null,
-                        ':st' => $p['status']   ?? 'active',
-                        ':nt' => $p['notes']    ?? '',
+                        ':st' => $status,
+                        ':nt' => (string)($p['notes'] ?? ''),
                         ':pr' => (int)($p['port_row'] ?? 1),
                         ':pc' => (int)($p['port_col'] ?? 1),
                     ]
@@ -218,13 +282,25 @@ class BackupController
             }
 
             // ── Connections ───────────────────────────────────────────────────
+            $validColors = [
+                '#388bfd', '#2ea043', '#d29922', '#da3633', '#bc8cff', '#ff7b72',
+                '#ffa657', '#39d353', '#79c0ff', '#d2a8ff', '#e3b341', '#f08bb4',
+                '#58a6ff', '#7ee787', '#c9d1d9', '#8b949e',
+            ];
+
             foreach ($data['connections'] ?? [] as $c) {
                 $newA = $portMap[(int)$c['port_a']] ?? null;
                 $newB = $portMap[(int)$c['port_b']] ?? null;
                 if (!$newA || !$newB) continue;
+
+                $color = $c['color'] ?? '#388bfd';
+                if (!in_array($color, $validColors, true)) {
+                    $color = '#388bfd';
+                }
+
                 $this->db->execute(
                     'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :col)',
-                    [':a' => $newA, ':b' => $newB, ':col' => $c['color'] ?? '#388bfd']
+                    [':a' => $newA, ':b' => $newB, ':col' => $color]
                 );
             }
 
