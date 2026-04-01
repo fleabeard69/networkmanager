@@ -50,16 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Port card navigation ──────────────────────────────────────────────
-    // Clicking a port card navigates to its edit page (unless the dashboard
-    // port modal is present, in which case initDashboardPortEdit handles clicks).
-    // data-href="/ports/{id}/edit"
+    // On non-dashboard pages (panel viewer), clicking a port card navigates
+    // to its full edit page. On the dashboard the modal handles clicks instead.
+    // data-href="/ports/{id}/edit" (non-dashboard server-rendered cards only)
     const hasDashboardModal = !!document.getElementById('dpm-overlay');
-    document.querySelectorAll('.port-card[data-href]').forEach(card => {
-        // Always set accessibility attrs
+    document.querySelectorAll('.port-card[data-port-id]').forEach(card => {
+        // Always set accessibility attrs so cards are keyboard-reachable
         card.setAttribute('tabindex', '0');
         card.setAttribute('role', 'button');
 
-        if (!hasDashboardModal) {
+        if (!hasDashboardModal && card.dataset.href) {
             card.addEventListener('click', () => {
                 window.location.href = card.dataset.href;
             });

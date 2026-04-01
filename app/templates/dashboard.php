@@ -113,7 +113,6 @@ foreach ($ports as $p) {
                                 $isPoe = ($port['poe_enabled'] === true || $port['poe_enabled'] === 't' || $port['poe_enabled'] === '1');
                             ?>
                             <div class="<?= $cssClass ?> gr-<?= $row ?> gc-<?= $col ?>"
-                                 data-href="/ports/<?= h($port['id']) ?>/edit"
                                  data-port-id="<?= h($port['id']) ?>"
                                  data-port-number="<?= h($port['port_number']) ?>"
                                  data-label="<?= h($port['label'] ?? '') ?>"
@@ -129,7 +128,7 @@ foreach ($ports as $p) {
                                  title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?>">
                                 <div class="port-number"><?= h($port['port_number']) ?></div>
                                 <div class="port-type-badge"><?= h(strtoupper($port['port_type'])) ?></div>
-                                <?php if ($port['poe_enabled']): ?>
+                                <?php if ($isPoe): ?>
                                     <span class="port-poe-badge" title="PoE Enabled">⚡</span>
                                 <?php endif; ?>
                                 <div class="port-device">
