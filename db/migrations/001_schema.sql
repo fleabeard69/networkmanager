@@ -29,7 +29,7 @@ CREATE TABLE devices (
 -- Row 1 = top row, col 1 = leftmost port, matching the UDM Pro front face.
 CREATE TABLE switch_ports (
     id          SERIAL      PRIMARY KEY,
-    port_number INTEGER     NOT NULL CHECK (port_number > 0),
+    port_number INTEGER     NOT NULL CHECK (port_number BETWEEN 1 AND 9999),
     label       VARCHAR(64) NOT NULL DEFAULT '',
     port_type   VARCHAR(8)  NOT NULL DEFAULT 'rj45'
                     CHECK (port_type IN ('rj45', 'sfp', 'sfp+', 'wan', 'mgmt')),
