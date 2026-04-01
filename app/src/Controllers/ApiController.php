@@ -216,6 +216,29 @@ class ApiController
         $this->json(['reordered' => true]);
     }
 
+    // ── PATCH /api/devices/{id} ───────────────────────────────────────────
+    public function updateDevice(int $id): void
+    {
+        $this->verifyCsrf();
+
+        $device = $this->deviceModel->find($id);
+        if (!$device) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
+        $data = $this->validateDeviceData($this->body());
+        if (is_string($data)) {
+            $this->json(['error' => $data], 422);
+        }
+
+        try {
+            $this->deviceModel->update($id, $data);
+            $this->json($this->deviceModel->find($id));
+        } catch (PDOException) {
+            $this->json(['error' => 'A database error occurred. Please try again.'], 500);
+        }
+    }
+
     // ── GET /api/ports/unassigned ─────────────────────────────────────────
     public function listUnassignedPorts(): void
     {
@@ -276,6 +299,47 @@ class ApiController
     }
 
     // ── Private helpers ───────────────────────────────────────────────────
+
+    /** @return array|string Validated data or error string. */
+    private function validateDeviceData(array $body): array|string
+    {
+        $hostname = trim((string)($body['hostname'] ?? ''));
+        if ($hostname === '') {
+            return 'Hostname is required.';
+        }
+        if (strlen($hostname) > 128) {
+            return 'Hostname must be 128 characters or fewer.';
+        }
+
+        $mac = strtoupper(trim((string)($body['mac_address'] ?? '')));
+        if ($mac !== '' && !preg_match('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+            return 'Invalid MAC address format. Expected: AA:BB:CC:DD:EE:FF';
+        }
+
+        $validTypes = [
+            'server', 'workstation', 'laptop', 'router', 'switch',
+            'access-point', 'nas', 'iot', 'printer', 'camera',
+            'phone', 'tv', 'game-console', 'other', 'unknown',
+        ];
+        $deviceType = (string)($body['device_type'] ?? 'unknown');
+        if (!in_array($deviceType, $validTypes, true)) {
+            $deviceType = 'unknown';
+        }
+
+        $rearRows = filter_var(
+            $body['panel_rear_rows'] ?? 0,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 0, 'max_range' => 10]]
+        );
+
+        return [
+            'hostname'        => $hostname,
+            'mac_address'     => $mac !== '' ? $mac : null,
+            'device_type'     => $deviceType,
+            'notes'           => substr(trim((string)($body['notes'] ?? '')), 0, 1000),
+            'panel_rear_rows' => $rearRows !== false ? $rearRows : 0,
+        ];
+    }
 
     /** @return array|string Validated data or error string. */
     private function validatePortData(array $body): array|string

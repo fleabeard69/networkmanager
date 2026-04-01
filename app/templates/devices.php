@@ -26,14 +26,19 @@
         </thead>
         <tbody>
             <?php foreach ($devices as $d): ?>
-            <tr>
-                <td>
+            <tr data-id="<?= h($d['id']) ?>"
+                data-hostname="<?= h($d['hostname']) ?>"
+                data-type="<?= h($d['device_type']) ?>"
+                data-mac="<?= h($d['mac_address'] ?? '') ?>"
+                data-notes="<?= h($d['notes'] ?? '') ?>"
+                data-rear-rows="<?= h($d['panel_rear_rows'] ?? 0) ?>">
+                <td class="cell-hostname">
                     <a href="/devices/<?= h($d['id']) ?>" class="link link-strong"><?= h($d['hostname']) ?></a>
                 </td>
-                <td>
+                <td class="cell-type">
                     <span class="badge badge-type"><?= h(str_replace('-', ' ', ucfirst($d['device_type']))) ?></span>
                 </td>
-                <td class="mono"><?= $d['mac_address'] ? h($d['mac_address']) : '<span class="text-muted">—</span>' ?></td>
+                <td class="mono cell-mac"><?= $d['mac_address'] ? h($d['mac_address']) : '<span class="text-muted">—</span>' ?></td>
                 <td class="mono">
                     <?= $d['primary_ip'] ? h($d['primary_ip']) : '<span class="text-muted">—</span>' ?>
                 </td>
@@ -49,7 +54,7 @@
                 </td>
                 <td class="actions-cell">
                     <a href="/devices/<?= h($d['id']) ?>" class="btn btn-secondary btn-xs">View</a>
-                    <a href="/devices/<?= h($d['id']) ?>/edit" class="btn btn-secondary btn-xs">Edit</a>
+                    <a href="/devices/<?= h($d['id']) ?>/edit" class="btn btn-secondary btn-xs" data-inline-edit>Edit</a>
                     <form method="post" action="/devices/<?= h($d['id']) ?>/delete" class="inline-form">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-danger btn-xs"
@@ -64,3 +69,63 @@
     </table>
 </div>
 <?php endif; ?>
+
+<!-- Inline device edit modal -->
+<div id="idm-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="idm-title">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="idm-title" class="panel-title">Edit Device</h2>
+            <button id="idm-close" class="modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="idm-error" class="modal-error hidden"></div>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="idm-hostname">Hostname <span class="required">*</span></label>
+                    <input id="idm-hostname" type="text" class="field-input" maxlength="128" placeholder="e.g. switch-core">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="idm-type">Device Type</label>
+                    <select id="idm-type" class="field-input">
+                        <option value="server">Server</option>
+                        <option value="workstation">Workstation</option>
+                        <option value="laptop">Laptop</option>
+                        <option value="router">Router</option>
+                        <option value="switch">Switch</option>
+                        <option value="access-point">Access Point</option>
+                        <option value="nas">NAS</option>
+                        <option value="iot">IoT</option>
+                        <option value="printer">Printer</option>
+                        <option value="camera">Camera</option>
+                        <option value="phone">Phone</option>
+                        <option value="tv">TV</option>
+                        <option value="game-console">Game Console</option>
+                        <option value="other">Other</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="idm-mac">MAC Address</label>
+                    <input id="idm-mac" type="text" class="field-input" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="idm-notes">Notes</label>
+                    <textarea id="idm-notes" class="field-input" rows="2" placeholder="Optional notes"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div>
+                <a id="idm-full-edit" href="#" class="btn btn-secondary btn-sm">Full Edit →</a>
+            </div>
+            <div class="modal-footer-right">
+                <button id="idm-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+                <button id="idm-save" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

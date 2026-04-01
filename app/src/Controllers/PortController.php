@@ -17,8 +17,9 @@ class PortController
 
     public function index(): void
     {
-        $ports = $this->portModel->all();
-        render('ports', ['navActive' => 'ports', 'ports' => $ports]);
+        $ports   = $this->portModel->all();
+        $devices = $this->deviceModel->all();
+        render('ports', ['navActive' => 'ports', 'ports' => $ports, 'devices' => $devices]);
     }
 
     public function create(): void

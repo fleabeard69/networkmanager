@@ -86,6 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initPanelEditor();                // per-device scoped view
     }
 
+    // ── Inline table editors ──────────────────────────────────────────────
+    if (document.getElementById('ipm-overlay')) initPortsTableEdit();
+    if (document.getElementById('idm-overlay')) initDevicesTableEdit();
+
     // ── Dashboard device reorder ──────────────────────────────────────────
     initDashboardReorder();
 
@@ -1548,6 +1552,370 @@ function initDashboardConnections() {
             drawConnections();
         })
         .catch(err => console.error('Failed to load connections:', err));
+}
+
+// ── Inline Port Table Edit ────────────────────────────────────────────────────
+function initPortsTableEdit() {
+
+    const overlay     = document.getElementById('ipm-overlay');
+    const modalTitle  = document.getElementById('ipm-title');
+    const modalError  = document.getElementById('ipm-error');
+    const modalSave   = document.getElementById('ipm-save');
+    const modalClose  = document.getElementById('ipm-close');
+    const modalCancel = document.getElementById('ipm-cancel');
+    const fullEdit    = document.getElementById('ipm-full-edit');
+    const mPortNum    = document.getElementById('ipm-port-number');
+    const mLabel      = document.getElementById('ipm-label');
+    const mPortType   = document.getElementById('ipm-port-type');
+    const mSpeed      = document.getElementById('ipm-speed');
+    const mStatus     = document.getElementById('ipm-status');
+    const mDevice     = document.getElementById('ipm-device');
+    const mVlan       = document.getElementById('ipm-vlan');
+    const mPoe        = document.getElementById('ipm-poe');
+    const mNotes      = document.getElementById('ipm-notes');
+
+    let currentTr = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    async function apiFetch(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (options.method && options.method !== 'GET') {
+            headers['X-CSRF-Token'] = csrfToken();
+        }
+        const res  = await fetch(url, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
+
+    function openModal(tr) {
+        currentTr = tr;
+        const d = tr.dataset;
+        modalTitle.textContent = `Edit Port ${d.portNumber}`;
+        fullEdit.href = `/ports/${parseInt(d.id, 10)}/edit`;
+        mPortNum.value  = d.portNumber ?? '';
+        mLabel.value    = d.label      ?? '';
+        mPortType.value = d.portType   ?? 'rj45';
+        mSpeed.value    = d.speed      ?? '1G';
+        mStatus.value   = d.status     ?? 'active';
+        if (mDevice) mDevice.value = d.deviceId ?? '';
+        mVlan.value  = d.vlan  ?? '';
+        mPoe.checked = d.poe === '1';
+        mNotes.value = d.notes ?? '';
+        hideError();
+        overlay.classList.remove('hidden');
+        mPortNum.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        currentTr = null;
+        hideError();
+    }
+
+    function showError(msg) {
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+
+    function hideError() {
+        modalError.textContent = '';
+        modalError.classList.add('hidden');
+    }
+
+    async function savePort() {
+        if (!currentTr) return;
+        hideError();
+        modalSave.disabled = true;
+
+        const d      = currentTr.dataset;
+        const portId = parseInt(d.id, 10);
+
+        const payload = {
+            port_number: parseInt(mPortNum.value, 10) || null,
+            label:       mLabel.value.trim(),
+            port_type:   mPortType.value,
+            speed:       mSpeed.value,
+            status:      mStatus.value,
+            device_id:   mDevice?.value ? parseInt(mDevice.value, 10) : null,
+            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled: mPoe.checked,
+            notes:       mNotes.value.trim(),
+            port_row:    parseInt(d.row, 10),
+            port_col:    parseInt(d.col, 10),
+        };
+
+        try {
+            const updated = await apiFetch(`/api/ports/${portId}`, {
+                method: 'PATCH',
+                body:   JSON.stringify(payload),
+            });
+            updatePortRow(currentTr, updated);
+            closeModal();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalSave.disabled = false;
+        }
+    }
+
+    function updatePortRow(tr, p) {
+        // Keep data attributes in sync so re-opening the modal shows fresh values
+        tr.dataset.portNumber = p.port_number;
+        tr.dataset.label      = p.label      ?? '';
+        tr.dataset.portType   = p.port_type;
+        tr.dataset.speed      = p.speed;
+        tr.dataset.status     = p.status;
+        tr.dataset.deviceId   = p.device_id  ?? '';
+        tr.dataset.vlan       = p.vlan_id    ?? '';
+        tr.dataset.poe        = (p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1') ? '1' : '0';
+        tr.dataset.notes      = p.notes      ?? '';
+
+        // Update visible cells — all via textContent or safe DOM construction (no innerHTML from user data)
+        const labelCell = tr.querySelector('.cell-label');
+        if (labelCell) labelCell.textContent = p.label ?? '';
+
+        const typeCell = tr.querySelector('.cell-type');
+        if (typeCell) {
+            typeCell.replaceChildren();
+            const badge = document.createElement('span');
+            badge.className = 'badge badge-type';
+            badge.textContent = p.port_type.toUpperCase();
+            typeCell.appendChild(badge);
+        }
+
+        const speedCell = tr.querySelector('.cell-speed');
+        if (speedCell) speedCell.textContent = p.speed;
+
+        const poeCell = tr.querySelector('.cell-poe');
+        if (poeCell) {
+            const isPoE = p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1';
+            poeCell.replaceChildren();
+            const el = document.createElement('span');
+            el.className = isPoE ? 'badge badge-success' : 'text-muted';
+            el.textContent = isPoE ? 'Yes' : '—';
+            poeCell.appendChild(el);
+        }
+
+        const vlanCell = tr.querySelector('.cell-vlan');
+        if (vlanCell) {
+            vlanCell.replaceChildren();
+            if (p.vlan_id) {
+                vlanCell.textContent = String(p.vlan_id);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'text-muted';
+                span.textContent = '—';
+                vlanCell.appendChild(span);
+            }
+        }
+
+        const statusCell = tr.querySelector('.cell-status');
+        if (statusCell) {
+            statusCell.replaceChildren();
+            const badge = document.createElement('span');
+            const cls = p.status === 'active'   ? 'badge-success'
+                      : p.status === 'disabled'  ? 'badge-danger'
+                      : 'badge-neutral';
+            badge.className = `badge ${cls}`;
+            badge.textContent = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+            statusCell.appendChild(badge);
+        }
+
+        const deviceCell = tr.querySelector('.cell-device');
+        if (deviceCell) {
+            deviceCell.replaceChildren();
+            if (p.device_id && p.device_hostname) {
+                const a = document.createElement('a');
+                a.className = 'link';
+                a.href = `/devices/${parseInt(p.device_id, 10)}`;
+                a.textContent = p.device_hostname;
+                deviceCell.appendChild(a);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'text-muted';
+                span.textContent = '—';
+                deviceCell.appendChild(span);
+            }
+        }
+
+        const notesCell = tr.querySelector('.notes-cell');
+        if (notesCell) notesCell.textContent = p.notes ?? '';
+    }
+
+    // Intercept all [data-inline-edit] links in the ports table
+    document.querySelectorAll('[data-inline-edit]').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const tr = link.closest('tr');
+            if (tr) openModal(tr);
+        });
+    });
+
+    modalSave.addEventListener('click',   savePort);
+    modalClose.addEventListener('click',  closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+}
+
+// ── Inline Device Table Edit ──────────────────────────────────────────────────
+function initDevicesTableEdit() {
+
+    const overlay     = document.getElementById('idm-overlay');
+    const modalTitle  = document.getElementById('idm-title');
+    const modalError  = document.getElementById('idm-error');
+    const modalSave   = document.getElementById('idm-save');
+    const modalClose  = document.getElementById('idm-close');
+    const modalCancel = document.getElementById('idm-cancel');
+    const fullEdit    = document.getElementById('idm-full-edit');
+    const mHostname   = document.getElementById('idm-hostname');
+    const mType       = document.getElementById('idm-type');
+    const mMac        = document.getElementById('idm-mac');
+    const mNotes      = document.getElementById('idm-notes');
+
+    let currentTr = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    async function apiFetch(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (options.method && options.method !== 'GET') {
+            headers['X-CSRF-Token'] = csrfToken();
+        }
+        const res  = await fetch(url, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
+
+    function openModal(tr) {
+        currentTr = tr;
+        const d = tr.dataset;
+        modalTitle.textContent = `Edit: ${d.hostname}`;
+        fullEdit.href  = `/devices/${parseInt(d.id, 10)}/edit`;
+        mHostname.value = d.hostname ?? '';
+        mType.value     = d.type     ?? 'unknown';
+        mMac.value      = d.mac      ?? '';
+        mNotes.value    = d.notes    ?? '';
+        hideError();
+        overlay.classList.remove('hidden');
+        mHostname.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        currentTr = null;
+        hideError();
+    }
+
+    function showError(msg) {
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+
+    function hideError() {
+        modalError.textContent = '';
+        modalError.classList.add('hidden');
+    }
+
+    async function saveDevice() {
+        if (!currentTr) return;
+        hideError();
+        modalSave.disabled = true;
+
+        const d        = currentTr.dataset;
+        const deviceId = parseInt(d.id, 10);
+
+        const payload = {
+            hostname:        mHostname.value.trim(),
+            device_type:     mType.value,
+            mac_address:     mMac.value.trim() || null,
+            notes:           mNotes.value.trim(),
+            panel_rear_rows: parseInt(d.rearRows || '0', 10),
+        };
+
+        try {
+            const updated = await apiFetch(`/api/devices/${deviceId}`, {
+                method: 'PATCH',
+                body:   JSON.stringify(payload),
+            });
+            updateDeviceRow(currentTr, updated);
+            closeModal();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalSave.disabled = false;
+        }
+    }
+
+    function updateDeviceRow(tr, device) {
+        // Keep data attributes in sync
+        tr.dataset.hostname = device.hostname;
+        tr.dataset.type     = device.device_type;
+        tr.dataset.mac      = device.mac_address  ?? '';
+        tr.dataset.notes    = device.notes        ?? '';
+        tr.dataset.rearRows = device.panel_rear_rows ?? '0';
+
+        // Update hostname cell — rebuild the link via safe DOM construction
+        const hostnameCell = tr.querySelector('.cell-hostname');
+        if (hostnameCell) {
+            hostnameCell.replaceChildren();
+            const a = document.createElement('a');
+            a.href = `/devices/${parseInt(device.id, 10)}`;
+            a.className = 'link link-strong';
+            a.textContent = device.hostname;
+            hostnameCell.appendChild(a);
+        }
+
+        // Update type badge
+        const typeCell = tr.querySelector('.cell-type');
+        if (typeCell) {
+            typeCell.replaceChildren();
+            const badge = document.createElement('span');
+            badge.className = 'badge badge-type';
+            // Match PHP: str_replace('-', ' ', ucfirst(device_type))
+            const typeName = device.device_type.replace(/-/g, ' ');
+            badge.textContent = typeName.charAt(0).toUpperCase() + typeName.slice(1);
+            typeCell.appendChild(badge);
+        }
+
+        // Update MAC cell
+        const macCell = tr.querySelector('.cell-mac');
+        if (macCell) {
+            macCell.replaceChildren();
+            if (device.mac_address) {
+                macCell.textContent = device.mac_address;
+            } else {
+                const span = document.createElement('span');
+                span.className = 'text-muted';
+                span.textContent = '—';
+                macCell.appendChild(span);
+            }
+        }
+    }
+
+    // Intercept all [data-inline-edit] links in the devices table
+    document.querySelectorAll('[data-inline-edit]').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const tr = link.closest('tr');
+            if (tr) openModal(tr);
+        });
+    });
+
+    modalSave.addEventListener('click',   saveDevice);
+    modalClose.addEventListener('click',  closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
 }
 
 // ── Dashboard Device Reorder ──────────────────────────────────────────────────

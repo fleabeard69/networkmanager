@@ -126,6 +126,10 @@ switch (true) {
         (new ApiController($portModel, $deviceModel))->updateDevicePanel((int) $m[1]);
         break;
 
+    case preg_match('#^/api/devices/(\d+)$#', $path, $m) && $method === 'PATCH':
+        (new ApiController($portModel, $deviceModel))->updateDevice((int) $m[1]);
+        break;
+
     case $path === '/api/ports' && $method === 'POST':
         (new ApiController($portModel, $deviceModel))->createPort();
         break;
