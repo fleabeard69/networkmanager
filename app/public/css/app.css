@@ -1103,8 +1103,8 @@ select.field-input { cursor: pointer; }
 }
 
 .port-card.conn-occupied {
-    opacity: 0.35;
-    cursor: not-allowed !important;
+    opacity: 0.55;
+    cursor: pointer !important;
 }
 
 /* Small dot in the top-right corner: indicates a cable is attached outside of connect mode */
@@ -1117,6 +1117,20 @@ select.field-input { cursor: pointer; }
     height: 7px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+/* In connect mode, wired ports show a red dot (overrides white dot) — click to disconnect */
+.port-card.conn-occupied::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(218, 54, 51, 0.9);
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
     pointer-events: none;
 }

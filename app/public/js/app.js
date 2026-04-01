@@ -1507,6 +1507,13 @@ function initDashboardConnections() {
                 occupiedPortIds.delete(Number(conn.port_a));
                 occupiedPortIds.delete(Number(conn.port_b));
                 drawConnections();
+                if (connectMode) {
+                    container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
+                        const pid = parseInt(card.dataset.portId, 10);
+                        card.classList.toggle('conn-occupied', occupiedPortIds.has(pid));
+                        card.classList.toggle('connectable', !occupiedPortIds.has(pid));
+                    });
+                }
             }
         } catch (err) {
             alert('Failed to remove connection: ' + err.message);
@@ -1520,7 +1527,7 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
         colorPicker?.classList.remove('hidden');
-        if (connectHint) connectHint.textContent = 'Click the first port to start a connection — ESC to cancel';
+        if (connectHint) connectHint.textContent = 'Click a free port to connect — or a wired port to disconnect. ESC to cancel.';
         svg.classList.add('connect-mode-active');
         container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
             const pid = parseInt(card.dataset.portId, 10);
@@ -1560,8 +1567,12 @@ function initDashboardConnections() {
 
         const portId = parseInt(card.dataset.portId, 10);
 
-        // Silently ignore already-connected ports
-        if (occupiedPortIds.has(portId)) return;
+        // Occupied port: clicking it in connect mode removes its connection
+        if (occupiedPortIds.has(portId)) {
+            const conn = connections.find(c => Number(c.port_a) === portId || Number(c.port_b) === portId);
+            if (conn) removeConnection(conn);
+            return;
+        }
 
         if (selectedPortId === null) {
             selectedPortId = portId;
@@ -1577,7 +1588,7 @@ function initDashboardConnections() {
             selectedPortId = null;
             selectedAnchor = null;
             card.classList.remove('conn-selected');
-            if (connectHint) connectHint.textContent = 'Click the first port to start a connection — ESC to cancel';
+            if (connectHint) connectHint.textContent = 'Click a free port to connect — or a wired port to disconnect. ESC to cancel.';
         } else {
             const portA   = selectedPortId;
             const portB   = portId;
