@@ -1310,9 +1310,10 @@ function initDashboardConnections() {
         svg.innerHTML = '';
         svg.setAttribute('height', container.scrollHeight);
 
-        // Reset all port card borders to CSS default
+        // Reset all port card borders and wired indicator to CSS default
         container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
             card.style.borderColor = '';
+            card.classList.remove('port-wired');
         });
 
         const BRIDGE_R = 7;
@@ -1475,12 +1476,15 @@ function initDashboardConnections() {
             });
         });
 
-        // Tint connected port card borders to match their line color
+        // Tint connected port card borders to match their line color and mark as wired
         connections.forEach(conn => {
             const color = conn.color || '#388bfd';
             [conn.port_a, conn.port_b].forEach(pid => {
                 const card = container.querySelector(`[data-port-id="${pid}"]`);
-                if (card) card.style.borderColor = color;
+                if (card) {
+                    card.style.borderColor = color;
+                    card.classList.add('port-wired');
+                }
             });
         });
     }
