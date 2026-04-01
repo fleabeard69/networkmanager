@@ -799,8 +799,55 @@ select.field-input { cursor: pointer; }
     gap: 10px;
 }
 
+/* ── Table Filter Bar ────────────────────────────────────────────────────── */
+.table-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.filter-input {
+    flex: 1;
+    max-width: 320px;
+    padding: 7px 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.filter-input:focus { border-color: var(--accent); }
+.filter-input::placeholder { color: var(--text-dim); }
+.filter-input::-webkit-search-cancel-button { cursor: pointer; }
+
+.filter-select {
+    padding: 7px 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13.5px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+
+.filter-select:focus { border-color: var(--accent); }
+
+.filter-no-results td {
+    padding: 20px 16px;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+}
+
 /* ── Collapsible ─────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+.filter-hidden { display: none !important; }
 
 /* ── Device Detail ───────────────────────────────────────────────────────── */
 .device-title-block {

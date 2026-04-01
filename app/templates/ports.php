@@ -13,6 +13,16 @@
         </div>
     </div>
 <?php else: ?>
+<div class="table-filter-bar">
+    <input type="search" id="ports-search" class="filter-input"
+           placeholder="Filter by label, device, VLAN…" autocomplete="off" spellcheck="false">
+    <select id="ports-status-filter" class="filter-select">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="disabled">Disabled</option>
+        <option value="unknown">Unknown</option>
+    </select>
+</div>
 <div class="panel">
     <table class="data-table">
         <thead>
@@ -29,7 +39,7 @@
                 <th class="col-actions">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="ports-tbody">
             <?php foreach ($ports as $p): ?>
             <?php
                 $isPoe = ($p['poe_enabled'] === true || $p['poe_enabled'] === 't' || $p['poe_enabled'] === '1');
@@ -43,6 +53,7 @@
                 data-poe="<?= $isPoe ? '1' : '0' ?>"
                 data-vlan="<?= h($p['vlan_id'] ?? '') ?>"
                 data-device-id="<?= h($p['device_id'] ?? '') ?>"
+                data-device-hostname="<?= h($p['device_hostname'] ?? '') ?>"
                 data-notes="<?= h($p['notes'] ?? '') ?>"
                 data-row="<?= h($p['port_row']) ?>"
                 data-col="<?= h($p['port_col']) ?>">
@@ -83,6 +94,9 @@
                 </td>
             </tr>
             <?php endforeach; ?>
+            <tr id="ports-no-results" class="filter-no-results hidden">
+                <td colspan="10">No ports match your filter.</td>
+            </tr>
         </tbody>
     </table>
 </div>

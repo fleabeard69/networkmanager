@@ -12,6 +12,10 @@
         </div>
     </div>
 <?php else: ?>
+<div class="table-filter-bar">
+    <input type="search" id="device-filter" class="filter-input"
+           placeholder="Filter by hostname, type, MAC…" autocomplete="off" spellcheck="false">
+</div>
 <div class="panel">
     <table class="data-table">
         <thead>
@@ -24,7 +28,7 @@
                 <th class="col-actions">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="devices-tbody">
             <?php foreach ($devices as $d): ?>
             <tr data-id="<?= h($d['id']) ?>"
                 data-hostname="<?= h($d['hostname']) ?>"
@@ -66,6 +70,9 @@
                 </td>
             </tr>
             <?php endforeach; ?>
+            <tr id="devices-no-results" class="filter-no-results hidden">
+                <td colspan="6">No devices match your filter.</td>
+            </tr>
         </tbody>
     </table>
 </div>

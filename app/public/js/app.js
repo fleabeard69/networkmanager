@@ -153,6 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('idm-overlay')) initDevicesTableEdit();
     if (document.getElementById('dpm-overlay')) initDashboardPortEdit();
 
+    // ── Table filters ─────────────────────────────────────────────────────
+    if (document.getElementById('device-filter')) initDevicesFilter();
+    if (document.getElementById('ports-search'))  initPortsFilter();
+
     // ── Dashboard device reorder ──────────────────────────────────────────
     initDashboardReorder();
 
@@ -1983,6 +1987,60 @@ function initDevicesTableEdit() {
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
     });
+}
+
+// ── Devices Table Filter ──────────────────────────────────────────────────────
+function initDevicesFilter() {
+    const input     = document.getElementById('device-filter');
+    const tbody     = document.getElementById('devices-tbody');
+    const noResults = document.getElementById('devices-no-results');
+    if (!input || !tbody) return;
+
+    input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        let count = 0;
+        tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+            const match = !q
+                || (tr.dataset.hostname || '').toLowerCase().includes(q)
+                || (tr.dataset.type     || '').toLowerCase().includes(q)
+                || (tr.dataset.mac      || '').toLowerCase().includes(q)
+                || (tr.dataset.notes    || '').toLowerCase().includes(q);
+            tr.classList.toggle('filter-hidden', !match);
+            if (match) count++;
+        });
+        if (noResults) noResults.classList.toggle('hidden', count > 0);
+    });
+}
+
+// ── Ports Table Filter ────────────────────────────────────────────────────────
+function initPortsFilter() {
+    const searchInput  = document.getElementById('ports-search');
+    const statusSelect = document.getElementById('ports-status-filter');
+    const tbody        = document.getElementById('ports-tbody');
+    const noResults    = document.getElementById('ports-no-results');
+    if (!searchInput || !tbody) return;
+
+    function applyFilter() {
+        const q      = searchInput.value.trim().toLowerCase();
+        const status = statusSelect ? statusSelect.value : '';
+        let count = 0;
+        tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+            const textMatch = !q
+                || (tr.dataset.portNumber      || '').toLowerCase().includes(q)
+                || (tr.dataset.label           || '').toLowerCase().includes(q)
+                || (tr.dataset.deviceHostname  || '').toLowerCase().includes(q)
+                || (tr.dataset.vlan            || '').toLowerCase().includes(q)
+                || (tr.dataset.notes           || '').toLowerCase().includes(q);
+            const statusMatch = !status || (tr.dataset.status || '') === status;
+            const match = textMatch && statusMatch;
+            tr.classList.toggle('filter-hidden', !match);
+            if (match) count++;
+        });
+        if (noResults) noResults.classList.toggle('hidden', count > 0);
+    }
+
+    searchInput.addEventListener('input', applyFilter);
+    if (statusSelect) statusSelect.addEventListener('change', applyFilter);
 }
 
 // ── Dashboard Device Reorder ──────────────────────────────────────────────────
