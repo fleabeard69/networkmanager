@@ -171,7 +171,95 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Dashboard port connection lines ───────────────────────────────────
     initDashboardConnections();
 
+    // ── Inline field validation ───────────────────────────────────────────
+    initInlineValidation();
+
 });
+
+// ── Inline Field Validation ───────────────────────────────────────────────────
+// Advisory only — never blocks submission. Server-side validation is the authority.
+// Add data-validate="<type>" to any input to opt in.
+const FIELD_VALIDATORS = {
+    // IPv4: four dotted octets 0-255. IPv6 (contains colon): passes through — a
+    // correct client-side IPv6 regex is complex and false negatives would block valid
+    // data. The server validates IPv6 fully.
+    'ip': {
+        validate(v) {
+            if (v.includes(':')) return true;
+            const parts = v.split('.');
+            return parts.length === 4
+                && parts.every(p => /^\d{1,3}$/.test(p) && +p <= 255);
+        },
+        message: 'Enter a valid IP address (e.g. 192.168.1.1)'
+    },
+
+    // IPv4 subnet mask: dotted-decimal where the bit pattern is all-1s followed by
+    // all-0s (contiguous). Mirrors the PHP subnetMaskToPrefixLen() logic exactly:
+    //   invert the 32-bit value; the result must be 0 or a power-of-two minus 1.
+    'subnet-mask': {
+        validate(v) {
+            const parts = v.split('.');
+            if (parts.length !== 4 || parts.some(p => !/^\d{1,3}$/.test(p) || +p > 255))
+                return false;
+            const num = ((+parts[0] << 24) | (+parts[1] << 16) | (+parts[2] << 8) | +parts[3]) >>> 0;
+            const inv = (~num) >>> 0;
+            return inv === 0 || (inv & (inv + 1)) === 0;
+        },
+        message: 'Enter a valid subnet mask (e.g. 255.255.255.0)'
+    },
+
+    // MAC address: exactly six colon-separated hex pairs (case-insensitive).
+    'mac': {
+        validate(v) {
+            return /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(v);
+        },
+        message: 'Enter a valid MAC address (e.g. AA:BB:CC:DD:EE:FF)'
+    }
+};
+
+function initInlineValidation() {
+    document.querySelectorAll('[data-validate]').forEach(input => {
+        const rule = FIELD_VALIDATORS[input.dataset.validate];
+        if (!rule) return;
+
+        // Insert a dedicated error span directly after the input. It lives inside
+        // the .field-group flex column, so it appears below the input naturally.
+        // CSS hides it via :empty when there is no message.
+        const err = document.createElement('span');
+        err.className = 'field-error';
+        err.setAttribute('aria-live', 'polite');
+        input.after(err);
+
+        function check() {
+            const v = input.value.trim();
+            // Empty value: always clear (optional fields are valid when blank).
+            if (v === '') {
+                err.textContent = '';
+                input.removeAttribute('aria-invalid');
+                return;
+            }
+            if (!rule.validate(v)) {
+                err.textContent = rule.message;   // hardcoded string — never user input
+                input.setAttribute('aria-invalid', 'true');
+            } else {
+                err.textContent = '';
+                input.removeAttribute('aria-invalid');
+            }
+        }
+
+        // Show error when the user leaves the field.
+        input.addEventListener('blur', check);
+
+        // Clear the error the moment the user begins correcting, so they aren't
+        // reading an error message while actively typing a fix.
+        input.addEventListener('input', () => {
+            if (input.getAttribute('aria-invalid') === 'true') {
+                err.textContent = '';
+                input.removeAttribute('aria-invalid');
+            }
+        });
+    });
+}
 
 // ── Panel Editor Module ───────────────────────────────────────────────────
 function initPanelEditor() {

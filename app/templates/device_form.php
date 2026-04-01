@@ -58,6 +58,7 @@ $deviceTypes = [
             <input class="field-input mono" type="text" id="mac_address" name="mac_address"
                    maxlength="17" placeholder="AA:BB:CC:DD:EE:FF"
                    pattern="^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+                   data-validate="mac"
                    value="<?= $val('mac_address') ?>">
             <p class="field-hint">Format: AA:BB:CC:DD:EE:FF</p>
         </div>

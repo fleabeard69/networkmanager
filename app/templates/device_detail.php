@@ -61,17 +61,17 @@
                 <div class="field-group">
                     <label class="field-label" for="ip_address">IP Address <span class="required">*</span></label>
                     <input class="field-input mono" type="text" id="ip_address" name="ip_address"
-                           placeholder="192.168.1.100" required>
+                           placeholder="192.168.1.100" required data-validate="ip">
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="subnet">Subnet Mask</label>
                     <input class="field-input mono" type="text" id="subnet" name="subnet"
-                           placeholder="255.255.255.0">
+                           placeholder="255.255.255.0" data-validate="subnet-mask">
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="gateway">Gateway</label>
                     <input class="field-input mono" type="text" id="gateway" name="gateway"
-                           placeholder="192.168.1.1">
+                           placeholder="192.168.1.1" data-validate="ip">
                 </div>
             </div>
             <div class="form-row">

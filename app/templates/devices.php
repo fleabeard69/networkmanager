@@ -116,7 +116,7 @@
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="idm-mac">MAC Address</label>
-                    <input id="idm-mac" type="text" class="field-input" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF">
+                    <input id="idm-mac" type="text" class="field-input" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF" data-validate="mac">
                 </div>
             </div>
             <div class="form-row">
