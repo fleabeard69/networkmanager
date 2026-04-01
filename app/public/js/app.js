@@ -1335,9 +1335,14 @@ function initDashboardConnections() {
         const vA = sideA === 'top' || sideA === 'bottom';
         const vB = sideB === 'top' || sideB === 'bottom';
         if (vA && vB) {
-            const midY = (sy1 + sy2) / 2;
+            // Same-direction exits: route at the outer bound so the line stays on one
+            // side (e.g. top-to-top routes above the higher port, not at the midpoint).
+            // Opposite-direction exits: midpoint gives a natural S-bend.
+            const routeY = sideA === sideB
+                ? (sideA === 'top' ? Math.min(sy1, sy2) : Math.max(sy1, sy2))
+                : (sy1 + sy2) / 2;
             return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
-                    { x: sx1, y: midY }, { x: sx2, y: midY },
+                    { x: sx1, y: routeY }, { x: sx2, y: routeY },
                     { x: sx2, y: sy2 }, { x: bx, y: by }];
         }
         if (!vA && !vB) {
