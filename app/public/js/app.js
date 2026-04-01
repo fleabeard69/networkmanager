@@ -50,22 +50,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Port card navigation ──────────────────────────────────────────────
-    // Clicking a port card navigates to its edit page.
+    // Clicking a port card navigates to its edit page (unless the dashboard
+    // port modal is present, in which case initDashboardPortEdit handles clicks).
     // data-href="/ports/{id}/edit"
+    const hasDashboardModal = !!document.getElementById('dpm-overlay');
     document.querySelectorAll('.port-card[data-href]').forEach(card => {
-        card.addEventListener('click', () => {
-            window.location.href = card.dataset.href;
-        });
-
-        // Keyboard accessibility: treat Enter/Space as a click
+        // Always set accessibility attrs
         card.setAttribute('tabindex', '0');
         card.setAttribute('role', 'button');
-        card.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+
+        if (!hasDashboardModal) {
+            card.addEventListener('click', () => {
                 window.location.href = card.dataset.href;
-            }
-        });
+            });
+            card.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.location.href = card.dataset.href;
+                }
+            });
+        }
     });
 
     // ── Auto-dismiss flash messages ───────────────────────────────────────
@@ -89,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Inline table editors ──────────────────────────────────────────────
     if (document.getElementById('ipm-overlay')) initPortsTableEdit();
     if (document.getElementById('idm-overlay')) initDevicesTableEdit();
+    if (document.getElementById('dpm-overlay')) initDashboardPortEdit();
 
     // ── Dashboard device reorder ──────────────────────────────────────────
     initDashboardReorder();
@@ -1543,6 +1548,7 @@ function initDashboardConnections() {
 
     window.addEventListener('resize', drawConnections);
     container.addEventListener('deviceReordered', drawConnections);
+    container.addEventListener('portUpdated', drawConnections);
 
     fetch('/api/connections')
         .then(r => r.json())
@@ -2012,5 +2018,223 @@ function initDashboardReorder() {
 
             container.dispatchEvent(new CustomEvent('deviceReordered'));
         });
+    });
+}
+
+// ── Dashboard Port Edit Modal ─────────────────────────────────────────────────
+function initDashboardPortEdit() {
+
+    const overlay     = document.getElementById('dpm-overlay');
+    const modalTitle  = document.getElementById('dpm-title');
+    const modalError  = document.getElementById('dpm-error');
+    const modalSave   = document.getElementById('dpm-save');
+    const modalClose  = document.getElementById('dpm-close');
+    const modalCancel = document.getElementById('dpm-cancel');
+    const fullEdit    = document.getElementById('dpm-full-edit');
+    const mPortNum    = document.getElementById('dpm-port-number');
+    const mLabel      = document.getElementById('dpm-label');
+    const mPortType   = document.getElementById('dpm-port-type');
+    const mSpeed      = document.getElementById('dpm-speed');
+    const mStatus     = document.getElementById('dpm-status');
+    const mDevice     = document.getElementById('dpm-device');
+    const mVlan       = document.getElementById('dpm-vlan');
+    const mPoe        = document.getElementById('dpm-poe');
+    const mNotes      = document.getElementById('dpm-notes');
+
+    let currentCard = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    async function apiFetch(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (options.method && options.method !== 'GET') {
+            headers['X-CSRF-Token'] = csrfToken();
+        }
+        const res  = await fetch(url, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
+
+    function openModal(card) {
+        currentCard = card;
+        const d = card.dataset;
+        modalTitle.textContent = `Edit Port ${d.portNumber}`;
+        fullEdit.href  = `/ports/${parseInt(d.portId, 10)}/edit`;
+        mPortNum.value  = d.portNumber ?? '';
+        mLabel.value    = d.label      ?? '';
+        mPortType.value = d.portType   ?? 'rj45';
+        mSpeed.value    = d.speed      ?? '1G';
+        mStatus.value   = d.status     ?? 'active';
+        if (mDevice) mDevice.value = d.deviceId ?? '';
+        mVlan.value  = d.vlan  ?? '';
+        mPoe.checked = d.poe === '1';
+        mNotes.value = d.notes ?? '';
+        hideError();
+        overlay.classList.remove('hidden');
+        mPortNum.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        currentCard = null;
+        hideError();
+    }
+
+    function showError(msg) {
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+
+    function hideError() {
+        modalError.textContent = '';
+        modalError.classList.add('hidden');
+    }
+
+    async function savePort() {
+        if (!currentCard) return;
+        hideError();
+        modalSave.disabled = true;
+
+        const d      = currentCard.dataset;
+        const portId = parseInt(d.portId, 10);
+
+        const payload = {
+            port_number: parseInt(mPortNum.value, 10) || null,
+            label:       mLabel.value.trim(),
+            port_type:   mPortType.value,
+            speed:       mSpeed.value,
+            status:      mStatus.value,
+            device_id:   mDevice?.value ? parseInt(mDevice.value, 10) : null,
+            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled: mPoe.checked,
+            notes:       mNotes.value.trim(),
+            port_row:    parseInt(d.row, 10),
+            port_col:    parseInt(d.col, 10),
+        };
+
+        try {
+            const updated = await apiFetch(`/api/ports/${portId}`, {
+                method: 'PATCH',
+                body:   JSON.stringify(payload),
+            });
+            updatePortCard(currentCard, updated);
+            closeModal();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            modalSave.disabled = false;
+        }
+    }
+
+    function updatePortCard(card, p) {
+        // Sync data attributes
+        card.dataset.portNumber = p.port_number;
+        card.dataset.label      = p.label      ?? '';
+        card.dataset.portType   = p.port_type;
+        card.dataset.speed      = p.speed;
+        card.dataset.status     = p.status;
+        card.dataset.deviceId   = p.device_id  ?? '';
+        card.dataset.vlan       = p.vlan_id    ?? '';
+        card.dataset.poe        = (p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1') ? '1' : '0';
+        card.dataset.notes      = p.notes      ?? '';
+
+        // Update title attribute
+        card.title = `Port ${p.port_number}${p.label ? ' \u2014 ' + p.label : ''}`;
+
+        // Update color class — match PHP template logic
+        ['port-connected', 'port-disabled', 'port-wan', 'port-mgmt'].forEach(c => card.classList.remove(c));
+        if (p.status === 'disabled')     card.classList.add('port-disabled');
+        else if (p.port_type === 'wan')  card.classList.add('port-wan');
+        else if (p.port_type === 'mgmt') card.classList.add('port-mgmt');
+        else                             card.classList.add('port-connected');
+
+        // Update port number
+        const portNumEl = card.querySelector('.port-number');
+        if (portNumEl) portNumEl.textContent = String(p.port_number);
+
+        // Update type badge
+        const typeBadge = card.querySelector('.port-type-badge');
+        if (typeBadge) typeBadge.textContent = p.port_type.toUpperCase();
+
+        // Update PoE badge — show/hide as needed
+        const isPoE = p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1';
+        let poeBadge = card.querySelector('.port-poe-badge');
+        if (isPoE && !poeBadge) {
+            poeBadge = document.createElement('span');
+            poeBadge.className = 'port-poe-badge';
+            poeBadge.title = 'PoE Enabled';
+            poeBadge.textContent = '\u26a1';
+            const typeEl = card.querySelector('.port-type-badge');
+            if (typeEl) typeEl.after(poeBadge);
+            else card.appendChild(poeBadge);
+        } else if (!isPoE && poeBadge) {
+            poeBadge.remove();
+        }
+
+        // Update label/device area
+        const deviceDiv = card.querySelector('.port-device');
+        if (deviceDiv) {
+            deviceDiv.replaceChildren();
+            if (p.label) {
+                deviceDiv.textContent = p.label;
+            } else if (p.status === 'disabled') {
+                const span = document.createElement('span');
+                span.className = 'port-empty-label';
+                span.textContent = 'Disabled';
+                deviceDiv.appendChild(span);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'port-empty-label';
+                span.textContent = '\u00a0';
+                deviceDiv.appendChild(span);
+            }
+        }
+
+        // Update VLAN display
+        let vlanDiv = card.querySelector('.port-vlan');
+        if (p.vlan_id) {
+            if (!vlanDiv) {
+                vlanDiv = document.createElement('div');
+                vlanDiv.className = 'port-vlan';
+                card.appendChild(vlanDiv);
+            }
+            vlanDiv.textContent = `VLAN ${p.vlan_id}`;
+        } else if (vlanDiv) {
+            vlanDiv.remove();
+        }
+
+        // Notify connection system to redraw lines after card geometry may have changed
+        const container = document.getElementById('dashboard-devices');
+        if (container) container.dispatchEvent(new CustomEvent('portUpdated'));
+    }
+
+    // Delegated click on the dashboard container — connection mode's capture
+    // listener calls stopPropagation() when active, so this won't fire then.
+    const container = document.getElementById('dashboard-devices');
+    if (!container) return;
+
+    container.addEventListener('click', e => {
+        const card = e.target.closest('.port-card[data-port-id]');
+        if (!card) return;
+        openModal(card);
+    });
+
+    // Keyboard: Enter/Space on focused card
+    container.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest('.port-card[data-port-id]');
+        if (!card) return;
+        e.preventDefault();
+        openModal(card);
+    });
+
+    modalSave.addEventListener('click',   savePort);
+    modalClose.addEventListener('click',  closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
     });
 }
