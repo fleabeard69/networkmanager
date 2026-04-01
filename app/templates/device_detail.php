@@ -4,7 +4,7 @@
     <div class="panel-header">
         <div class="device-title-block">
             <h2 class="panel-title"><?= h($device['hostname']) ?></h2>
-            <span class="badge badge-type"><?= h(str_replace('-', ' ', ucfirst($device['device_type']))) ?></span>
+            <span class="badge badge-type"><?= device_type_icon($device['device_type']) ?><?= h(str_replace('-', ' ', ucfirst($device['device_type']))) ?></span>
         </div>
         <div class="header-actions">
             <a href="/devices/<?= h($device['id']) ?>/edit" class="btn btn-secondary btn-sm">Edit</a>

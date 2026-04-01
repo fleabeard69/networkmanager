@@ -40,7 +40,7 @@
                     <a href="/devices/<?= h($d['id']) ?>" class="link link-strong"><?= h($d['hostname']) ?></a>
                 </td>
                 <td class="cell-type">
-                    <span class="badge badge-type"><?= h(str_replace('-', ' ', ucfirst($d['device_type']))) ?></span>
+                    <span class="badge badge-type"><?= device_type_icon($d['device_type']) ?><?= h(str_replace('-', ' ', ucfirst($d['device_type']))) ?></span>
                 </td>
                 <td class="mono cell-mac"><?= $d['mac_address'] ? h($d['mac_address']) : '<span class="text-muted">—</span>' ?></td>
                 <td class="mono">

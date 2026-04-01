@@ -33,6 +33,31 @@ function h(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
+// Returns a leading emoji + space for a device type badge, or '' if none.
+// Output is safe to echo directly — strings are PHP source constants, not user input.
+function device_type_icon(string $type): string
+{
+    static $icons = [
+        'server'       => '🖥️',
+        'workstation'  => '🖥️',
+        'laptop'       => '💻',
+        'router'       => '📡',
+        'switch'       => '🔀',
+        'access-point' => '📶',
+        'nas'          => '🗄️',
+        'iot'          => '🔌',
+        'printer'      => '🖨️',
+        'camera'       => '📷',
+        'phone'        => '📱',
+        'tv'           => '📺',
+        'game-console' => '🎮',
+        'other'        => '',
+        'unknown'      => '❓',
+    ];
+    $icon = $icons[$type] ?? '';
+    return $icon !== '' ? $icon . ' ' : '';
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 Session::start();
 
