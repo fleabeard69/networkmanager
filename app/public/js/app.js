@@ -1222,6 +1222,8 @@ function initDashboardConnections() {
     const colorPicker = document.getElementById('connect-color-picker');
     if (!container || !svg || !connectBtn) return;
 
+    const connectHint = colorPicker?.querySelector('.connect-color-hint');
+
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -1511,6 +1513,7 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
         colorPicker?.classList.remove('hidden');
+        if (connectHint) connectHint.textContent = 'Click the first port to start a connection — ESC to cancel';
         svg.classList.add('connect-mode-active');
         container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
             const pid = parseInt(card.dataset.portId, 10);
@@ -1557,10 +1560,17 @@ function initDashboardConnections() {
             selectedPortId = portId;
             selectedAnchor = getClickSide(card, e);
             card.classList.add('conn-selected');
+            if (connectHint) {
+                const num   = card.dataset.portNumber ?? '?';
+                const label = card.dataset.label;
+                const desc  = label ? `"${label}" (Port ${num})` : `Port ${num}`;
+                connectHint.textContent = `${desc} selected — now click the destination port`;
+            }
         } else if (selectedPortId === portId) {
             selectedPortId = null;
             selectedAnchor = null;
             card.classList.remove('conn-selected');
+            if (connectHint) connectHint.textContent = 'Click the first port to start a connection — ESC to cancel';
         } else {
             const portA   = selectedPortId;
             const portB   = portId;
