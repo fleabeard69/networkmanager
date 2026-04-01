@@ -50,11 +50,11 @@
                 data-toggle="ip-form"
                 data-show-text="+ Add IP"
                 data-hide-text="− Cancel">
-            + Add IP
+            <?= empty($ips) ? '− Cancel' : '+ Add IP' ?>
         </button>
     </div>
 
-    <div id="ip-form" class="collapsible hidden">
+    <div id="ip-form" class="collapsible<?= empty($ips) ? '' : ' hidden' ?>">
         <form method="post" action="/devices/<?= h($device['id']) ?>/ips" class="form form-inline-section">
             <?= Csrf::field() ?>
             <div class="form-row">
@@ -245,11 +245,11 @@
                 data-toggle="service-form"
                 data-show-text="+ Add Service Port"
                 data-hide-text="− Cancel">
-            + Add Service Port
+            <?= empty($services) ? '− Cancel' : '+ Add Service Port' ?>
         </button>
     </div>
 
-    <div id="service-form" class="collapsible hidden">
+    <div id="service-form" class="collapsible<?= empty($services) ? '' : ' hidden' ?>">
         <form method="post" action="/devices/<?= h($device['id']) ?>/services" class="form form-inline-section">
             <?= Csrf::field() ?>
             <div class="form-row">
