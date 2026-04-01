@@ -130,7 +130,7 @@ class DeviceController
 
         render('device_port_panel', [
             'navActive' => 'devices',
-            'title'     => h($device['hostname']) . ' — Switch Ports',
+            'title'     => $device['hostname'] . ' — Switch Ports',
             'device'    => $device,
         ]);
     }
