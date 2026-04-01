@@ -9,22 +9,22 @@ foreach ($ports as $p) {
 ?>
 
 <div class="stats-grid">
-    <div class="stat-card">
+    <a href="/ports" class="stat-card" title="View all ports">
         <div class="stat-value"><?= h($portStats['total']) ?></div>
         <div class="stat-label">Switch Ports</div>
-    </div>
-    <div class="stat-card stat-card-green">
+    </a>
+    <a href="/ports?status=active" class="stat-card stat-card-green" title="View active ports">
         <div class="stat-value"><?= h($portStats['in_use']) ?></div>
         <div class="stat-label">In Use</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="/devices" class="stat-card" title="View all devices">
         <div class="stat-value"><?= h($deviceCount) ?></div>
         <div class="stat-label">Devices</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="/devices" class="stat-card" title="Manage IP addresses on each device page">
         <div class="stat-value"><?= h($ipCount) ?></div>
         <div class="stat-label">IP Addresses</div>
-    </div>
+    </a>
 </div>
 
 <?php if (empty($devices)): ?>

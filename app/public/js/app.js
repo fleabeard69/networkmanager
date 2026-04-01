@@ -2070,6 +2070,16 @@ function initPortsFilter() {
 
     searchInput.addEventListener('input', applyFilter);
     if (statusSelect) statusSelect.addEventListener('change', applyFilter);
+
+    // Pre-filter from URL query param (e.g. /ports?status=active from dashboard link)
+    if (statusSelect) {
+        const statusParam = new URLSearchParams(window.location.search).get('status');
+        const allowed = ['active', 'disabled', 'unknown'];
+        if (statusParam && allowed.includes(statusParam)) {
+            statusSelect.value = statusParam;
+            applyFilter();
+        }
+    }
 }
 
 // ── Dashboard Port Grid Arrow-Key Navigation ──────────────────────────────────
