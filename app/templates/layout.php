@@ -76,15 +76,15 @@
         <div class="modal" style="max-width:400px;">
             <div class="modal-header">
                 <h2 id="confirm-title" class="panel-title">Confirm</h2>
-                <button id="confirm-x" class="modal-close" aria-label="Cancel">&times;</button>
+                <button id="confirm-x" type="button" class="modal-close" aria-label="Cancel">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="confirm-message" style="margin:0; line-height:1.6;"></p>
             </div>
             <div class="modal-footer">
                 <div class="modal-footer-right">
-                    <button id="confirm-cancel" class="btn btn-secondary btn-sm">Cancel</button>
-                    <button id="confirm-ok"     class="btn btn-danger btn-sm">Confirm</button>
+                    <button id="confirm-cancel" type="button" class="btn btn-secondary btn-sm">Cancel</button>
+                    <button id="confirm-ok"     type="button" class="btn btn-danger btn-sm">Confirm</button>
                 </div>
             </div>
         </div>

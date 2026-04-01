@@ -9,7 +9,6 @@ function showConfirm(message, confirmText = 'Confirm') {
     return new Promise(resolve => {
         const overlay   = document.getElementById('confirm-overlay');
         const msgEl     = document.getElementById('confirm-message');
-        const titleEl   = document.getElementById('confirm-title');
         const okBtn     = document.getElementById('confirm-ok');
         const cancelBtn = document.getElementById('confirm-cancel');
         const xBtn      = document.getElementById('confirm-x');
@@ -17,9 +16,8 @@ function showConfirm(message, confirmText = 'Confirm') {
         // Fallback: if modal HTML is absent (e.g. login page), just resolve false
         if (!overlay) { resolve(false); return; }
 
-        msgEl.textContent  = message;
-        okBtn.textContent  = confirmText;
-        titleEl.textContent = confirmText === 'Confirm' ? 'Confirm' : `${confirmText}?`;
+        msgEl.textContent = message;
+        okBtn.textContent = confirmText;
         overlay.classList.remove('hidden');
         cancelBtn.focus();
 
