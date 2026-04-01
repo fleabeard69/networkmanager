@@ -2,7 +2,10 @@
 $isEdit = $device !== null;
 $title  = $isEdit ? 'Edit ' . $device['hostname'] : 'Add Device';
 $action = $isEdit ? '/devices/' . $device['id'] . '/edit' : '/devices';
-$val    = fn(string $key, mixed $default = '') => h($device !== null ? ($device[$key] ?? $default) : $default);
+$old = Session::getFlashInput();
+$raw = fn(string $key, mixed $default = '') =>
+    $old[$key] ?? ($device !== null ? ($device[$key] ?? $default) : $default);
+$val = fn(string $key, mixed $default = '') => h($raw($key, $default));
 
 $deviceTypes = [
     'server'       => 'Server',
@@ -44,7 +47,7 @@ $deviceTypes = [
                 <label class="field-label" for="device_type">Device Type</label>
                 <select class="field-input" id="device_type" name="device_type">
                     <?php foreach ($deviceTypes as $v => $l): ?>
-                        <option value="<?= h($v) ?>" <?= ($device !== null ? $device['device_type'] : 'unknown') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
+                        <option value="<?= h($v) ?>" <?= $raw('device_type', 'unknown') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

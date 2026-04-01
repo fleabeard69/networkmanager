@@ -31,6 +31,7 @@ class DeviceController
         $data = $this->validateDeviceData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /devices/new');
             exit;
         }
@@ -41,6 +42,7 @@ class DeviceController
             header("Location: /devices/{$id}");
         } catch (PDOException) {
             Session::flash('error', 'A database error occurred. Please try again.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /devices/new');
         }
         exit;
@@ -93,6 +95,7 @@ class DeviceController
         $data = $this->validateDeviceData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /devices/{$id}/edit");
             exit;
         }
@@ -103,6 +106,7 @@ class DeviceController
             header("Location: /devices/{$id}");
         } catch (PDOException) {
             Session::flash('error', 'A database error occurred. Please try again.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /devices/{$id}/edit");
         }
         exit;

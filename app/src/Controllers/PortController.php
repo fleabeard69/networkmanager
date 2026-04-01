@@ -38,6 +38,7 @@ class PortController
         $data = $this->validatePortData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /ports/new');
             exit;
         }
@@ -48,6 +49,7 @@ class PortController
             header('Location: /ports');
         } catch (PDOException $e) {
             Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists on this device.'));
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /ports/new');
         }
         exit;
@@ -79,6 +81,7 @@ class PortController
         $data = $this->validatePortData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /ports/{$id}/edit");
             exit;
         }
@@ -89,6 +92,7 @@ class PortController
             header('Location: /ports');
         } catch (PDOException $e) {
             Session::flash('error', $this->dbErrorMessage($e, 'unique', 'Port number already exists on this device.'));
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /ports/{$id}/edit");
         }
         exit;

@@ -2,7 +2,11 @@
 $isEdit = $port !== null;
 $title  = $isEdit ? 'Edit Port ' . $port['port_number'] : 'Add Switch Port';
 $action = $isEdit ? '/ports/' . $port['id'] . '/edit' : '/ports';
-$val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key] ?? $default) : $default);
+$old    = Session::getFlashInput();
+$raw    = fn(string $key, mixed $default = '') =>
+    $old[$key] ?? ($port !== null ? ($port[$key] ?? $default) : $default);
+$val    = fn(string $key, mixed $default = '') => h($raw($key, $default));
+$hasOld = !empty($old);
 ?>
 
 <div class="panel panel-form">
@@ -35,7 +39,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
                 <label class="field-label" for="port_type">Port Type <span class="required">*</span></label>
                 <select class="field-input" id="port_type" name="port_type" required>
                     <?php foreach (['rj45' => 'RJ45', 'sfp' => 'SFP', 'sfp+' => 'SFP+', 'wan' => 'WAN', 'mgmt' => 'Management'] as $v => $l): ?>
-                        <option value="<?= h($v) ?>" <?= ($port !== null ? $port['port_type'] : 'rj45') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
+                        <option value="<?= h($v) ?>" <?= $raw('port_type', 'rj45') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -44,7 +48,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
                 <label class="field-label" for="speed">Link Speed</label>
                 <select class="field-input" id="speed" name="speed">
                     <?php foreach (['10M', '100M', '1G', '2.5G', '5G', '10G'] as $s): ?>
-                        <option value="<?= h($s) ?>" <?= ($port !== null ? $port['speed'] : '1G') === $s ? 'selected' : '' ?>><?= h($s) ?></option>
+                        <option value="<?= h($s) ?>" <?= $raw('speed', '1G') === $s ? 'selected' : '' ?>><?= h($s) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -53,7 +57,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
                 <label class="field-label" for="status">Status <span class="required">*</span></label>
                 <select class="field-input" id="status" name="status" required>
                     <?php foreach (['active' => 'Active', 'disabled' => 'Disabled', 'unknown' => 'Unknown'] as $v => $l): ?>
-                        <option value="<?= h($v) ?>" <?= ($port !== null ? $port['status'] : 'active') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
+                        <option value="<?= h($v) ?>" <?= $raw('status', 'active') === $v ? 'selected' : '' ?>><?= h($l) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -90,7 +94,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
                 <select class="field-input" id="device_id" name="device_id">
                     <option value="">— None —</option>
                     <?php foreach ($devices as $d): ?>
-                        <option value="<?= h($d['id']) ?>" <?= ($port !== null ? $port['device_id'] : null) == $d['id'] ? 'selected' : '' ?>>
+                        <option value="<?= h($d['id']) ?>" <?= $raw('device_id') == $d['id'] ? 'selected' : '' ?>>
                             <?= h($d['hostname']) ?><?= $d['primary_ip'] ? ' (' . h($d['primary_ip']) . ')' : '' ?>
                         </option>
                     <?php endforeach; ?>
@@ -101,7 +105,7 @@ $val    = fn(string $key, mixed $default = '') => h($port !== null ? ($port[$key
         <div class="field-group">
             <label class="checkbox-label">
                 <input type="checkbox" name="poe_enabled" value="1"
-                       <?= ($port !== null && !empty($port['poe_enabled'])) ? 'checked' : '' ?>>
+                       <?= ($hasOld ? !empty($old['poe_enabled']) : ($port !== null && !empty($port['poe_enabled']))) ? 'checked' : '' ?>>
                 <span>PoE Enabled</span>
             </label>
         </div>

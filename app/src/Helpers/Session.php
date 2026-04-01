@@ -66,4 +66,16 @@ class Session
         unset($_SESSION['_flash'][$key]);
         return $msg;
     }
+
+    public static function flashInput(array $data): void
+    {
+        $_SESSION['_flash']['_input'] = $data;
+    }
+
+    public static function getFlashInput(): array
+    {
+        $data = $_SESSION['_flash']['_input'] ?? [];
+        unset($_SESSION['_flash']['_input']);
+        return $data;
+    }
 }
