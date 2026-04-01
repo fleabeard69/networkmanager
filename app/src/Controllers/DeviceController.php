@@ -55,7 +55,14 @@ class DeviceController
             $this->notFound('Device not found.');
         }
 
-        $ips             = $this->deviceModel->ips($id);
+        $ips = $this->deviceModel->ips($id);
+        foreach ($ips as &$ip) {
+            if ($ip['subnet_str'] !== null) {
+                $ip['subnet_str'] = self::cidrToSubnetMask($ip['subnet_str']);
+            }
+        }
+        unset($ip);
+
         $services        = $this->deviceModel->services($id);
         $switchPorts     = $this->portModel->allForDevice($id);
         $unassignedPorts = $this->portModel->allUnassigned();
@@ -310,15 +317,25 @@ class DeviceController
 
         $subnet = trim($post['subnet'] ?? '');
         if ($subnet !== '') {
-            $parts      = explode('/', $subnet, 2);
-            $ipPart     = $parts[0] ?? '';
-            $prefixPart = $parts[1] ?? '';
-            $maxPrefix  = filter_var($ipPart, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 32 : 128;
-            if (count($parts) !== 2
-                || !filter_var($ipPart, FILTER_VALIDATE_IP)
-                || !ctype_digit($prefixPart)
-                || (int)$prefixPart > $maxPrefix) {
-                return 'Invalid subnet format. Expected: 192.168.1.0/24';
+            $isIpv4 = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+            if ($isIpv4) {
+                $prefix = self::subnetMaskToPrefixLen($subnet);
+                if ($prefix === null) {
+                    return 'Invalid subnet mask. Expected format: 255.255.255.0';
+                }
+                // Compute network address (zero out host bits) and build CIDR for storage
+                $ipLong  = ip2long($ip);
+                $mskLong = ip2long($subnet);
+                $subnet  = long2ip(($ipLong & $mskLong) & 0xFFFFFFFF) . '/' . $prefix;
+            } else {
+                // IPv6: accept CIDR notation (network/prefix)
+                $parts      = explode('/', $subnet, 2);
+                $prefixPart = $parts[1] ?? '';
+                if (count($parts) !== 2
+                    || !ctype_digit($prefixPart)
+                    || (int)$prefixPart > 128) {
+                    return 'Invalid IPv6 subnet prefix. Expected CIDR format: 2001:db8::/32';
+                }
             }
         }
 
@@ -335,6 +352,56 @@ class DeviceController
             'is_primary' => !empty($post['is_primary']),
             'notes'      => substr(trim($post['notes'] ?? ''), 0, 1000),
         ];
+    }
+
+    /**
+     * Convert an IPv4 subnet mask (e.g. "255.255.255.0") to its prefix length.
+     * Returns null if the value is not a valid, contiguous IPv4 subnet mask.
+     */
+    private static function subnetMaskToPrefixLen(string $mask): ?int
+    {
+        if (!filter_var($mask, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return null;
+        }
+        $long = ip2long($mask);
+        if ($long === false) {
+            return null;
+        }
+        $bits = $long & 0xFFFFFFFF;
+        // A valid subnet mask is all 1s followed by all 0s in binary.
+        // Invert and confirm the result is 0 or a power-of-two minus 1 (i.e., 0*1*).
+        $inv = (~$bits) & 0xFFFFFFFF;
+        if ($inv !== 0 && ($inv & ($inv + 1)) !== 0) {
+            return null;
+        }
+        return substr_count(sprintf('%032b', $bits), '1');
+    }
+
+    /**
+     * Convert an IPv4 CIDR string (e.g. "192.168.1.0/24") to its subnet mask
+     * (e.g. "255.255.255.0"). Returns the input unchanged for IPv6 CIDRs.
+     */
+    private static function cidrToSubnetMask(string $cidr): string
+    {
+        $slash = strrpos($cidr, '/');
+        if ($slash === false) {
+            return $cidr;
+        }
+        // IPv6 addresses contain colons; leave them in CIDR notation.
+        if (str_contains(substr($cidr, 0, $slash), ':')) {
+            return $cidr;
+        }
+        $prefix = (int) substr($cidr, $slash + 1);
+        if ($prefix < 0 || $prefix > 32) {
+            return $cidr;
+        }
+        $bits = $prefix > 0 ? (~0 << (32 - $prefix)) & 0xFFFFFFFF : 0;
+        return implode('.', [
+            ($bits >> 24) & 0xFF,
+            ($bits >> 16) & 0xFF,
+            ($bits >> 8)  & 0xFF,
+            $bits         & 0xFF,
+        ]);
     }
 
     /** @return array|string Validated data array, or an error string. */

@@ -64,9 +64,9 @@
                            placeholder="192.168.1.100" required>
                 </div>
                 <div class="field-group">
-                    <label class="field-label" for="subnet">Subnet (CIDR)</label>
+                    <label class="field-label" for="subnet">Subnet Mask</label>
                     <input class="field-input mono" type="text" id="subnet" name="subnet"
-                           placeholder="192.168.1.0/24">
+                           placeholder="255.255.255.0">
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="gateway">Gateway</label>
