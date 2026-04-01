@@ -261,6 +261,22 @@ function initInlineValidation() {
     });
 }
 
+// ── Button loading state ──────────────────────────────────────────────────────
+// Adds/removes the .loading CSS class and toggles the disabled attribute + aria-busy.
+// Safely no-ops when btn is null (covers optional buttons like modalDelete).
+function setLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+    } else {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+    }
+}
+
 // ── Panel Editor Module ───────────────────────────────────────────────────
 function initPanelEditor() {
 
@@ -599,7 +615,7 @@ function initPanelEditor() {
     // ── Save ──────────────────────────────────────────────────────────────
     async function savePort() {
         hideError();
-        modalSave.disabled = true;
+        setLoading(modalSave, true);
         try {
             if (editId === null) {
                 const created = await apiFetch('/api/ports', {
@@ -621,7 +637,7 @@ function initPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalSave.disabled = false;
+            setLoading(modalSave, false);
         }
     }
 
@@ -629,7 +645,7 @@ function initPanelEditor() {
     async function deletePort() {
         if (!editId) return;
         if (!await showConfirm('Delete this port? This cannot be undone.', 'Delete')) return;
-        if (modalDelete) modalDelete.disabled = true;
+        setLoading(modalDelete, true);
         try {
             await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
             ports = ports.filter(p => p.id !== editId);
@@ -638,7 +654,7 @@ function initPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            if (modalDelete) modalDelete.disabled = false;
+            setLoading(modalDelete, false);
         }
     }
 
@@ -646,7 +662,7 @@ function initPanelEditor() {
     async function unassignPort() {
         if (!editId) return;
         if (!await showConfirm('Unassign this port from the device? The port record will be kept.', 'Unassign')) return;
-        if (modalUnassign) modalUnassign.disabled = true;
+        setLoading(modalUnassign, true);
         try {
             await apiFetch(`/api/ports/${editId}/assign`, {
                 method: 'PATCH',
@@ -659,7 +675,7 @@ function initPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            if (modalUnassign) modalUnassign.disabled = false;
+            setLoading(modalUnassign, false);
         }
     }
 
@@ -709,6 +725,7 @@ function initPanelEditor() {
         const c    = parseInt(ctrlCols.value, 10);
         if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
         if (isDeviceScoped) {
+            setLoading(btnApply, true);
             try {
                 await apiFetch(`/api/devices/${scopedDeviceId}/panel`, {
                     method: 'PATCH',
@@ -717,6 +734,8 @@ function initPanelEditor() {
             } catch (err) {
                 alert('Failed to save dimensions: ' + err.message);
                 return;
+            } finally {
+                setLoading(btnApply, false);
             }
         }
         rows     = r;
@@ -894,6 +913,7 @@ function initGlobalPanelEditor() {
             const rear = parseInt(rearRowInput.value, 10);
             const c    = parseInt(colInput.value, 10);
             if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
+            setLoading(applyBtn, true);
             try {
                 await apiFetch(`/api/devices/${device.id}/panel`, {
                     method: 'PATCH',
@@ -905,6 +925,8 @@ function initGlobalPanelEditor() {
                 section.replaceWith(newSection);
             } catch (err) {
                 alert('Failed to save: ' + err.message);
+            } finally {
+                setLoading(applyBtn, false);
             }
         });
 
@@ -1155,7 +1177,7 @@ function initGlobalPanelEditor() {
     // ── Save ──────────────────────────────────────────────────────────────
     async function savePort() {
         hideError();
-        modalSave.disabled = true;
+        setLoading(modalSave, true);
         try {
             if (editId === null) {
                 const created = await apiFetch('/api/ports', {
@@ -1181,7 +1203,7 @@ function initGlobalPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalSave.disabled = false;
+            setLoading(modalSave, false);
         }
     }
 
@@ -1189,7 +1211,7 @@ function initGlobalPanelEditor() {
     async function deletePort() {
         if (!editId) return;
         if (!await showConfirm('Delete this port? This cannot be undone.', 'Delete')) return;
-        if (modalDelete) modalDelete.disabled = true;
+        setLoading(modalDelete, true);
         try {
             await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
             ports = ports.filter(p => p.id !== editId);
@@ -1198,7 +1220,7 @@ function initGlobalPanelEditor() {
         } catch (err) {
             showError(err.message);
         } finally {
-            if (modalDelete) modalDelete.disabled = false;
+            setLoading(modalDelete, false);
         }
     }
 
@@ -1314,6 +1336,7 @@ function initGlobalPanelEditor() {
             if (!await confirmPromise) return;
         }
 
+        setLoading(btnApplyAll, true);
         try {
             await Promise.all(devices.map(d =>
                 apiFetch(`/api/devices/${d.id}/panel`, {
@@ -1325,6 +1348,8 @@ function initGlobalPanelEditor() {
             renderAll();
         } catch (err) {
             alert('Failed to apply: ' + err.message);
+        } finally {
+            setLoading(btnApplyAll, false);
         }
     });
 
@@ -1875,7 +1900,7 @@ function initPortsTableEdit() {
     async function savePort() {
         if (!currentTr) return;
         hideError();
-        modalSave.disabled = true;
+        setLoading(modalSave, true);
 
         const d      = currentTr.dataset;
         const portId = parseInt(d.id, 10);
@@ -1904,7 +1929,7 @@ function initPortsTableEdit() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalSave.disabled = false;
+            setLoading(modalSave, false);
         }
     }
 
@@ -2078,7 +2103,7 @@ function initDevicesTableEdit() {
     async function saveDevice() {
         if (!currentTr) return;
         hideError();
-        modalSave.disabled = true;
+        setLoading(modalSave, true);
 
         const d        = currentTr.dataset;
         const deviceId = parseInt(d.id, 10);
@@ -2101,7 +2126,7 @@ function initDevicesTableEdit() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalSave.disabled = false;
+            setLoading(modalSave, false);
         }
     }
 
@@ -2462,7 +2487,7 @@ function initDashboardPortEdit() {
     async function savePort() {
         if (!currentCard) return;
         hideError();
-        modalSave.disabled = true;
+        setLoading(modalSave, true);
 
         const d      = currentCard.dataset;
         const portId = parseInt(d.portId, 10);
@@ -2491,7 +2516,7 @@ function initDashboardPortEdit() {
         } catch (err) {
             showError(err.message);
         } finally {
-            modalSave.disabled = false;
+            setLoading(modalSave, false);
         }
     }
 
