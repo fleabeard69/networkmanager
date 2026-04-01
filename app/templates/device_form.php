@@ -66,7 +66,7 @@ $deviceTypes = [
             <label class="field-label" for="panel_rear_rows">Rear Panel Rows</label>
             <input class="field-input" type="number" id="panel_rear_rows" name="panel_rear_rows"
                    min="0" max="10" value="<?= $val('panel_rear_rows', 0) ?>">
-            <p class="field-hint">Set to 0 if the device has no rear-facing ports. Front rows are configured in the panel editor.</p>
+            <p class="field-hint">When above 0, a rear panel section appears on the dashboard alongside the front panel — useful for devices with ports on both sides. Leave at 0 if all ports are front-facing. Front rows are configured in the panel editor.</p>
         </div>
 
         <div class="field-group">
