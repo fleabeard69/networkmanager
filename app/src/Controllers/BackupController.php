@@ -209,11 +209,12 @@ class BackupController
 
                 $subnet = is_string($ip['subnet'] ?? null) ? trim($ip['subnet']) : '';
                 if ($subnet !== '') {
-                    $parts = explode('/', $subnet, 2);
+                    $parts     = explode('/', $subnet, 2);
+                    $maxPrefix = filter_var($parts[0] ?? '', FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 32 : 128;
                     if (count($parts) !== 2
                         || !filter_var($parts[0], FILTER_VALIDATE_IP)
                         || !ctype_digit($parts[1])
-                        || (int)$parts[1] > 128) {
+                        || (int)$parts[1] > $maxPrefix) {
                         throw new InvalidArgumentException(
                             "Invalid subnet \"{$subnet}\" in an IP assignment."
                         );
