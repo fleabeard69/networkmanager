@@ -157,6 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('device-filter')) initDevicesFilter();
     if (document.getElementById('ports-search'))  initPortsFilter();
 
+    // ── Dashboard port grid arrow-key navigation ──────────────────────────
+    if (document.getElementById('dashboard-devices')) initPortGridArrowNav();
+
     // ── Dashboard device reorder ──────────────────────────────────────────
     initDashboardReorder();
 
@@ -2056,6 +2059,67 @@ function initPortsFilter() {
 
     searchInput.addEventListener('input', applyFilter);
     if (statusSelect) statusSelect.addEventListener('change', applyFilter);
+}
+
+// ── Dashboard Port Grid Arrow-Key Navigation ──────────────────────────────────
+// Implements roving tabindex so Tab moves between device panels and arrow keys
+// navigate within a single panel's port grid.
+function initPortGridArrowNav() {
+    const container = document.getElementById('dashboard-devices');
+    if (!container) return;
+
+    container.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
+        const allCards = [...grid.querySelectorAll('.port-card[data-port-id]')];
+        if (allCards.length === 0) return;
+
+        // Sort top-left first so the first tabbable card is predictable
+        allCards.sort((a, b) => {
+            const rDiff = parseInt(a.dataset.row, 10) - parseInt(b.dataset.row, 10);
+            return rDiff !== 0 ? rDiff : parseInt(a.dataset.col, 10) - parseInt(b.dataset.col, 10);
+        });
+        // Roving tabindex: only the first card of each grid starts in the tab order
+        allCards.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
+
+        // Keep roving target in sync when a card gains focus via mouse or Tab
+        grid.addEventListener('focusin', e => {
+            const card = e.target.closest('.port-card[data-port-id]');
+            if (!card) return;
+            grid.querySelectorAll('.port-card[data-port-id]').forEach(c =>
+                c.setAttribute('tabindex', c === card ? '0' : '-1')
+            );
+        });
+
+        // Arrow keys navigate between cards within this grid
+        grid.addEventListener('keydown', e => {
+            if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+            const card = e.target.closest('.port-card[data-port-id]');
+            if (!card) return;
+
+            const row = parseInt(card.dataset.row, 10);
+            const col = parseInt(card.dataset.col, 10);
+            let targetRow = row, targetCol = col;
+
+            if (e.key === 'ArrowUp')    targetRow--;
+            if (e.key === 'ArrowDown')  targetRow++;
+            if (e.key === 'ArrowLeft')  targetCol--;
+            if (e.key === 'ArrowRight') targetCol++;
+
+            // targetRow/targetCol are integers from arithmetic — safe in selector
+            const target = grid.querySelector(
+                `.port-card[data-row="${targetRow}"][data-col="${targetCol}"]`
+            );
+            // At the grid edge there is no adjacent card: let the browser's default
+            // action (page scroll) proceed rather than silently trapping the user
+            if (!target) return;
+
+            e.preventDefault();
+            grid.querySelectorAll('.port-card[data-port-id]').forEach(c =>
+                c.setAttribute('tabindex', '-1')
+            );
+            target.setAttribute('tabindex', '0');
+            target.focus();
+        });
+    });
 }
 
 // ── Dashboard Device Reorder ──────────────────────────────────────────────────
