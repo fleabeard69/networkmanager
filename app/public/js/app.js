@@ -1324,20 +1324,33 @@ function initDashboardConnections() {
     }
 
     // ── Orthogonal polyline between two anchor points ─────────────────────
+    const STUB = 18; // px the line travels away from the port face before turning
+
     function routePoints(ax, ay, sideA, bx, by, sideB) {
+        const sdx = { left: -STUB, right: STUB, top: 0,     bottom: 0    };
+        const sdy = { left:  0,    right: 0,    top: -STUB, bottom: STUB };
+        const sx1 = ax + (sdx[sideA] || 0), sy1 = ay + (sdy[sideA] || 0);
+        const sx2 = bx + (sdx[sideB] || 0), sy2 = by + (sdy[sideB] || 0);
+
         const vA = sideA === 'top' || sideA === 'bottom';
         const vB = sideB === 'top' || sideB === 'bottom';
         if (vA && vB) {
-            const midY = (ay + by) / 2;
-            return [{ x: ax, y: ay }, { x: ax, y: midY }, { x: bx, y: midY }, { x: bx, y: by }];
+            const midY = (sy1 + sy2) / 2;
+            return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
+                    { x: sx1, y: midY }, { x: sx2, y: midY },
+                    { x: sx2, y: sy2 }, { x: bx, y: by }];
         }
         if (!vA && !vB) {
-            const midX = (ax + bx) / 2;
-            return [{ x: ax, y: ay }, { x: midX, y: ay }, { x: midX, y: by }, { x: bx, y: by }];
+            const midX = (sx1 + sx2) / 2;
+            return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
+                    { x: midX, y: sy1 }, { x: midX, y: sy2 },
+                    { x: sx2, y: sy2 }, { x: bx, y: by }];
         }
-        // Mixed: single L-corner
-        if (vA) return [{ x: ax, y: ay }, { x: ax, y: by }, { x: bx, y: by }];
-        else     return [{ x: ax, y: ay }, { x: bx, y: ay }, { x: bx, y: by }];
+        // Mixed: single L-corner with stubs
+        if (vA) return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
+                        { x: sx1, y: sy2 }, { x: sx2, y: sy2 }, { x: bx, y: by }];
+        else    return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
+                        { x: sx2, y: sy1 }, { x: sx2, y: sy2 }, { x: bx, y: by }];
     }
 
     // ── Which edge zone of a card was clicked ─────────────────────────────
@@ -1464,8 +1477,11 @@ function initDashboardConnections() {
                 const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
                 x1 = top.cx; y1 = top.bot;
                 x2 = bot.cx; y2 = bot.top;
-                const midY = (y1 + y2) / 2;
-                pts = [{ x: x1, y: y1 }, { x: x1, y: midY }, { x: x2, y: midY }, { x: x2, y: y2 }];
+                const sy1 = y1 + STUB, sy2 = y2 - STUB;
+                const midY = (sy1 + sy2) / 2;
+                pts = [{ x: x1, y: y1 }, { x: x1, y: sy1 },
+                       { x: x1, y: midY }, { x: x2, y: midY },
+                       { x: x2, y: sy2 }, { x: x2, y: y2 }];
             } else {
                 // Explicit anchors (fall back to auto side for any null half)
                 const aSide = sideA || (a.mid <= b.mid ? 'bottom' : 'top');
