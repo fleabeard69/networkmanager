@@ -60,22 +60,28 @@
         </header>
 
         <main class="main-content">
-            <?php $flash = Session::getFlash('success'); if ($flash): ?>
-                <div class="flash flash-success">
-                    <span><?= h($flash) ?></span>
-                    <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
-                </div>
-            <?php endif; ?>
-            <?php $flash = Session::getFlash('error'); if ($flash): ?>
-                <div class="flash flash-error">
-                    <span><?= h($flash) ?></span>
-                    <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
-                </div>
-            <?php endif; ?>
-
             <?= $content ?>
         </main>
     </div>
+
+    <!-- Fixed toast notification stack (bottom-right, always visible) ─────── -->
+    <?php $flashSuccess = Session::getFlash('success'); $flashError = Session::getFlash('error'); ?>
+    <?php if ($flashSuccess || $flashError): ?>
+    <div class="flash-stack">
+        <?php if ($flashSuccess): ?>
+        <div class="flash flash-success" role="status">
+            <span><?= h($flashSuccess) ?></span>
+            <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
+        </div>
+        <?php endif; ?>
+        <?php if ($flashError): ?>
+        <div class="flash flash-error" role="alert">
+            <span><?= h($flashError) ?></span>
+            <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Shared confirm modal (used by all delete/destructive actions) -->
     <div id="confirm-overlay" class="modal-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
