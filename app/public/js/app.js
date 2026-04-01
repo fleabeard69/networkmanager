@@ -1736,7 +1736,8 @@ function initPortsTableEdit() {
         tr.dataset.portType   = p.port_type;
         tr.dataset.speed      = p.speed;
         tr.dataset.status     = p.status;
-        tr.dataset.deviceId   = p.device_id  ?? '';
+        tr.dataset.deviceId       = p.device_id       ?? '';
+        tr.dataset.deviceHostname = p.device_hostname ?? '';
         tr.dataset.vlan       = p.vlan_id    ?? '';
         tr.dataset.poe        = (p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1') ? '1' : '0';
         tr.dataset.notes      = p.notes      ?? '';
