@@ -174,6 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Inline field validation ───────────────────────────────────────────
     initInlineValidation();
 
+    // ── Unsaved changes guard ─────────────────────────────────────────────
+    initUnsavedGuard();
+
 });
 
 // ── Inline Field Validation ───────────────────────────────────────────────────
@@ -275,6 +278,58 @@ function setLoading(btn, loading) {
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
     }
+}
+
+// ── Unsaved Changes Guard ─────────────────────────────────────────────────────
+// Warns before leaving a page when a form has been modified but not submitted.
+// Opt in by adding data-guard-unsaved to a <form> element.
+// Advisory only — the browser controls the actual prompt text in modern browsers.
+function initUnsavedGuard() {
+    const form = document.querySelector('form[data-guard-unsaved]');
+    if (!form) return;
+
+    // Capture the initial serialised state of every field so we can diff it later.
+    function snapshot() {
+        const map = new Map();
+        form.querySelectorAll('input, select, textarea').forEach(el => {
+            if (!el.name) return;
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                map.set(el.name + ':' + el.value, el.checked);
+            } else {
+                map.set(el.name, el.value);
+            }
+        });
+        return map;
+    }
+
+    function mapsEqual(a, b) {
+        if (a.size !== b.size) return false;
+        for (const [k, v] of a) { if (b.get(k) !== v) return false; }
+        return true;
+    }
+
+    const initial = snapshot();
+    let submitted = false;
+
+    // Clear the guard when the form is intentionally submitted (including via
+    // any submit button within the form, e.g. the Cancel-via-link pattern does
+    // not submit, so navigating away via Cancel still runs the guard).
+    form.addEventListener('submit', () => { submitted = true; });
+
+    window.addEventListener('beforeunload', e => {
+        if (submitted) return;
+        if (mapsEqual(initial, snapshot())) return;
+        // Setting returnValue triggers the browser's built-in "Leave site?" dialog.
+        // The string is ignored by modern browsers but required for older ones.
+        e.preventDefault();
+        e.returnValue = '';
+    });
+
+    // After a bfcache restore the page may re-appear with stale submitted=false.
+    // Re-snapshot so going Back after a successful save doesn't show the guard.
+    window.addEventListener('pageshow', e => {
+        if (e.persisted) { submitted = false; initial.clear(); snapshot().forEach((v, k) => initial.set(k, v)); }
+    });
 }
 
 // ── Panel Editor Module ───────────────────────────────────────────────────

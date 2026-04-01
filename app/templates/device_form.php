@@ -32,7 +32,7 @@ $deviceTypes = [
         <a href="/devices" class="btn btn-secondary btn-sm">Back to Devices</a>
     </div>
 
-    <form method="post" action="<?= h($action) ?>" class="form">
+    <form method="post" action="<?= h($action) ?>" class="form" data-guard-unsaved>
         <?= Csrf::field() ?>
 
         <div class="form-row">

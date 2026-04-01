@@ -15,7 +15,7 @@ $hasOld = !empty($old);
         <a href="/ports" class="btn btn-secondary btn-sm">Back to Ports</a>
     </div>
 
-    <form method="post" action="<?= h($action) ?>" class="form">
+    <form method="post" action="<?= h($action) ?>" class="form" data-guard-unsaved>
         <?= Csrf::field() ?>
 
         <div class="form-row">
