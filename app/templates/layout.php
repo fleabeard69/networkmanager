@@ -85,7 +85,7 @@
                 <button id="confirm-x" type="button" class="modal-close" aria-label="Cancel">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="confirm-message" style="margin:0; line-height:1.6;"></p>
+                <div id="confirm-message" style="margin:0; line-height:1.6;"></div>
             </div>
             <div class="modal-footer">
                 <div class="modal-footer-right">

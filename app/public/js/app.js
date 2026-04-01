@@ -1189,6 +1189,43 @@ function initGlobalPanelEditor() {
         const rear = parseInt(document.getElementById('ctrl-rear-rows')?.value ?? '0', 10);
         const c    = parseInt(ctrlCols.value, 10);
         if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
+
+        // Warn if any device has ports that would fall outside the new grid bounds
+        const totalRows = r + rear;
+        const affected = devices
+            .map(d => ({ device: d, count: portsForDevice(d.id).filter(p => p.port_row > totalRows || p.port_col > c).length }))
+            .filter(x => x.count > 0);
+
+        if (affected.length > 0) {
+            // Open the confirm modal with an empty message, then populate it with
+            // structured DOM nodes (all user data via textContent — no XSS risk).
+            const confirmPromise = showConfirm('', 'Apply Anyway');
+            const msgEl = document.getElementById('confirm-message');
+            if (msgEl) {
+                const intro = document.createElement('span');
+                intro.textContent = `Applying these dimensions will hide ports on ${affected.length} device${affected.length !== 1 ? 's' : ''}:`;
+
+                const ul = document.createElement('ul');
+                ul.style.cssText = 'margin:8px 0; padding-left:18px;';
+                affected.forEach(({ device, count }) => {
+                    const li = document.createElement('li');
+                    li.style.marginTop = '3px';
+                    const b = document.createElement('strong');
+                    b.textContent = device.hostname;
+                    li.appendChild(b);
+                    li.appendChild(document.createTextNode(` — ${count} port${count !== 1 ? 's' : ''} outside bounds`));
+                    ul.appendChild(li);
+                });
+
+                const note = document.createElement('span');
+                note.style.cssText = 'display:block; margin-top:8px; font-size:12px; opacity:0.7;';
+                note.textContent = 'Affected ports remain in the database but won\'t appear until repositioned.';
+
+                msgEl.replaceChildren(intro, ul, note);
+            }
+            if (!await confirmPromise) return;
+        }
+
         try {
             await Promise.all(devices.map(d =>
                 apiFetch(`/api/devices/${d.id}/panel`, {
