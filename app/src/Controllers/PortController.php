@@ -138,10 +138,10 @@ class PortController
         $portNumber = filter_var(
             $post['port_number'] ?? '',
             FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1]]
+            ['options' => ['min_range' => 1, 'max_range' => 9999]]
         );
         if ($portNumber === false) {
-            return 'Port number must be a positive integer.';
+            return 'Port number must be between 1 and 9999.';
         }
 
         $validTypes = ['rj45', 'sfp', 'sfp+', 'wan', 'mgmt'];

@@ -22,7 +22,7 @@ $hasOld = !empty($old);
             <div class="field-group">
                 <label class="field-label" for="port_number">Port Number <span class="required">*</span></label>
                 <input class="field-input mono" type="number" id="port_number" name="port_number"
-                       min="1" max="999" required
+                       min="1" max="9999" required
                        value="<?= $val('port_number') ?>">
             </div>
 

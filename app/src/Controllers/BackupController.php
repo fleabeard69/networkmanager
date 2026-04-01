@@ -302,9 +302,9 @@ class BackupController
                 }
 
                 $switchPortNumber = (int)($p['port_number'] ?? 0);
-                if ($switchPortNumber < 1) {
+                if ($switchPortNumber < 1 || $switchPortNumber > 9999) {
                     throw new InvalidArgumentException(
-                        "Invalid switch port_number \"{$switchPortNumber}\" — must be a positive integer."
+                        "Invalid switch port_number \"{$switchPortNumber}\" — must be between 1 and 9999."
                     );
                 }
 
