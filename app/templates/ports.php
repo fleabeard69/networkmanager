@@ -46,7 +46,7 @@
                 data-notes="<?= h($p['notes'] ?? '') ?>"
                 data-row="<?= h($p['port_row']) ?>"
                 data-col="<?= h($p['port_col']) ?>">
-                <td class="mono"><?= h($p['port_number']) ?></td>
+                <td class="mono cell-port-number"><?= h($p['port_number']) ?></td>
                 <td class="cell-label"><?= h($p['label']) ?></td>
                 <td class="cell-type"><span class="badge badge-type"><?= h(strtoupper($p['port_type'])) ?></span></td>
                 <td class="mono cell-speed"><?= h($p['speed']) ?></td>

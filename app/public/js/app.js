@@ -1674,6 +1674,9 @@ function initPortsTableEdit() {
         tr.dataset.notes      = p.notes      ?? '';
 
         // Update visible cells — all via textContent or safe DOM construction (no innerHTML from user data)
+        const portNumCell = tr.querySelector('.cell-port-number');
+        if (portNumCell) portNumCell.textContent = String(p.port_number);
+
         const labelCell = tr.querySelector('.cell-label');
         if (labelCell) labelCell.textContent = p.label ?? '';
 
