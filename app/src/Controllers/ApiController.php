@@ -154,6 +154,10 @@ class ApiController
             $color = '#388bfd';
         }
 
+        if (!$this->portModel->find($portA) || !$this->portModel->find($portB)) {
+            $this->json(['error' => 'One or both ports not found.'], 404);
+        }
+
         try {
             $id = $this->connectionModel->create($portA, $portB, $color);
             $this->json($this->connectionModel->find($id), 201);
