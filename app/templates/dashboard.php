@@ -149,16 +149,22 @@ foreach ($ports as $p) {
                     <?php
                 };
                 ?>
-                <div class="port-grid-wrap">
-                    <?php if ($rearRows > 0): ?>
+                <?php if ($rearRows > 0): ?>
+                <div class="port-grid-wrap port-grid-wrap-dual">
+                    <div class="panel-face-col">
                         <div class="panel-face-label">Front</div>
-                    <?php endif; ?>
-                    <?php $renderPortGrid($frontPorts, $rows, $cols, 0); ?>
-                    <?php if ($rearRows > 0): ?>
+                        <?php $renderPortGrid($frontPorts, $rows, $cols, 0); ?>
+                    </div>
+                    <div class="panel-face-col">
                         <div class="panel-face-label panel-face-label-rear">Rear</div>
                         <?php $renderPortGrid($rearPorts, $rearRows, $cols, $rows); ?>
-                    <?php endif; ?>
+                    </div>
                 </div>
+                <?php else: ?>
+                <div class="port-grid-wrap">
+                    <?php $renderPortGrid($frontPorts, $rows, $cols, 0); ?>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
         </section>
     <?php endforeach; ?>

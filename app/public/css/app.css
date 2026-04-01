@@ -349,6 +349,31 @@ a.stat-card:focus-visible {
     margin-top: 16px;
 }
 
+/* ── Dual-panel (front + rear) side-by-side layout ───────────────────────── */
+.port-grid-wrap-dual {
+    display: flex;
+    align-items: flex-start;
+}
+
+.panel-face-col {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.panel-face-col + .panel-face-col {
+    margin-left: 16px;
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
+}
+
+/* Rear label sits at the top of its column — remove the stacked-layout separator */
+.port-grid-wrap-dual .panel-face-label-rear {
+    padding-top: 0;
+    border-top: none;
+    margin-top: 0;
+}
+
 .port-grid {
     display: grid;
     /* grid-template-columns and grid-template-rows are set by app.js
