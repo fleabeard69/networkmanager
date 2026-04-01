@@ -24,6 +24,12 @@
             <span class="meta-label">MAC Address</span>
             <span class="meta-value mono"><?= $device['mac_address'] ? h($device['mac_address']) : '—' ?></span>
         </div>
+        <?php if ($device['primary_ip']): ?>
+        <div class="meta-item">
+            <span class="meta-label">Primary IP</span>
+            <span class="meta-value mono"><?= h($device['primary_ip']) ?></span>
+        </div>
+        <?php endif; ?>
         <div class="meta-item">
             <span class="meta-label">Switch Ports</span>
             <span class="meta-value">
@@ -114,7 +120,7 @@
             </thead>
             <tbody>
                 <?php foreach ($ips as $ip): ?>
-                <tr>
+                <tr<?= ($ip['is_primary'] && $ip['is_primary'] !== 'f') ? ' class="ip-primary"' : '' ?>>
                     <td class="mono"><?= h($ip['ip_str']) ?></td>
                     <td class="mono"><?= $ip['subnet_str'] ? h($ip['subnet_str']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="mono"><?= $ip['gateway_str'] ? h($ip['gateway_str']) : '<span class="text-muted">—</span>' ?></td>

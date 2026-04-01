@@ -37,10 +37,12 @@ class DeviceModel
     public function find(int $id): array|false
     {
         return $this->db->fetchOne(
-            'SELECT d.*,
-                (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id) AS port_count
+            "SELECT d.*,
+                (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id)  AS port_count,
+                (SELECT ip_address::text FROM ip_assignments
+                 WHERE device_id = d.id AND is_primary = TRUE LIMIT 1)      AS primary_ip
              FROM devices d
-             WHERE d.id = :id',
+             WHERE d.id = :id",
             [':id' => $id]
         );
     }

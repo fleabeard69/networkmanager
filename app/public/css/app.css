@@ -651,6 +651,10 @@ a.stat-card:focus-visible {
 
 .data-table tbody tr:hover td { background: var(--surface-2); }
 
+/* Primary IP row — bold cells + green left accent on the IP column */
+.ip-primary td { font-weight: 600; }
+.ip-primary td:first-child { box-shadow: inset 3px 0 0 var(--green); }
+
 .col-actions { width: 1%; white-space: nowrap; text-align: right; }
 
 .actions-cell {
