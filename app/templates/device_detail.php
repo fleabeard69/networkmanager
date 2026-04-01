@@ -11,7 +11,8 @@
             <form method="post" action="/devices/<?= h($device['id']) ?>/delete" class="inline-form">
                 <?= Csrf::field() ?>
                 <button type="submit" class="btn btn-danger btn-sm"
-                        data-confirm="Delete <?= h($device['hostname']) ?>? All IPs and service ports will also be removed.">
+                        data-confirm="Delete <?= h($device['hostname']) ?>? All IPs and service ports will also be removed."
+                        data-confirm-ok="Delete">
                     Delete
                 </button>
             </form>
@@ -124,7 +125,8 @@
                         <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-danger btn-xs"
-                                    data-confirm="Remove <?= h($ip['ip_str']) ?>?">
+                                    data-confirm="Remove <?= h($ip['ip_str']) ?>?"
+                                    data-confirm-ok="Remove">
                                 Delete
                             </button>
                         </form>
@@ -222,7 +224,8 @@
                         <form method="post" action="/ports/<?= h($sp['id']) ?>/unassign" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-warning btn-xs"
-                                    data-confirm="Unassign Port <?= h($sp['port_number']) ?> from this device?">
+                                    data-confirm="Unassign Port <?= h($sp['port_number']) ?> from this device?"
+                                    data-confirm-ok="Unassign">
                                 Unassign
                             </button>
                         </form>
@@ -312,7 +315,8 @@
                         <form method="post" action="/devices/<?= h($device['id']) ?>/services/<?= h($svc['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-danger btn-xs"
-                                    data-confirm="Remove <?= h(strtoupper($svc['protocol'])) ?>/<?= h($svc['port_number']) ?>?">
+                                    data-confirm="Remove <?= h(strtoupper($svc['protocol'])) ?>/<?= h($svc['port_number']) ?>?"
+                                    data-confirm-ok="Remove">
                                 Delete
                             </button>
                         </form>

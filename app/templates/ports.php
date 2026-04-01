@@ -75,7 +75,8 @@
                     <form method="post" action="/ports/<?= h($p['id']) ?>/delete" class="inline-form">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-danger btn-xs"
-                                data-confirm="Remove port <?= h($p['port_number']) ?>? This cannot be undone.">
+                                data-confirm="Remove port <?= h($p['port_number']) ?>? This cannot be undone."
+                                data-confirm-ok="Delete">
                             Delete
                         </button>
                     </form>

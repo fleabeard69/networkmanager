@@ -58,7 +58,8 @@
                     <form method="post" action="/devices/<?= h($d['id']) ?>/delete" class="inline-form">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-danger btn-xs"
-                                data-confirm="Delete <?= h($d['hostname']) ?>? All IPs and service ports will also be removed.">
+                                data-confirm="Delete <?= h($d['hostname']) ?>? All IPs and service ports will also be removed."
+                                        data-confirm-ok="Delete">
                             Delete
                         </button>
                     </form>

@@ -1,13 +1,73 @@
 'use strict';
 
+// ── Styled confirmation dialog ────────────────────────────────────────────────
+// Returns a Promise<boolean>. Resolves true if the user confirms, false if they
+// cancel (via button, overlay click, or Escape). The ESC handler is registered
+// at the capture phase so it fires before any other modal's bubble-phase handler,
+// and stopImmediatePropagation() ensures stacked modals don't also close.
+function showConfirm(message, confirmText = 'Confirm') {
+    return new Promise(resolve => {
+        const overlay   = document.getElementById('confirm-overlay');
+        const msgEl     = document.getElementById('confirm-message');
+        const titleEl   = document.getElementById('confirm-title');
+        const okBtn     = document.getElementById('confirm-ok');
+        const cancelBtn = document.getElementById('confirm-cancel');
+        const xBtn      = document.getElementById('confirm-x');
+
+        // Fallback: if modal HTML is absent (e.g. login page), just resolve false
+        if (!overlay) { resolve(false); return; }
+
+        msgEl.textContent  = message;
+        okBtn.textContent  = confirmText;
+        titleEl.textContent = confirmText === 'Confirm' ? 'Confirm' : `${confirmText}?`;
+        overlay.classList.remove('hidden');
+        cancelBtn.focus();
+
+        function close(result) {
+            overlay.classList.add('hidden');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            xBtn.removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onOverlay);
+            document.removeEventListener('keydown', onKey, true);
+            resolve(result);
+        }
+
+        const onOk      = () => close(true);
+        const onCancel  = () => close(false);
+        const onOverlay = e => { if (e.target === overlay) close(false); };
+        // Capture phase: fires before any other modal's bubble-phase ESC handler
+        const onKey = e => {
+            if (e.key !== 'Escape') return;
+            e.stopImmediatePropagation();
+            close(false);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        xBtn.addEventListener('click', onCancel);
+        overlay.addEventListener('click', onOverlay);
+        document.addEventListener('keydown', onKey, true);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ── Delete / dangerous action confirmations ───────────────────────────
-    // Any submit button with data-confirm will prompt before the form submits.
+    // Any submit button with data-confirm shows a styled modal before submitting.
+    // data-confirm-ok sets the confirm button label (default "Confirm").
     document.querySelectorAll('button[data-confirm]').forEach(btn => {
-        btn.addEventListener('click', e => {
-            if (!window.confirm(btn.dataset.confirm)) {
-                e.preventDefault();
+        btn.addEventListener('click', async e => {
+            e.preventDefault();
+            btn.disabled = true;
+            const form  = btn.closest('form');
+            const label = btn.dataset.confirmOk || 'Confirm';
+            try {
+                if (await showConfirm(btn.dataset.confirm, label) && form) {
+                    form.submit();
+                }
+            } finally {
+                btn.disabled = false;
             }
         });
     });
@@ -470,7 +530,7 @@ function initPanelEditor() {
     // ── Delete ────────────────────────────────────────────────────────────
     async function deletePort() {
         if (!editId) return;
-        if (!window.confirm('Delete this port? This cannot be undone.')) return;
+        if (!await showConfirm('Delete this port? This cannot be undone.', 'Delete')) return;
         if (modalDelete) modalDelete.disabled = true;
         try {
             await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
@@ -487,7 +547,7 @@ function initPanelEditor() {
     // ── Unassign (device panel only) ──────────────────────────────────────
     async function unassignPort() {
         if (!editId) return;
-        if (!window.confirm('Unassign this port from the device? The port record will be kept.')) return;
+        if (!await showConfirm('Unassign this port from the device? The port record will be kept.', 'Unassign')) return;
         if (modalUnassign) modalUnassign.disabled = true;
         try {
             await apiFetch(`/api/ports/${editId}/assign`, {
@@ -1030,7 +1090,7 @@ function initGlobalPanelEditor() {
     // ── Delete ────────────────────────────────────────────────────────────
     async function deletePort() {
         if (!editId) return;
-        if (!window.confirm('Delete this port? This cannot be undone.')) return;
+        if (!await showConfirm('Delete this port? This cannot be undone.', 'Delete')) return;
         if (modalDelete) modalDelete.disabled = true;
         try {
             await apiFetch(`/api/ports/${editId}`, { method: 'DELETE' });
@@ -1425,7 +1485,7 @@ function initDashboardConnections() {
     async function removeConnection(conn) {
         const labelA = conn.port_a_label || `Port ${conn.port_a_number}`;
         const labelB = conn.port_b_label || `Port ${conn.port_b_number}`;
-        if (!window.confirm(`Remove connection between ${labelA} and ${labelB}?`)) return;
+        if (!await showConfirm(`Remove connection between ${labelA} and ${labelB}?`, 'Remove')) return;
         try {
             const res = await fetch(`/api/connections/${conn.id}`, {
                 method: 'DELETE',
