@@ -177,6 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Unsaved changes guard ─────────────────────────────────────────────
     initUnsavedGuard();
 
+    // ── Port card hover/focus tooltips ────────────────────────────────────
+    initPortCardTooltips();
+
 });
 
 // ── Inline Field Validation ───────────────────────────────────────────────────
@@ -329,6 +332,121 @@ function initUnsavedGuard() {
     // Re-snapshot so going Back after a successful save doesn't show the guard.
     window.addEventListener('pageshow', e => {
         if (e.persisted) { submitted = false; initial.clear(); snapshot().forEach((v, k) => initial.set(k, v)); }
+    });
+}
+
+// ── Port Card Tooltips ────────────────────────────────────────────────────────
+// Hover/focus tooltip showing full label, speed, VLAN, and notes for each port
+// card. Data is already in data-* attributes; textContent is used exclusively
+// so user-supplied values (label, notes) are never interpreted as HTML.
+function initPortCardTooltips() {
+    const cards = document.querySelectorAll('.port-card[data-port-id]');
+    if (!cards.length) return;
+
+    // Single shared element — created once, repositioned and repopulated per card.
+    const tt = document.createElement('div');
+    tt.id        = 'port-tooltip';
+    tt.className = 'port-tooltip';
+    tt.setAttribute('role', 'tooltip');
+    tt.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tt);
+
+    let showTimer  = null;
+
+    // Build tooltip DOM from card data attributes using textContent only.
+    function build(card) {
+        const d = card.dataset;
+        tt.textContent = '';  // wipe previous content
+
+        // Header: "Port N · TYPE"
+        const hdr = document.createElement('div');
+        hdr.className   = 'ptt-header';
+        hdr.textContent = `Port ${d.portNumber} \u00b7 ${(d.portType || 'rj45').toUpperCase()}`;
+        tt.appendChild(hdr);
+
+        // Status · Speed [· PoE]
+        const status = d.status || 'unknown';
+        const parts  = [status.charAt(0).toUpperCase() + status.slice(1)];
+        if (d.speed) parts.push(d.speed);
+        if (d.poe === '1') parts.push('PoE');
+        const meta = document.createElement('div');
+        meta.className   = 'ptt-meta';
+        meta.textContent = parts.join(' \u00b7 ');
+        tt.appendChild(meta);
+
+        // Full untruncated label (the main reason for this tooltip)
+        if (d.label) {
+            const lbl = document.createElement('div');
+            lbl.className   = 'ptt-label';
+            lbl.textContent = d.label;
+            tt.appendChild(lbl);
+        }
+
+        // VLAN
+        if (d.vlan) {
+            const vl = document.createElement('div');
+            vl.className   = 'ptt-vlan';
+            vl.textContent = `VLAN ${d.vlan}`;
+            tt.appendChild(vl);
+        }
+
+        // Notes (below a separator line, line-clamped in CSS)
+        if (d.notes) {
+            const nl = document.createElement('div');
+            nl.className   = 'ptt-notes';
+            nl.textContent = d.notes;
+            tt.appendChild(nl);
+        }
+    }
+
+    // Position tooltip above the card, falling back to below if near the top.
+    // Reading offsetWidth/offsetHeight forces a synchronous reflow so measurements
+    // are accurate immediately after build().
+    function reposition(card) {
+        const cr  = card.getBoundingClientRect();
+        const ttW = tt.offsetWidth;
+        const ttH = tt.offsetHeight;
+
+        let top = cr.top - ttH - 10;
+        if (top < 8) top = cr.bottom + 10;
+
+        let left = cr.left + (cr.width - ttW) / 2;
+        left = Math.max(8, Math.min(left, window.innerWidth - ttW - 8));
+
+        tt.style.top  = top  + 'px';
+        tt.style.left = left + 'px';
+    }
+
+    function show(card) {
+        build(card);
+        reposition(card);
+        tt.removeAttribute('aria-hidden');
+        // Separate the position snap from the opacity fade so the transition fires.
+        requestAnimationFrame(() => tt.classList.add('visible'));
+    }
+
+    function hide() {
+        clearTimeout(showTimer);
+        showTimer = null;
+        tt.classList.remove('visible');
+        tt.setAttribute('aria-hidden', 'true');
+    }
+
+    // On bfcache restore, clear any leftover visible state.
+    window.addEventListener('pageshow', e => { if (e.persisted) hide(); });
+
+    cards.forEach(card => {
+        // Delay on mouseenter suppresses flicker when moving quickly across cards.
+        card.addEventListener('mouseenter', () => {
+            clearTimeout(showTimer);
+            showTimer = setTimeout(() => show(card), 220);
+        });
+        card.addEventListener('mouseleave', hide);
+        // Hide immediately on click — modal or navigation is about to open.
+        card.addEventListener('mousedown', hide);
+        // No delay for keyboard users.
+        card.addEventListener('focus', () => show(card));
+        card.addEventListener('blur',  hide);
     });
 }
 

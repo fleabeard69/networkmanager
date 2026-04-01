@@ -554,6 +554,41 @@ a.stat-card:focus-visible {
     font-style: italic;
 }
 
+/* ── Port Card Tooltip ───────────────────────────────────────────────────── */
+.port-tooltip {
+    position: fixed;
+    z-index: 900;
+    pointer-events: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    max-width: 220px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    word-break: break-word;
+}
+.port-tooltip.visible { opacity: 1; }
+.port-tooltip .ptt-header { font-weight: 600; }
+.port-tooltip .ptt-meta   { color: var(--text-muted); font-size: 11px; margin-top: 1px; }
+.port-tooltip .ptt-label  { margin-top: 5px; font-weight: 500; }
+.port-tooltip .ptt-vlan   { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.port-tooltip .ptt-notes  {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
 /* Port Legend */
 .port-legend {
     display: flex;
