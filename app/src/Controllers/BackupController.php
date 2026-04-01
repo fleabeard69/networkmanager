@@ -301,6 +301,23 @@ class BackupController
                     $speed = '1G';
                 }
 
+                $switchPortNumber = (int)($p['port_number'] ?? 0);
+                if ($switchPortNumber < 1) {
+                    throw new InvalidArgumentException(
+                        "Invalid switch port_number \"{$switchPortNumber}\" — must be a positive integer."
+                    );
+                }
+
+                $vlanId = null;
+                if (!empty($p['vlan_id'])) {
+                    $vlanId = (int)$p['vlan_id'];
+                    if ($vlanId < 1 || $vlanId > 4094) {
+                        throw new InvalidArgumentException(
+                            "Invalid vlan_id \"{$vlanId}\" — must be between 1 and 4094."
+                        );
+                    }
+                }
+
                 $stmt = $this->db->query(
                     'INSERT INTO switch_ports
                          (device_id, port_number, label, port_type, speed,
@@ -309,12 +326,12 @@ class BackupController
                      RETURNING id',
                     [
                         ':d'  => $newDev,
-                        ':pn' => (int)$p['port_number'],
+                        ':pn' => $switchPortNumber,
                         ':lb' => substr((string)($p['label'] ?? ''), 0, 64),
                         ':pt' => $portType,
                         ':sp' => $speed,
                         ':pe' => $p['poe_enabled'] ? 'true' : 'false',
-                        ':vl' => !empty($p['vlan_id']) ? (int)$p['vlan_id'] : null,
+                        ':vl' => $vlanId,
                         ':st' => $status,
                         ':nt' => substr((string)($p['notes'] ?? ''), 0, 1000),
                         ':pr' => max(1, min(20, (int)($p['port_row'] ?? 1))),
