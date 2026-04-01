@@ -158,8 +158,14 @@ class ApiController
             $this->json(['error' => 'One or both ports not found.'], 404);
         }
 
+        $validAnchors = ['top', 'bottom', 'left', 'right'];
+        $anchorA = isset($body['anchor_a']) && in_array($body['anchor_a'], $validAnchors, true)
+            ? $body['anchor_a'] : null;
+        $anchorB = isset($body['anchor_b']) && in_array($body['anchor_b'], $validAnchors, true)
+            ? $body['anchor_b'] : null;
+
         try {
-            $id = $this->connectionModel->create($portA, $portB, $color);
+            $id = $this->connectionModel->create($portA, $portB, $color, $anchorA, $anchorB);
             $this->json($this->connectionModel->find($id), 201);
         } catch (RuntimeException $e) {
             $this->json(['error' => $e->getMessage()], 409);

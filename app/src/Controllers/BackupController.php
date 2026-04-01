@@ -37,7 +37,7 @@ class BackupController
         unset($p);
 
         $connections = $this->db->fetchAll(
-            'SELECT id, port_a, port_b, color FROM port_connections ORDER BY id'
+            'SELECT id, port_a, port_b, color, anchor_a, anchor_b FROM port_connections ORDER BY id'
         );
 
         $ips = $this->db->fetchAll(
@@ -358,9 +358,14 @@ class BackupController
                     $color = '#388bfd';
                 }
 
+                $validAnchors = ['top', 'bottom', 'left', 'right'];
+                $anchorA = in_array($c['anchor_a'] ?? null, $validAnchors, true) ? $c['anchor_a'] : null;
+                $anchorB = in_array($c['anchor_b'] ?? null, $validAnchors, true) ? $c['anchor_b'] : null;
+
                 $this->db->execute(
-                    'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :col)',
-                    [':a' => $newA, ':b' => $newB, ':col' => $color]
+                    'INSERT INTO port_connections (port_a, port_b, color, anchor_a, anchor_b)
+                     VALUES (:a, :b, :col, :aa, :ab)',
+                    [':a' => $newA, ':b' => $newB, ':col' => $color, ':aa' => $anchorA, ':ab' => $anchorB]
                 );
             }
 

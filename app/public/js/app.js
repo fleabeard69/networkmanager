@@ -1158,6 +1158,7 @@ function initDashboardConnections() {
     let occupiedPortIds = new Set();
     let connectMode     = false;
     let selectedPortId  = null;
+    let selectedAnchor  = null;
     let selectedColor   = '#388bfd';
 
     // ── Color swatch setup ────────────────────────────────────────────────
@@ -1174,7 +1175,7 @@ function initDashboardConnections() {
         });
     });
 
-    // ── Port card center coords relative to #dashboard-devices ───────────
+    // ── Port card coords (auto-routing: center-x, top/bot/mid edges) ─────
     function portAnchor(portId) {
         const el = container.querySelector(`[data-port-id="${portId}"]`);
         if (!el) return null;
@@ -1186,6 +1187,49 @@ function initDashboardConnections() {
             bot: pr.top  - cr.top + pr.height,
             mid: pr.top  - cr.top + pr.height  / 2,
         };
+    }
+
+    // ── Explicit anchor point on a named edge ─────────────────────────────
+    function portAnchorAt(portId, side) {
+        const el = container.querySelector(`[data-port-id="${portId}"]`);
+        if (!el) return null;
+        const pr = el.getBoundingClientRect();
+        const cr = container.getBoundingClientRect();
+        const l = pr.left - cr.left, t = pr.top - cr.top;
+        switch (side) {
+            case 'top':    return { x: l + pr.width / 2, y: t };
+            case 'bottom': return { x: l + pr.width / 2, y: t + pr.height };
+            case 'left':   return { x: l,                y: t + pr.height / 2 };
+            case 'right':  return { x: l + pr.width,     y: t + pr.height / 2 };
+        }
+        return null;
+    }
+
+    // ── Orthogonal polyline between two anchor points ─────────────────────
+    function routePoints(ax, ay, sideA, bx, by, sideB) {
+        const vA = sideA === 'top' || sideA === 'bottom';
+        const vB = sideB === 'top' || sideB === 'bottom';
+        if (vA && vB) {
+            const midY = (ay + by) / 2;
+            return [{ x: ax, y: ay }, { x: ax, y: midY }, { x: bx, y: midY }, { x: bx, y: by }];
+        }
+        if (!vA && !vB) {
+            const midX = (ax + bx) / 2;
+            return [{ x: ax, y: ay }, { x: midX, y: ay }, { x: midX, y: by }, { x: bx, y: by }];
+        }
+        // Mixed: single L-corner
+        if (vA) return [{ x: ax, y: ay }, { x: ax, y: by }, { x: bx, y: by }];
+        else     return [{ x: ax, y: ay }, { x: bx, y: ay }, { x: bx, y: by }];
+    }
+
+    // ── Which edge zone of a card was clicked ─────────────────────────────
+    // Divides the card into 4 triangles using its diagonals.
+    function getClickSide(card, e) {
+        const rect = card.getBoundingClientRect();
+        const rx = (e.clientX - rect.left) / rect.width;
+        const ry = (e.clientY - rect.top)  / rect.height;
+        if (rx + ry < 1) return rx > ry ? 'top'    : 'left';
+        else             return rx > ry ? 'right'   : 'bottom';
     }
 
     // ── Draw all connection lines (with bridge arcs at crossings) ────────
@@ -1283,23 +1327,39 @@ function initDashboardConnections() {
             return d;
         }
 
-        // Gather bezier params + sampled points for every connection
+        // Gather path params + sampled points for every connection
         const pathInfos = [];
         for (const conn of connections) {
             const a = portAnchor(conn.port_a);
             const b = portAnchor(conn.port_b);
             if (!a || !b) continue;
 
-            const color = conn.color || '#388bfd';
-            const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
-            const x1 = top.cx, y1 = top.bot;
-            const x2 = bot.cx, y2 = bot.top;
-            const midY = (y1 + y2) / 2;
+            const color  = conn.color    || '#388bfd';
+            const sideA  = conn.anchor_a || null;
+            const sideB  = conn.anchor_b || null;
 
-            pathInfos.push({
-                conn, color, x1, y1, x2, y2,
-                pts: [{ x: x1, y: y1 }, { x: x1, y: midY }, { x: x2, y: midY }, { x: x2, y: y2 }],
-            });
+            let x1, y1, x2, y2, pts;
+
+            if (!sideA && !sideB) {
+                // Backward-compatible auto-routing: bottom of higher port → top of lower
+                const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
+                x1 = top.cx; y1 = top.bot;
+                x2 = bot.cx; y2 = bot.top;
+                const midY = (y1 + y2) / 2;
+                pts = [{ x: x1, y: y1 }, { x: x1, y: midY }, { x: x2, y: midY }, { x: x2, y: y2 }];
+            } else {
+                // Explicit anchors (fall back to auto side for any null half)
+                const aSide = sideA || (a.mid <= b.mid ? 'bottom' : 'top');
+                const bSide = sideB || (b.mid <= a.mid ? 'bottom' : 'top');
+                const pa = portAnchorAt(conn.port_a, aSide);
+                const pb = portAnchorAt(conn.port_b, bSide);
+                if (!pa || !pb) continue;
+                x1 = pa.x; y1 = pa.y;
+                x2 = pb.x; y2 = pb.y;
+                pts = routePoints(x1, y1, aSide, x2, y2, bSide);
+            }
+
+            pathInfos.push({ conn, color, x1, y1, x2, y2, pts });
         }
 
         // Draw each path; later paths arc over earlier ones at crossings
@@ -1394,13 +1454,15 @@ function initDashboardConnections() {
     function exitConnectMode() {
         connectMode    = false;
         selectedPortId = null;
+        selectedAnchor = null;
         connectBtn.textContent = 'Connect Ports';
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
         colorPicker?.classList.add('hidden');
         svg.classList.remove('connect-mode-active');
-        container.querySelectorAll('.port-card').forEach(c =>
-            c.classList.remove('connectable', 'conn-selected', 'conn-occupied')
-        );
+        container.querySelectorAll('.port-card').forEach(c => {
+            c.classList.remove('connectable', 'conn-selected', 'conn-occupied');
+            delete c.dataset.zone;
+        });
     }
 
     connectBtn.addEventListener('click', () => {
@@ -1422,14 +1484,18 @@ function initDashboardConnections() {
 
         if (selectedPortId === null) {
             selectedPortId = portId;
+            selectedAnchor = getClickSide(card, e);
             card.classList.add('conn-selected');
         } else if (selectedPortId === portId) {
             selectedPortId = null;
+            selectedAnchor = null;
             card.classList.remove('conn-selected');
         } else {
-            const portA = selectedPortId;
-            const portB = portId;
-            const color = selectedColor;
+            const portA   = selectedPortId;
+            const portB   = portId;
+            const anchorA = selectedAnchor;
+            const anchorB = getClickSide(card, e);
+            const color   = selectedColor;
             exitConnectMode();
             try {
                 const res = await fetch('/api/connections', {
@@ -1438,7 +1504,8 @@ function initDashboardConnections() {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken(),
                     },
-                    body: JSON.stringify({ port_a: portA, port_b: portB, color }),
+                    body: JSON.stringify({ port_a: portA, port_b: portB, color,
+                                          anchor_a: anchorA, anchor_b: anchorB }),
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -1457,6 +1524,17 @@ function initDashboardConnections() {
 
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && connectMode) exitConnectMode();
+    });
+
+    // ── Zone highlight on hover during connect mode ───────────────────────
+    container.addEventListener('mousemove', e => {
+        if (!connectMode) return;
+        const card = e.target.closest('.port-card.connectable');
+        container.querySelectorAll('.port-card[data-zone]').forEach(c => delete c.dataset.zone);
+        if (card) card.dataset.zone = getClickSide(card, e);
+    });
+    container.addEventListener('mouseleave', () => {
+        container.querySelectorAll('.port-card[data-zone]').forEach(c => delete c.dataset.zone);
     });
 
     window.addEventListener('resize', drawConnections);

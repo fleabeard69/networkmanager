@@ -57,10 +57,19 @@ class ConnectionModel
      * @throws RuntimeException if either port is already connected
      * @throws PDOException on duplicate connection (race condition fallback)
      */
-    public function create(int $portA, int $portB, string $color = '#388bfd'): int
+    private const VALID_ANCHORS = ['top', 'bottom', 'left', 'right'];
+
+    public function create(int $portA, int $portB, string $color = '#388bfd',
+                           ?string $anchorA = null, ?string $anchorB = null): int
     {
         if (!in_array($color, self::VALID_COLORS, true)) {
             $color = '#388bfd';
+        }
+        if ($anchorA !== null && !in_array($anchorA, self::VALID_ANCHORS, true)) {
+            $anchorA = null;
+        }
+        if ($anchorB !== null && !in_array($anchorB, self::VALID_ANCHORS, true)) {
+            $anchorB = null;
         }
 
         // Application-level check for a friendly error message
@@ -75,9 +84,10 @@ class ConnectionModel
         }
 
         $stmt = $this->db->query(
-            'INSERT INTO port_connections (port_a, port_b, color) VALUES (:a, :b, :color)
+            'INSERT INTO port_connections (port_a, port_b, color, anchor_a, anchor_b)
+             VALUES (:a, :b, :color, :aa, :ab)
              RETURNING id',
-            [':a' => $portA, ':b' => $portB, ':color' => $color]
+            [':a' => $portA, ':b' => $portB, ':color' => $color, ':aa' => $anchorA, ':ab' => $anchorB]
         );
         return (int) $stmt->fetchColumn();
     }

@@ -1035,6 +1035,20 @@ select.field-input { cursor: pointer; }
     outline-offset: 2px;
 }
 
+/* Edge-zone indicator: highlights the side the wire will attach to */
+.port-card.connectable[data-zone]::before {
+    content: '';
+    position: absolute;
+    background: var(--accent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10;
+}
+.port-card.connectable[data-zone="top"]::before    { top: 3px;    left: 20%; right: 20%; height: 3px; }
+.port-card.connectable[data-zone="bottom"]::before { bottom: 3px; left: 20%; right: 20%; height: 3px; }
+.port-card.connectable[data-zone="left"]::before   { left: 3px;   top: 20%; bottom: 20%; width: 3px;  }
+.port-card.connectable[data-zone="right"]::before  { right: 3px;  top: 20%; bottom: 20%; width: 3px;  }
+
 .port-card.conn-selected {
     outline: 2px solid var(--yellow);
     outline-offset: 2px;

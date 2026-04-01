@@ -74,10 +74,12 @@ CREATE TABLE service_ports (
 -- ── Port Connections ─────────────────────────────────────────────────────────
 -- Records a physical cable connection between two switch ports on any devices.
 CREATE TABLE port_connections (
-    id     SERIAL      PRIMARY KEY,
-    port_a INTEGER     NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
-    port_b INTEGER     NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
-    color  VARCHAR(7)  NOT NULL DEFAULT '#388bfd',
+    id       SERIAL      PRIMARY KEY,
+    port_a   INTEGER     NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
+    port_b   INTEGER     NOT NULL REFERENCES switch_ports(id) ON DELETE CASCADE,
+    color    VARCHAR(7)  NOT NULL DEFAULT '#388bfd',
+    anchor_a VARCHAR(6)  CHECK (anchor_a IN ('top', 'bottom', 'left', 'right')),
+    anchor_b VARCHAR(6)  CHECK (anchor_b IN ('top', 'bottom', 'left', 'right')),
     CHECK (port_a <> port_b)
 );
 
