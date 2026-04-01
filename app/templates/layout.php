@@ -61,10 +61,16 @@
 
         <main class="main-content">
             <?php $flash = Session::getFlash('success'); if ($flash): ?>
-                <div class="flash flash-success"><?= h($flash) ?></div>
+                <div class="flash flash-success">
+                    <span><?= h($flash) ?></span>
+                    <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
+                </div>
             <?php endif; ?>
             <?php $flash = Session::getFlash('error'); if ($flash): ?>
-                <div class="flash flash-error"><?= h($flash) ?></div>
+                <div class="flash flash-error">
+                    <span><?= h($flash) ?></span>
+                    <button type="button" class="flash-close" aria-label="Dismiss">&times;</button>
+                </div>
             <?php endif; ?>
 
             <?= $content ?>

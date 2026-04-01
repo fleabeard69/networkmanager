@@ -132,10 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Auto-dismiss flash messages ───────────────────────────────────────
     document.querySelectorAll('.flash').forEach(flash => {
-        setTimeout(() => {
+        function dismiss() {
             flash.classList.add('flash-hiding');
             setTimeout(() => flash.remove(), 400);
-        }, 5000);
+        }
+        const timerId = setTimeout(dismiss, 5000);
+        flash.querySelector('.flash-close')?.addEventListener('click', () => {
+            clearTimeout(timerId);
+            dismiss();
+        });
     });
 
     // ── Panel Editor ──────────────────────────────────────────────────────
