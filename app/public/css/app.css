@@ -1734,3 +1734,19 @@ td:hover .copy-btn,
     .port-number { font-size: 15px; }
     .port-device { max-width: 52px; }  /* card is ~63px wide; fit inner text  */
 }
+
+/* ── Portrait print: stack dual panels vertically ────────────────────────── */
+/* In landscape the base @media print rules keep FRONT and REAR side-by-side.
+   In portrait each panel only gets ~50% of the narrower content width, which
+   is not enough for wide port grids (e.g. 7 × 60 px = 420 px > ~350 px half).
+   The overflow bleeds into the adjacent panel making ports look merged.
+   Stacking them vertically gives each panel the full content width.          */
+@media print and (orientation: portrait) {
+    .port-grid-wrap-dual {
+        flex-direction: column;
+    }
+    .port-grid-wrap-dual .panel-face-col {
+        flex: none;
+        width: 100%;
+    }
+}
