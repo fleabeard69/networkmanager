@@ -8,24 +8,39 @@ A self-hosted home network manager for tracking devices, switch ports, IP assign
 
 ### Dashboard
 - Visual panel view of every device and its switch ports, mirroring the physical layout of the hardware
-- Front and rear panel faces for devices with rear-facing ports
+- Front and rear panel faces displayed side-by-side for devices with rear-facing ports
 - Color-coded port status (active, WAN, management, disabled)
 - Port type and PoE badges on each port card
+- Wired-state indicator dot on connected port cards
 - VLAN ID display per port
+- Hover/focus tooltips showing full port details
+- Arrow-key navigation within port grids
+- Click any port card to open the port edit modal without leaving the dashboard
 - Drag-to-reorder device sections to match your rack layout
 - Orthogonal cable connection lines between ports with bridge arcs at crossings
+- Per-endpoint anchor side selection for connection lines
 - 16-color cable picker for creating connections
 - One-cable-per-port enforcement
+- Click a connected port in connect mode to remove its connection
+- Interactive stat cards (Switch Ports / In Use / Devices / IPs) that navigate to pre-filtered table views
+- Print / Save as PDF button with a dedicated print stylesheet (light-mode, no UI chrome)
 
 ### Devices
 - Add, edit, and delete network devices (server, workstation, router, switch, access point, NAS, IoT, printer, camera, phone, TV, game console, and more)
+- Emoji icons on device type badges
 - Hostname, MAC address, device type, and free-text notes
 - Per-device front and rear panel row/column configuration
+- Primary IP surfaced prominently on device detail page
+- Inline edit modals — edit devices and ports without navigating away from the table
+- Client-side search/filter on Devices and Ports tables
+- Full notes shown on hover in ports and device switch-port tables
 
 ### IP Addresses
 - Track multiple IP addresses per device
-- Subnet (CIDR), gateway, and interface fields
+- Subnet mask, gateway, and interface fields
 - Primary IP flag per device (enforced at the database level)
+- Set Primary action available directly on the device detail page
+- Copy-to-clipboard button on every IP address
 
 ### Service Ports
 - Track open service ports per device (TCP, UDP, or both)
@@ -38,12 +53,16 @@ A self-hosted home network manager for tracking devices, switch ports, IP assign
 - Link speed: 10M, 100M, 1G, 2.5G, 5G, 10G
 - PoE enabled flag, VLAN ID, status (active/disabled/unknown), and notes
 - Assign ports to devices; unassign without deleting
+- Port type filter dropdown on the ports list
+- Always-visible Grid / List sub-nav under Switch Ports in the sidebar
 
 ### Panel Editor
 - Per-device drag-and-drop visual port layout editor
 - Separate front and rear panel grids
 - Resize panel dimensions (rows and columns) with live preview
 - Port row/column positioning validated against panel bounds (1–20 rows, 1–50 cols)
+- Clone button on port modal for rapid bulk port creation
+- Confirmation prompt before Apply All when ports would fall outside new grid bounds
 
 ### Port Connections
 - Draw cable connections between any two ports across any devices
@@ -56,6 +75,14 @@ A self-hosted home network manager for tracking devices, switch ports, IP assign
 - Export the full configuration (devices, ports, connections, IPs, service ports) as a JSON file
 - Re-import from a backup to restore everything in a single transaction
 - Strict validation of all imported fields with allowlist coercion for enums
+- Last export timestamp shown on the backup page
+
+### UI / UX
+- Inline field validation feedback on blur
+- Loading spinners on all async action buttons
+- Unsaved-changes guard on full-page device and port edit forms
+- Styled confirmation modal (replaces browser `window.confirm`)
+- Fixed bottom-right toast stack for flash messages with manual dismiss
 
 ---
 
@@ -124,47 +151,33 @@ docker compose up -d
 
 On first boot, the database schema is created automatically and the admin user is created from `ADMIN_USER` / `ADMIN_PASS`. The app is available at `https://yourdomain.com` once SWAG obtains its certificate.
 
----
+### Makefile
 
-## Upgrading an Existing Deployment
-
-When updating from an earlier version, apply any new database migrations manually:
+A `Makefile` is included for common workflow commands:
 
 ```bash
-# Migration 002 — adds rear panel row support
-docker compose exec db psql -U $DB_USER -d $DB_NAME \
-  -f /docker-entrypoint-initdb.d/002_add_rear_panel.sql
-
-# Migration 003 — extends port_row range to 1–20
-docker compose exec db psql -U $DB_USER -d $DB_NAME \
-  -f /docker-entrypoint-initdb.d/003_extend_port_row.sql
-
-# Migration 004 — adds login_attempts table for brute-force protection
-docker compose exec db psql -U $DB_USER -d $DB_NAME \
-  -f /docker-entrypoint-initdb.d/004_login_attempts.sql
-```
-
-Only run the migrations that haven't been applied to your database yet.
-
-After applying migrations, restart the app container:
-```bash
-docker compose restart app
+make up        # docker compose up -d
+make down      # docker compose down
+make logs      # tail all container logs
+make restart   # restart the app container
+make shell     # open a shell in the app container
 ```
 
 ---
 
 ## Security
 
-- **Authentication** — Session-based login with `HttpOnly`, `Secure`, and `SameSite=Lax` cookie flags. Session ID regenerated on login.
-- **CSRF protection** — Per-session token (HMAC-keyed with `APP_SECRET`) required on all state-changing requests. API endpoints use `X-CSRF-Token` header.
-- **Brute-force protection** — IP-based rate limiting (10 failed attempts per 15 minutes, stored in the database) plus session-based limiting (5 per 5 minutes). Timing-safe dummy hash prevents username enumeration.
+- **Authentication** — Session-based login with `HttpOnly`, `Secure`, and `SameSite=Strict` cookie flags. Session ID regenerated on login.
+- **CSRF protection** — Per-session token (HMAC-keyed with `APP_SECRET`) required on all state-changing requests. API endpoints use `X-CSRF-Token` header. Logout is CSRF-protected and restricted to POST.
+- **Brute-force protection** — IP-based rate limiting (10 failed attempts per 15 minutes, stored in the database) plus session-based limiting (5 per 5 minutes). Timing-safe dummy hash prevents username enumeration. X-Real-IP spoofing bypass is closed at the nginx level.
 - **Defense-in-depth auth** — Every controller constructor independently enforces authentication, independent of the global gate in `index.php`.
 - **Scoped deletes** — IP address and service port deletions are scoped by device ID in a single atomic SQL statement, preventing cross-resource authorization bypass.
 - **Parameterized queries** — All database access uses PDO with `ATTR_EMULATE_PREPARES => false` (true prepared statements, no SQL injection via model layer).
-- **Input validation** — Allowlist validation for all enum fields (device type, port type, speed, protocol, color). MAC address, IP, VLAN ID, and port range validated server-side.
+- **Input validation** — Allowlist validation for all enum fields (device type, port type, speed, protocol, color). MAC address, IP, VLAN ID, and port range validated server-side. All text fields capped at 1000 characters.
 - **Backup import** — Full field-level validation and enum coercion on import. All changes executed in a single transaction with rollback on error. File size capped at 5 MB.
 - **HTTPS** — All traffic goes through SWAG on port 443. Port 8081 (nginx direct) is bound to `127.0.0.1` only — LAN and WAN cannot reach it.
 - **Output escaping** — All user-supplied values passed through `htmlspecialchars()` before rendering.
+- **Secrets** — `ADMIN_PASS` is unset from the environment after bootstrap so it is not visible to PHP-FPM worker processes. App warns at startup if `ADMIN_PASS` or `APP_SECRET` are left at their default example values.
 
 ---
 
