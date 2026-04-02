@@ -245,6 +245,10 @@ switch (true) {
         (new DeviceController($deviceModel, $portModel))->addIp((int) $m[1]);
         break;
 
+    case preg_match('#^/devices/(\d+)/ips/(\d+)/primary$#', $path, $m) && $method === 'POST':
+        (new DeviceController($deviceModel, $portModel))->setPrimaryIp((int) $m[1], (int) $m[2]);
+        break;
+
     case preg_match('#^/devices/(\d+)/ips/(\d+)/delete$#', $path, $m) && $method === 'POST':
         (new DeviceController($deviceModel, $portModel))->deleteIp((int) $m[1], (int) $m[2]);
         break;

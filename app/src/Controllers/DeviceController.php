@@ -216,6 +216,17 @@ class DeviceController
         exit;
     }
 
+    public function setPrimaryIp(int $deviceId, int $ipId): void
+    {
+        $this->verifyCsrf();
+        if (!$this->deviceModel->setPrimaryIp($deviceId, $ipId)) {
+            $this->notFound('IP address not found.');
+        }
+        Session::flash('success', 'Primary IP updated.');
+        header("Location: /devices/{$deviceId}#ips");
+        exit;
+    }
+
     public function deleteIp(int $deviceId, int $ipId): void
     {
         $this->verifyCsrf();

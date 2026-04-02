@@ -125,9 +125,19 @@
                     <td class="mono"><?= $ip['subnet_str'] ? h($ip['subnet_str']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="mono"><?= $ip['gateway_str'] ? h($ip['gateway_str']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="mono"><?= $ip['interface'] ? h($ip['interface']) : '<span class="text-muted">—</span>' ?></td>
-                    <td><?= $ip['is_primary'] ? '<span class="badge badge-success">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
+                    <td><?= ($ip['is_primary'] && $ip['is_primary'] !== 'f') ? '<span class="badge badge-success">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
                     <td><?= $ip['notes'] ? h($ip['notes']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="actions-cell">
+                        <?php if (!($ip['is_primary'] && $ip['is_primary'] !== 'f')): ?>
+                        <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/primary" class="inline-form">
+                            <?= Csrf::field() ?>
+                            <button type="submit" class="btn btn-secondary btn-xs"
+                                    data-confirm="Set <?= h($ip['ip_str']) ?> as the primary IP for this device?"
+                                    data-confirm-ok="Set Primary">
+                                Set Primary
+                            </button>
+                        </form>
+                        <?php endif; ?>
                         <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
                             <button type="submit" class="btn btn-danger btn-xs"

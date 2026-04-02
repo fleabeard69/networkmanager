@@ -150,6 +150,36 @@ class DeviceModel
     }
 
     /**
+     * Clears any existing primary flag for the device, then marks the given IP
+     * as primary — all inside a single transaction to satisfy the unique partial
+     * index on (device_id) WHERE is_primary = TRUE.
+     * Returns false if ipId does not exist or does not belong to deviceId.
+     */
+    public function setPrimaryIp(int $deviceId, int $ipId): bool
+    {
+        $this->db->execute('BEGIN');
+        try {
+            $this->db->execute(
+                'UPDATE ip_assignments SET is_primary = FALSE WHERE device_id = :device_id AND is_primary = TRUE',
+                [':device_id' => $deviceId]
+            );
+            $updated = $this->db->execute(
+                'UPDATE ip_assignments SET is_primary = TRUE WHERE id = :id AND device_id = :device_id',
+                [':id' => $ipId, ':device_id' => $deviceId]
+            );
+            if ($updated === 0) {
+                $this->db->execute('ROLLBACK');
+                return false;
+            }
+            $this->db->execute('COMMIT');
+            return true;
+        } catch (Throwable $e) {
+            $this->db->execute('ROLLBACK');
+            throw $e;
+        }
+    }
+
+    /**
      * Deletes an IP assignment owned by the given device.
      * Returns true if a row was deleted, false if not found or device mismatch.
      */
