@@ -1638,19 +1638,12 @@ td:hover .copy-btn,
 
     /* ── Hide interactive / screen-only elements ─────────────────────────── */
     .dashboard-toolbar,        /* Connect Ports + Print button                */
+    .stats-grid,               /* Switch Ports / In Use / Devices / IPs cards */
     .flash-stack,              /* Toast notifications                         */
     #confirm-overlay,          /* Confirm dialog                              */
     #port-tooltip,             /* Hover tooltip (position:fixed)              */
     #connections-svg,          /* Cable overlay SVG (position:absolute)       */
     .device-panel-section-header .btn { display: none !important; }
-
-    /* ── Stats cards ─────────────────────────────────────────────────────── */
-    a.stat-card {
-        color: var(--text);
-        transform: none;
-        box-shadow: none;
-        text-decoration: none;
-    }
 
     /* ── Device sections ─────────────────────────────────────────────────── */
     .device-panel-section {
