@@ -49,6 +49,55 @@ function showConfirm(message, confirmText = 'Confirm') {
     });
 }
 
+// ── Responsive dashboard grid sizing ─────────────────────────────────────────
+// Sets gridTemplateColumns on every dashboard port-grid so all columns fit
+// within the port-grid-wrap without a horizontal scrollbar.
+//
+// Column width is capped at MAX (the default 90 px) and floored at MIN
+// (48 px — tight but still readable for 2-digit port numbers).  If the
+// minimum can't fit all columns the scrollbar re-appears as a graceful
+// fallback rather than clipping content.
+//
+// Only grids that carry a data-cols attribute (dashboard grids) are touched.
+// Panel-editor grids have no data-cols and are left alone.
+//
+// Dual-panel devices (FRONT + REAR):
+//   Each .port-grid lives inside a .panel-face-col flex child.  The two face
+//   columns share the .port-grid-wrap-dual's content width equally (minus the
+//   16 px margin + 16 px padding divider between them).
+function fitDashboardGrids() {
+    const GAP     = 12;   // .port-grid { gap: 12px }
+    const PAD     = 20;   // .port-grid-wrap { padding: 20px } (applied on each side)
+    const DIVIDER = 32;   // .panel-face-col + .panel-face-col: margin-left 16 + padding-left 16
+    const MAX     = 90;   // default / maximum column width
+    const MIN     = 48;   // minimum readable column width
+
+    document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
+        const cols = parseInt(grid.dataset.cols, 10) || 1;
+        const rows = parseInt(grid.dataset.rows, 10) || 1;
+
+        // Measure the usable pixel width available for this grid's columns.
+        // clientWidth = layout width including padding, excluding border/scrollbar.
+        const parent = grid.parentElement;
+        let available;
+        if (parent.classList.contains('panel-face-col')) {
+            // Dual-panel: split the wrap's content width evenly across both face cols.
+            const wrap = parent.parentElement; // .port-grid-wrap-dual
+            available  = Math.floor((wrap.clientWidth - PAD * 2 - DIVIDER) / 2);
+        } else {
+            // Single-panel: full wrap content width.
+            available = parent.clientWidth - PAD * 2;
+        }
+
+        const colWidth = Math.max(MIN, Math.min(MAX,
+            Math.floor((available - (cols - 1) * GAP) / cols)
+        ));
+
+        grid.style.gridTemplateColumns = `repeat(${cols}, ${colWidth}px)`;
+        grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ── Delete / dangerous action confirmations ───────────────────────────
@@ -97,15 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Switch panel grid sizing ──────────────────────────────────────────
-    // Reads data-rows / data-cols from each grid container and sets
-    // grid-template-columns / grid-template-rows. Uses querySelectorAll
-    // so every device section on the dashboard gets sized correctly.
-    document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
-        const cols = parseInt(grid.dataset.cols, 10) || 1;
-        const rows = parseInt(grid.dataset.rows, 10) || 1;
-        grid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
-        grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
-    });
+    // Scale columns to the available wrap width so no section needs a
+    // horizontal scrollbar (see fitDashboardGrids above for details).
+    // The resize listener runs before initDashboardConnections registers its
+    // own resize listener, so grids are always reflowed before line positions
+    // are recalculated via getBoundingClientRect().
+    fitDashboardGrids();
+    window.addEventListener('resize', fitDashboardGrids);
 
     // ── Print: shrink columns to 60 px so row structure is preserved ──────
     // beforeprint/afterprint fire when the print dialog opens/closes.
@@ -117,12 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
         });
     });
-    window.addEventListener('afterprint', () => {
-        document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
-            grid.style.gridTemplateColumns = `repeat(${parseInt(grid.dataset.cols, 10) || 1}, 90px)`;
-            grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
-        });
-    });
+    window.addEventListener('afterprint', fitDashboardGrids);
 
     // ── Port card navigation ──────────────────────────────────────────────
     // On non-dashboard pages (panel viewer), clicking a port card navigates
