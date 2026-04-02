@@ -107,14 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
     });
 
-    // ── Print: shrink columns to 60 px so row structure is preserved ──────
+    // ── Print: set column sizes so row structure is preserved ─────────────
     // beforeprint/afterprint fire when the print dialog opens/closes.
     // Only grids with data-cols (dashboard) are affected; panel editor grids
     // have no data-cols and are untouched.
+    //
+    // Dual-panel grids (inside .port-grid-wrap-dual) use 1fr columns so they
+    // flex to fill their half-width flex container regardless of orientation.
+    // Using a hard pixel width (e.g. 60px) overflows the container in portrait
+    // and bleeds the last column of the front panel into the rear panel's space.
+    // Single-panel grids keep 60px so cards stay a consistent readable size.
     window.addEventListener('beforeprint', () => {
         document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
-            grid.style.gridTemplateColumns = `repeat(${parseInt(grid.dataset.cols, 10) || 1}, 60px)`;
-            grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
+            const cols    = parseInt(grid.dataset.cols, 10) || 1;
+            const rows    = parseInt(grid.dataset.rows, 10) || 1;
+            const isDual  = grid.closest('.port-grid-wrap-dual') !== null;
+            const colSize = isDual ? '1fr' : '60px';
+            grid.style.gridTemplateColumns = `repeat(${cols}, ${colSize})`;
+            grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
         });
     });
     window.addEventListener('afterprint', () => {

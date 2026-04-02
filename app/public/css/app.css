@@ -1631,13 +1631,13 @@ td:hover .copy-btn,
         print-color-adjust: exact;
     }
 
-    /* Do NOT set @page size here. CSS `size: landscape` works for "Save as PDF"
-       but physical printer drivers frequently ignore it or — worse — receive the
-       landscape-dimensioned page and rotate it 90° to fit portrait paper, producing
-       the content shoved into one corner. Let the user choose orientation in the
-       print dialog (landscape is recommended for wide switch panels).
-       12 mm margins sit well within any printer's physical non-printable area. */
-    @page { margin: 12mm; }
+    /* Do NOT set @page size — see previous commits for why size: landscape
+       breaks physical printers (content rotated/shoved into corner).
+       Do NOT use @page margin either — printer drivers can strip it when the
+       user selects landscape or changes the Margins dropdown. Visual margins
+       are applied as padding on .main-content instead (CSS padding is immune
+       to driver overrides). */
+    @page { margin: 0; }
 
     /* ── Light color scheme ──────────────────────────────────────────────── */
     /* Re-map every dark-theme variable to a light equivalent so the output
@@ -1675,7 +1675,7 @@ td:hover .copy-btn,
     }
     .main-content {
         overflow: visible;
-        padding: 0;
+        padding: 12mm;
     }
 
     /* ── Hide interactive / screen-only elements ─────────────────────────── */
@@ -1735,18 +1735,3 @@ td:hover .copy-btn,
     .port-device { max-width: 52px; }  /* card is ~63px wide; fit inner text  */
 }
 
-/* ── Portrait print: stack dual panels vertically ────────────────────────── */
-/* In landscape the base @media print rules keep FRONT and REAR side-by-side.
-   In portrait each panel only gets ~50% of the narrower content width, which
-   is not enough for wide port grids (e.g. 7 × 60 px = 420 px > ~350 px half).
-   The overflow bleeds into the adjacent panel making ports look merged.
-   Stacking them vertically gives each panel the full content width.          */
-@media print and (orientation: portrait) {
-    .port-grid-wrap-dual {
-        flex-direction: column;
-    }
-    .port-grid-wrap-dual .panel-face-col {
-        flex: none;
-        width: 100%;
-    }
-}
