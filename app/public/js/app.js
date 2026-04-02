@@ -1891,7 +1891,12 @@ function initDashboardConnections() {
         // (deviceA, deviceB) corridor and assign each a lane index so midY can
         // be fanned out across the available inter-device gap.
         function portDeviceId(portId) {
-            const el = container.querySelector(`[data-port-id="${portId}"]`);
+            // Guard: portId must be a safe integer before interpolating into a
+            // CSS selector, preventing a malformed selector if the value is ever
+            // non-numeric (e.g. due to unexpected API response shape).
+            const safeId = parseInt(portId, 10);
+            if (!Number.isFinite(safeId)) return null;
+            const el = container.querySelector(`[data-port-id="${safeId}"]`);
             return el?.closest('[data-device-id]')?.dataset.deviceId ?? null;
         }
 
