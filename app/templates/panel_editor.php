@@ -97,6 +97,7 @@
         <div class="modal-footer">
             <div>
                 <button id="modal-delete" class="btn btn-danger btn-sm hidden">Delete Port</button>
+                <button id="modal-clone" class="btn btn-secondary btn-sm hidden">Clone</button>
             </div>
             <div class="modal-footer-right">
                 <button id="modal-cancel" class="btn btn-secondary btn-sm">Cancel</button>

@@ -465,10 +465,11 @@ function initPanelEditor() {
     let rows       = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
     let rearRows   = parseInt(document.getElementById('ctrl-rear-rows')?.value ?? '0', 10) || 0;
     let cols       = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
-    let editId     = null;   // null = create mode, number = edit mode
-    let createRow  = 1;
-    let createCol  = 1;
-    let dragPortId = null;
+    let editId        = null;   // null = create mode, number = edit mode
+    let createRow     = 1;
+    let createCol     = 1;
+    let dragPortId    = null;
+    let cloneTemplate = null;   // port_type/speed/status/vlan_id/poe_enabled/notes from last Clone
 
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -480,6 +481,7 @@ function initPanelEditor() {
     const modalSave     = document.getElementById('modal-save');
     const modalDelete   = document.getElementById('modal-delete');
     const modalUnassign = document.getElementById('modal-unassign');   // device panel only
+    const modalClone    = document.getElementById('modal-clone');
     const modalCancel   = document.getElementById('modal-cancel');
     const modalClose    = document.getElementById('modal-close');
     const mPortNumber   = document.getElementById('m-port-number');
@@ -677,8 +679,17 @@ function initPanelEditor() {
         createCol = c;
         modalTitle.textContent = 'Add Port';
         clearModal();
+        if (cloneTemplate) {
+            mPortType.value = cloneTemplate.port_type;
+            mSpeed.value    = cloneTemplate.speed;
+            mStatus.value   = cloneTemplate.status;
+            mVlan.value     = cloneTemplate.vlan_id ?? '';
+            mPoe.checked    = cloneTemplate.poe_enabled;
+            mNotes.value    = cloneTemplate.notes;
+        }
         modalDelete?.classList.add('hidden');
         modalUnassign?.classList.add('hidden');
+        modalClone?.classList.add('hidden');
         overlay.classList.remove('hidden');
         mPortNumber.focus();
     }
@@ -696,11 +707,12 @@ function initPanelEditor() {
         mPoe.checked = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
         mNotes.value = port.notes ?? '';
 
-        // Show delete always; show unassign only in device-scoped mode
+        // Show delete always; show unassign only in device-scoped mode; always show clone
         modalDelete?.classList.remove('hidden');
         if (modalUnassign) {
             modalUnassign.classList.toggle('hidden', !isDeviceScoped);
         }
+        modalClone?.classList.remove('hidden');
 
         overlay.classList.remove('hidden');
         mPortNumber.focus();
@@ -819,6 +831,24 @@ function initPanelEditor() {
         }
     }
 
+    // ── Clone port settings ───────────────────────────────────────────────
+    // Saves type/speed/status/VLAN/PoE/notes as a template; the next empty-cell
+    // click will pre-fill the create modal with these values.
+    function clonePort() {
+        if (!editId) return;
+        const port = ports.find(p => p.id === editId);
+        if (!port) return;
+        cloneTemplate = {
+            port_type:   port.port_type,
+            speed:       port.speed,
+            status:      port.status,
+            vlan_id:     port.vlan_id,
+            poe_enabled: port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1',
+            notes:       port.notes ?? '',
+        };
+        closeModal();
+    }
+
     // ── Move port to empty cell ───────────────────────────────────────────
     async function movePort(id, toRow, toCol) {
         try {
@@ -888,6 +918,7 @@ function initPanelEditor() {
     modalSave.addEventListener('click', savePort);
     modalDelete?.addEventListener('click', deletePort);
     modalUnassign?.addEventListener('click', unassignPort);
+    modalClone?.addEventListener('click', clonePort);
     modalCancel.addEventListener('click', closeModal);
     modalClose.addEventListener('click',  closeModal);
 
@@ -922,6 +953,7 @@ function initGlobalPanelEditor() {
     let createCol      = 1;
     let dragPortId     = null;
     let dragDeviceId   = null;
+    let cloneTemplate  = null;   // port_type/speed/status/vlan_id/poe_enabled/notes from last Clone
 
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -933,6 +965,7 @@ function initGlobalPanelEditor() {
     const modalError  = document.getElementById('modal-error');
     const modalSave   = document.getElementById('modal-save');
     const modalDelete = document.getElementById('modal-delete');
+    const modalClone  = document.getElementById('modal-clone');
     const modalCancel = document.getElementById('modal-cancel');
     const modalClose  = document.getElementById('modal-close');
     const mPortNumber = document.getElementById('m-port-number');
@@ -1249,7 +1282,16 @@ function initGlobalPanelEditor() {
         const device   = devices.find(d => String(d.id) === String(deviceId));
         modalTitle.textContent = `Add Port — ${device?.hostname ?? ''}`;
         clearModal();
+        if (cloneTemplate) {
+            mPortType.value = cloneTemplate.port_type;
+            mSpeed.value    = cloneTemplate.speed;
+            mStatus.value   = cloneTemplate.status;
+            mVlan.value     = cloneTemplate.vlan_id ?? '';
+            mPoe.checked    = cloneTemplate.poe_enabled;
+            mNotes.value    = cloneTemplate.notes;
+        }
         modalDelete?.classList.add('hidden');
+        modalClone?.classList.add('hidden');
         overlay.classList.remove('hidden');
         mPortNumber.focus();
     }
@@ -1268,6 +1310,7 @@ function initGlobalPanelEditor() {
         mPoe.checked      = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
         mNotes.value      = port.notes      ?? '';
         modalDelete?.classList.remove('hidden');
+        modalClone?.classList.remove('hidden');
         overlay.classList.remove('hidden');
         mPortNumber.focus();
     }
@@ -1362,6 +1405,24 @@ function initGlobalPanelEditor() {
         } finally {
             setLoading(modalDelete, false);
         }
+    }
+
+    // ── Clone port settings ───────────────────────────────────────────────
+    // Saves type/speed/status/VLAN/PoE/notes as a template; the next empty-cell
+    // click will pre-fill the create modal with these values.
+    function clonePort() {
+        if (!editId) return;
+        const port = ports.find(p => p.id === editId);
+        if (!port) return;
+        cloneTemplate = {
+            port_type:   port.port_type,
+            speed:       port.speed,
+            status:      port.status,
+            vlan_id:     port.vlan_id,
+            poe_enabled: port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1',
+            notes:       port.notes ?? '',
+        };
+        closeModal();
     }
 
     // ── Move within same device ───────────────────────────────────────────
@@ -1496,6 +1557,7 @@ function initGlobalPanelEditor() {
     // ── Modal events ──────────────────────────────────────────────────────
     modalSave.addEventListener('click',   savePort);
     modalDelete?.addEventListener('click', deletePort);
+    modalClone?.addEventListener('click',  clonePort);
     modalCancel.addEventListener('click', closeModal);
     modalClose.addEventListener('click',  closeModal);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
