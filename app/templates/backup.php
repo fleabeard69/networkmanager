@@ -10,6 +10,9 @@
             if the database is ever lost.
         </p>
         <a href="/backup/export" class="btn btn-primary">Download Backup</a>
+        <?php if ($lastExportedAt && ($lastExportTs = strtotime($lastExportedAt))): ?>
+        <p class="backup-meta">Last export: <?= h(gmdate('Y-m-d H:i', $lastExportTs)) ?> UTC</p>
+        <?php endif; ?>
     </div>
 
     <div class="panel backup-panel">

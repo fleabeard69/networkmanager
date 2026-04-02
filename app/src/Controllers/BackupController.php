@@ -11,7 +11,21 @@ class BackupController
     // ── GET /backup ───────────────────────────────────────────────────────────
     public function show(): void
     {
-        render('backup', ['navActive' => 'backup', 'title' => 'Backup & Restore']);
+        $lastExportedAt = null;
+        try {
+            $row = $this->db->fetchOne(
+                "SELECT value FROM app_settings WHERE key = 'last_exported_at'"
+            );
+            $lastExportedAt = $row ? $row['value'] : null;
+        } catch (PDOException) {
+            // app_settings table not yet migrated on this deployment — degrade gracefully
+        }
+
+        render('backup', [
+            'navActive'      => 'backup',
+            'title'          => 'Backup & Restore',
+            'lastExportedAt' => $lastExportedAt,
+        ]);
     }
 
     // ── GET /backup/export ────────────────────────────────────────────────────
@@ -74,6 +88,16 @@ class BackupController
             'ip_assignments' => $ips,
             'service_ports'  => $services,
         ];
+
+        // Record export timestamp before sending any output.
+        // Silent on PDOException: export still works if table not yet migrated.
+        try {
+            $this->db->execute(
+                "INSERT INTO app_settings (key, value) VALUES ('last_exported_at', :v)
+                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                [':v' => $backup['exported_at']]
+            );
+        } catch (PDOException) {}
 
         $filename = 'netmanager-backup-' . date('Y-m-d') . '.json';
         header('Content-Type: application/json; charset=utf-8');
