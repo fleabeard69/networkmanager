@@ -17,7 +17,7 @@ class Session
             'path'     => '/',
             'secure'   => $secure,
             'httponly' => true,
-            'samesite' => 'Lax',
+            'samesite' => 'Strict',
         ]);
 
         session_name('netmgr_session');

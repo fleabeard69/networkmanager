@@ -125,6 +125,7 @@ class ApiController
     // ── GET /api/connections ──────────────────────────────────────────────
     public function listConnections(): void
     {
+        if (!$this->connectionModel) { $this->json(['error' => 'Not available.'], 500); return; }
         $this->json([
             'connections'      => $this->connectionModel->all(),
             'occupied_port_ids' => $this->connectionModel->occupiedPortIds(),
@@ -134,6 +135,7 @@ class ApiController
     // ── POST /api/connections ─────────────────────────────────────────────
     public function createConnection(): void
     {
+        if (!$this->connectionModel) { $this->json(['error' => 'Not available.'], 500); return; }
         $this->verifyCsrf();
 
         $body  = $this->body();
@@ -180,6 +182,7 @@ class ApiController
     // ── DELETE /api/connections/{id} ──────────────────────────────────────
     public function deleteConnection(int $id): void
     {
+        if (!$this->connectionModel) { $this->json(['error' => 'Not available.'], 500); return; }
         $this->verifyCsrf();
 
         $conn = $this->connectionModel->find($id);
