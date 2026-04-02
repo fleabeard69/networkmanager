@@ -42,9 +42,9 @@ class BackupController
 
         $ips = $this->db->fetchAll(
             'SELECT id, device_id,
-                    ip_address::text AS ip_address,
+                    host(ip_address)  AS ip_address,
                     subnet::text     AS subnet,
-                    gateway::text    AS gateway,
+                    host(gateway)    AS gateway,
                     interface, is_primary, notes
              FROM ip_assignments ORDER BY device_id, id'
         );
@@ -201,6 +201,10 @@ class BackupController
                 if ($ipAddress === '') {
                     throw new InvalidArgumentException('An IP assignment is missing a valid ip_address.');
                 }
+                // Strip CIDR prefix if present (old exports used inet::text which appends it, e.g. "192.168.0.1/32")
+                if (str_contains($ipAddress, '/')) {
+                    $ipAddress = explode('/', $ipAddress, 2)[0];
+                }
                 if (!filter_var($ipAddress, FILTER_VALIDATE_IP)) {
                     throw new InvalidArgumentException(
                         "Invalid ip_address \"{$ipAddress}\" in an IP assignment."
@@ -222,6 +226,9 @@ class BackupController
                 }
 
                 $gateway = is_string($ip['gateway'] ?? null) ? trim($ip['gateway']) : '';
+                if ($gateway !== '' && str_contains($gateway, '/')) {
+                    $gateway = explode('/', $gateway, 2)[0];
+                }
                 if ($gateway !== '' && !filter_var($gateway, FILTER_VALIDATE_IP)) {
                     throw new InvalidArgumentException(
                         "Invalid gateway \"{$gateway}\" in an IP assignment."
