@@ -1632,11 +1632,12 @@ td:hover .copy-btn,
     }
 
     /* Default to landscape so wide switch panels have the most room.
-       The user can override paper size and orientation in the print dialog. */
-    /* margin: 0 here — margins are applied as padding on .main-content below
-       so they cannot be overridden by the browser's print dialog or OS printer
-       driver (both of which can strip @page margin but cannot touch CSS padding) */
-    @page { size: landscape; margin: 0; }
+       The user can override paper size and orientation in the print dialog.
+       12 mm sits well within every common printer's physical non-printable area,
+       so the printer driver never needs to shift content — the earlier
+       padding-instead-of-@page-margin workaround caused the driver to offset the
+       printable region, eliminating the margin on one side. */
+    @page { size: landscape; margin: 12mm; }
 
     /* ── Light color scheme ──────────────────────────────────────────────── */
     /* Re-map every dark-theme variable to a light equivalent so the output
@@ -1674,7 +1675,7 @@ td:hover .copy-btn,
     }
     .main-content {
         overflow: visible;
-        padding: 12mm;
+        padding: 0;
     }
 
     /* ── Hide interactive / screen-only elements ─────────────────────────── */
