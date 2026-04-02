@@ -88,8 +88,4 @@ class Auth
         );
     }
 
-    public function username(): string
-    {
-        return (string) Session::get('username', '');
-    }
 }
