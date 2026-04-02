@@ -1557,3 +1557,129 @@ select.field-input { cursor: pointer; }
     font-size: 13px;
     color: var(--text-dim);
 }
+
+/* ── Print / Save as PDF ─────────────────────────────────────────────────── */
+@media print {
+
+    /* Force background and border colors to print (port card tints carry
+       meaning — without this they'd render as plain white squares).        */
+    *, *::before, *::after {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Default to landscape so wide switch panels have the most room.
+       The user can override paper size and orientation in the print dialog. */
+    @page { size: landscape; margin: 12mm; }
+
+    /* ── Light color scheme ──────────────────────────────────────────────── */
+    /* Re-map every dark-theme variable to a light equivalent so the output
+       is paper-friendly without having to override each rule individually.  */
+    :root {
+        --bg:                 #ffffff;
+        --surface:            #ffffff;
+        --surface-2:          #f6f8fa;
+        --border:             #d0d7de;
+        --border-soft:        #e6e9ed;
+        --text:               #1f2328;
+        --text-muted:         #636c76;
+        --text-dim:           #8c959f;
+        /* Slightly higher opacity so the tints remain visible on white paper */
+        --port-connected-bg:  rgba(46, 160,  67, 0.18);
+        --port-wan-bg:        rgba(31, 111, 235, 0.18);
+        --port-mgmt-bg:       rgba(188, 140, 255, 0.18);
+        --port-disabled-bg:   rgba(218,  54,  51, 0.12);
+        --port-empty-bg:      #f6f8fa;
+        --port-empty-border:  #d0d7de;
+    }
+
+    /* ── Layout: remove sidebar, expand content to full page width ───────── */
+    .app-shell {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+    .sidebar,
+    .topbar { display: none; }
+    .main-wrapper {
+        display: block;
+        width: 100%;
+        overflow: visible;
+    }
+    .main-content {
+        overflow: visible;
+        padding: 0;
+    }
+
+    /* ── Hide interactive / screen-only elements ─────────────────────────── */
+    .dashboard-toolbar,        /* Connect Ports + Print button                */
+    .flash-stack,              /* Toast notifications                         */
+    #confirm-overlay,          /* Confirm dialog                              */
+    #port-tooltip,             /* Hover tooltip (position:fixed)              */
+    #connections-svg,          /* Cable overlay SVG (position:absolute)       */
+    .device-panel-section-header .btn { display: none !important; }
+
+    /* ── Stats cards ─────────────────────────────────────────────────────── */
+    a.stat-card {
+        color: var(--text);
+        transform: none;
+        box-shadow: none;
+        text-decoration: none;
+    }
+
+    /* ── Device sections ─────────────────────────────────────────────────── */
+    .device-panel-section {
+        overflow: visible;      /* was: hidden — would clip the port grid     */
+        break-inside: avoid;    /* keep each device's panel on one page       */
+        box-shadow: none;
+        margin-bottom: 14px;
+    }
+
+    /* ── Port grid: reflow into auto-fill columns that fit the page ──────── */
+    /* The dashboard renders port grids without inline grid-template-columns
+       (those are only set by the JS panel editors via .style), so these CSS
+       rules take full effect on the dashboard. The !important handles the
+       panel editor pages where JS does set the property inline.              */
+    .port-grid-wrap {
+        overflow: visible;
+        padding: 12px 16px;
+    }
+    .port-grid-wrap-dual { flex-wrap: wrap; }   /* stack front/rear if needed */
+
+    .port-grid {
+        width: 100% !important;
+        min-width: 0 !important;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important;
+        grid-template-rows: none !important;    /* reset JS-set repeat(N,auto) */
+        gap: 6px;
+    }
+
+    /* Reset explicit row/column placement so cards flow with auto-fill.
+       Without this, gc-24 would create an implicit column-24 outside the
+       auto-fill layout, breaking the compact grid entirely.                  */
+    .gr-1,  .gr-2,  .gr-3,  .gr-4,  .gr-5,
+    .gr-6,  .gr-7,  .gr-8,  .gr-9,  .gr-10 { grid-row: auto; }
+
+    .gc-1,  .gc-2,  .gc-3,  .gc-4,  .gc-5,
+    .gc-6,  .gc-7,  .gc-8,  .gc-9,  .gc-10,
+    .gc-11, .gc-12, .gc-13, .gc-14, .gc-15,
+    .gc-16, .gc-17, .gc-18, .gc-19, .gc-20,
+    .gc-21, .gc-22, .gc-23, .gc-24, .gc-25,
+    .gc-26, .gc-27, .gc-28, .gc-29, .gc-30,
+    .gc-31, .gc-32, .gc-33, .gc-34, .gc-35,
+    .gc-36, .gc-37, .gc-38, .gc-39, .gc-40,
+    .gc-41, .gc-42, .gc-43, .gc-44, .gc-45,
+    .gc-46, .gc-47, .gc-48, .gc-49, .gc-50 { grid-column: auto; }
+
+    /* ── Compact port cards ──────────────────────────────────────────────── */
+    .port-card {
+        min-height: 58px;
+        padding: 6px 4px;
+        cursor: default;
+        transform: none !important;
+        box-shadow: none !important;
+        transition: none;
+    }
+    .port-number { font-size: 15px; }
+    .port-device { max-width: 52px; }  /* card is ~63px wide; fit inner text  */
+}
