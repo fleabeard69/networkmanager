@@ -1881,6 +1881,32 @@ function initDashboardConnections() {
             return d;
         }
 
+        // ── Pre-compute corridor lane assignments ─────────────────────────
+        // Auto-routed connections (no explicit anchors) that share the same two
+        // device sections all produce the same midY, causing their horizontal
+        // segments to overlap and become indistinguishable.  Group them by the
+        // (deviceA, deviceB) corridor and assign each a lane index so midY can
+        // be fanned out across the available inter-device gap.
+        function portDeviceId(portId) {
+            const el = container.querySelector(`[data-port-id="${portId}"]`);
+            return el?.closest('[data-device-id]')?.dataset.deviceId ?? null;
+        }
+
+        const corridorBuckets = new Map(); // corridorKey → [conn, …]
+        for (const conn of connections) {
+            if (conn.anchor_a || conn.anchor_b) continue; // explicit routing, skip
+            const da = portDeviceId(conn.port_a);
+            const db = portDeviceId(conn.port_b);
+            if (!da || !db || da === db) continue;       // same device or unknown, skip
+            const key = [da, db].sort().join('|');
+            if (!corridorBuckets.has(key)) corridorBuckets.set(key, []);
+            corridorBuckets.get(key).push(conn);
+        }
+        const laneOf = new Map(); // conn.id → { idx, count }
+        for (const group of corridorBuckets.values()) {
+            group.forEach((c, i) => laneOf.set(c.id, { idx: i, count: group.length }));
+        }
+
         // Gather path params + sampled points for every connection
         const pathInfos = [];
         for (const conn of connections) {
@@ -1900,7 +1926,15 @@ function initDashboardConnections() {
                 x1 = top.cx; y1 = top.bot;
                 x2 = bot.cx; y2 = bot.top;
                 const sy1 = y1 + STUB, sy2 = y2 - STUB;
-                const midY = (sy1 + sy2) / 2;
+                // Fan parallel connections across the gap so they don't overlap.
+                // Distribute lanes evenly: idx=0 → near sy1, idx=count-1 → near sy2.
+                // Single connections (count=1) use the natural midpoint.
+                let midY = (sy1 + sy2) / 2;
+                const lane = laneOf.get(conn.id);
+                if (lane && lane.count > 1) {
+                    const span = sy2 - sy1;
+                    midY = sy1 + (lane.idx + 1) * (span / (lane.count + 1));
+                }
                 pts = [{ x: x1, y: y1 }, { x: x1, y: sy1 },
                        { x: x1, y: midY }, { x: x2, y: midY },
                        { x: x2, y: sy2 }, { x: x2, y: y2 }];
