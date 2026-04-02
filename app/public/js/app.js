@@ -180,6 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Port card hover/focus tooltips ────────────────────────────────────
     initPortCardTooltips();
 
+    // ── Copy-to-clipboard buttons ─────────────────────────────────────────
+    initCopyButtons();
+
 });
 
 // ── Inline Field Validation ───────────────────────────────────────────────────
@@ -2429,6 +2432,42 @@ function initDevicesFilter() {
             if (match) count++;
         });
         if (noResults) noResults.classList.toggle('hidden', count > 0);
+    });
+}
+
+// ── Copy-to-clipboard buttons ─────────────────────────────────────────────────
+function initCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async e => {
+            e.stopPropagation();
+            const text = btn.dataset.copy;
+            if (!text) return;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    // Fallback for non-secure contexts (plain HTTP)
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                // Brief success feedback
+                const prevTitle = btn.title;
+                btn.classList.add('copy-btn-ok');
+                btn.title = 'Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('copy-btn-ok');
+                    btn.title = prevTitle;
+                }, 1500);
+            } catch {
+                // Silent fail — clipboard access denied or unavailable
+            }
+        });
     });
 }
 

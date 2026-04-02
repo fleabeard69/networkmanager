@@ -27,7 +27,7 @@
         <?php if ($device['primary_ip']): ?>
         <div class="meta-item">
             <span class="meta-label">Primary IP</span>
-            <span class="meta-value mono"><?= h($device['primary_ip']) ?></span>
+            <span class="meta-value mono"><?= h($device['primary_ip']) ?> <button class="copy-btn" data-copy="<?= h($device['primary_ip']) ?>" aria-label="Copy IP address" title="Copy to clipboard"><svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="1" width="8" height="9" rx="1"/><rect x="1" y="4" width="8" height="9" rx="1"/></svg></button></span>
         </div>
         <?php endif; ?>
         <div class="meta-item">
@@ -121,7 +121,7 @@
             <tbody>
                 <?php foreach ($ips as $ip): ?>
                 <tr<?= ($ip['is_primary'] && $ip['is_primary'] !== 'f') ? ' class="ip-primary"' : '' ?>>
-                    <td class="mono"><?= h($ip['ip_str']) ?></td>
+                    <td class="mono"><?= h($ip['ip_str']) ?> <button class="copy-btn" data-copy="<?= h($ip['ip_str']) ?>" aria-label="Copy IP address" title="Copy to clipboard"><svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="1" width="8" height="9" rx="1"/><rect x="1" y="4" width="8" height="9" rx="1"/></svg></button></td>
                     <td class="mono"><?= $ip['subnet_str'] ? h($ip['subnet_str']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="mono"><?= $ip['gateway_str'] ? h($ip['gateway_str']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="mono"><?= $ip['interface'] ? h($ip['interface']) : '<span class="text-muted">—</span>' ?></td>

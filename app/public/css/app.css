@@ -1558,6 +1558,31 @@ select.field-input { cursor: pointer; }
     color: var(--text-dim);
 }
 
+/* ── Copy-to-clipboard button ────────────────────────────────────────────── */
+.copy-btn {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0 0 0 4px;
+    cursor: pointer;
+    color: var(--text-dim);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition), color var(--transition);
+    vertical-align: middle;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+}
+td:hover .copy-btn,
+.meta-item:hover .copy-btn,
+.copy-btn:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+.copy-btn:hover { color: var(--text); }
+.copy-btn-ok    { opacity: 1 !important; color: #3fb950 !important; }
+
 /* ── Print / Save as PDF ─────────────────────────────────────────────────── */
 @media print {
 

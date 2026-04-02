@@ -44,7 +44,11 @@
                 </td>
                 <td class="mono cell-mac"><?= $d['mac_address'] ? h($d['mac_address']) : '<span class="text-muted">—</span>' ?></td>
                 <td class="mono">
-                    <?= $d['primary_ip'] ? h($d['primary_ip']) : '<span class="text-muted">—</span>' ?>
+                    <?php if ($d['primary_ip']): ?>
+                        <?= h($d['primary_ip']) ?> <button class="copy-btn" data-copy="<?= h($d['primary_ip']) ?>" aria-label="Copy IP address" title="Copy to clipboard"><svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="1" width="8" height="9" rx="1"/><rect x="1" y="4" width="8" height="9" rx="1"/></svg></button>
+                    <?php else: ?>
+                        <span class="text-muted">—</span>
+                    <?php endif; ?>
                 </td>
                 <td>
                     <?php $pc = (int)($d['port_count'] ?? 0); ?>
