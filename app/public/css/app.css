@@ -503,7 +503,8 @@ a.stat-card:focus-visible {
     background: var(--port-empty-bg);
     cursor: pointer;
     transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-    min-height: 80px;
+    height: 90px;
+    overflow: hidden;
     text-align: center;
     user-select: none;
 }
@@ -1380,7 +1381,7 @@ select.field-input { cursor: pointer; }
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 80px;
+    height: 90px;
     border-radius: var(--radius);
     border: 2px dashed var(--border);
     background: transparent;
@@ -1705,7 +1706,8 @@ td:hover .copy-btn,
 
     /* ── Compact port cards ──────────────────────────────────────────────── */
     .port-card {
-        min-height: 58px;
+        height: 58px !important;
+        overflow: hidden;
         padding: 6px 4px;
         cursor: default;
         transform: none !important;
