@@ -1580,7 +1580,10 @@ function initDashboardConnections() {
     const svg         = document.getElementById('connections-svg');
     const connectBtn  = document.getElementById('btn-connect-ports');
     const colorPicker = document.getElementById('connect-color-picker');
+    const printBtn    = document.getElementById('btn-print');
     if (!container || !svg || !connectBtn) return;
+
+    if (printBtn) printBtn.addEventListener('click', () => window.print());
 
     const connectHint = colorPicker?.querySelector('.connect-color-hint');
 

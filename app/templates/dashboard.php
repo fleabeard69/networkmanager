@@ -55,7 +55,7 @@ foreach ($ports as $p) {
             <?php $first = false; endforeach; ?>
             <span class="connect-color-hint">Click a port, then another to connect. Esc to cancel.</span>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="window.print()">Print / PDF</button>
+        <button id="btn-print" class="btn btn-secondary btn-sm">Print / PDF</button>
     </div>
 
     <div id="dashboard-devices">
