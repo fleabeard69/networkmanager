@@ -2436,6 +2436,7 @@ function initDevicesFilter() {
 function initPortsFilter() {
     const searchInput  = document.getElementById('ports-search');
     const statusSelect = document.getElementById('ports-status-filter');
+    const typeSelect   = document.getElementById('ports-type-filter');
     const tbody        = document.getElementById('ports-tbody');
     const noResults    = document.getElementById('ports-no-results');
     if (!searchInput || !tbody) return;
@@ -2443,6 +2444,7 @@ function initPortsFilter() {
     function applyFilter() {
         const q      = searchInput.value.trim().toLowerCase();
         const status = statusSelect ? statusSelect.value : '';
+        const type   = typeSelect   ? typeSelect.value   : '';
         let count = 0;
         tbody.querySelectorAll('tr[data-id]').forEach(tr => {
             const textMatch = !q
@@ -2451,8 +2453,9 @@ function initPortsFilter() {
                 || (tr.dataset.deviceHostname  || '').toLowerCase().includes(q)
                 || (tr.dataset.vlan            || '').toLowerCase().includes(q)
                 || (tr.dataset.notes           || '').toLowerCase().includes(q);
-            const statusMatch = !status || (tr.dataset.status || '') === status;
-            const match = textMatch && statusMatch;
+            const statusMatch = !status || (tr.dataset.status   || '') === status;
+            const typeMatch   = !type   || (tr.dataset.portType || '') === type;
+            const match = textMatch && statusMatch && typeMatch;
             tr.classList.toggle('filter-hidden', !match);
             if (match) count++;
         });
@@ -2461,16 +2464,29 @@ function initPortsFilter() {
 
     searchInput.addEventListener('input', applyFilter);
     if (statusSelect) statusSelect.addEventListener('change', applyFilter);
+    if (typeSelect)   typeSelect.addEventListener('change', applyFilter);
 
-    // Pre-filter from URL query param (e.g. /ports?status=active from dashboard link)
+    // Pre-filter from URL query params (e.g. /ports?status=active from dashboard link)
+    const urlParams = new URLSearchParams(window.location.search);
+    let didPreFilter = false;
+
     if (statusSelect) {
-        const statusParam = new URLSearchParams(window.location.search).get('status');
-        const allowed = ['active', 'disabled', 'unknown'];
-        if (statusParam && allowed.includes(statusParam)) {
+        const statusParam = urlParams.get('status');
+        const allowedStatuses = ['active', 'disabled', 'unknown'];
+        if (statusParam && allowedStatuses.includes(statusParam)) {
             statusSelect.value = statusParam;
-            applyFilter();
+            didPreFilter = true;
         }
     }
+    if (typeSelect) {
+        const typeParam = urlParams.get('type');
+        const allowedTypes = ['rj45', 'sfp', 'sfp+', 'wan', 'mgmt'];
+        if (typeParam && allowedTypes.includes(typeParam)) {
+            typeSelect.value = typeParam;
+            didPreFilter = true;
+        }
+    }
+    if (didPreFilter) applyFilter();
 }
 
 // ── Dashboard Port Grid Arrow-Key Navigation ──────────────────────────────────

@@ -22,6 +22,14 @@
         <option value="disabled">Disabled</option>
         <option value="unknown">Unknown</option>
     </select>
+    <select id="ports-type-filter" class="filter-select">
+        <option value="">All Types</option>
+        <option value="rj45">RJ45</option>
+        <option value="sfp">SFP</option>
+        <option value="sfp+">SFP+</option>
+        <option value="wan">WAN</option>
+        <option value="mgmt">MGMT</option>
+    </select>
 </div>
 <div class="panel">
     <table class="data-table">
