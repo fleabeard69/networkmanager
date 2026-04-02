@@ -1523,12 +1523,12 @@ function initGlobalPanelEditor() {
 
             if (affected.length > 0) {
                 const warning = document.createElement('span');
-                warning.style.cssText = 'display:block; margin-top:8px;';
+                warning.className = 'confirm-warning';
                 warning.textContent = `${affected.length} device${affected.length !== 1 ? 's have' : ' has'} ports that will be hidden:`;
                 nodes.push(warning);
 
                 const ul = document.createElement('ul');
-                ul.style.cssText = 'margin:8px 0; padding-left:18px;';
+                ul.className = 'confirm-list';
                 affected.forEach(({ device, count }) => {
                     const li = document.createElement('li');
                     li.style.marginTop = '3px';
@@ -1541,7 +1541,7 @@ function initGlobalPanelEditor() {
                 nodes.push(ul);
 
                 const note = document.createElement('span');
-                note.style.cssText = 'display:block; margin-top:8px; font-size:12px; opacity:0.7;';
+                note.className = 'confirm-note';
                 note.textContent = 'Affected ports remain in the database but won\'t appear until repositioned.';
                 nodes.push(note);
             }
@@ -2449,7 +2449,10 @@ function initCopyButtons() {
                     // Fallback for non-secure contexts (plain HTTP)
                     const ta = document.createElement('textarea');
                     ta.value = text;
-                    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    ta.style.top = '-9999px';
+                    ta.style.opacity = '0';
                     document.body.appendChild(ta);
                     ta.focus();
                     ta.select();

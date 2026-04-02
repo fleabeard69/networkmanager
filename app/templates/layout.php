@@ -85,13 +85,13 @@
 
     <!-- Shared confirm modal (used by all delete/destructive actions) -->
     <div id="confirm-overlay" class="modal-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
-        <div class="modal" style="max-width:400px;">
+        <div class="modal">
             <div class="modal-header">
                 <h2 id="confirm-title" class="panel-title">Confirm</h2>
                 <button id="confirm-x" type="button" class="modal-close" aria-label="Cancel">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="confirm-message" style="margin:0; line-height:1.6;"></div>
+                <div id="confirm-message"></div>
             </div>
             <div class="modal-footer">
                 <div class="modal-footer-right">
