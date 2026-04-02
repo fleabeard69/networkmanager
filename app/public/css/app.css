@@ -317,6 +317,12 @@ a:hover { text-decoration: underline; }
     color: #3fb950;
 }
 
+.flash-warn {
+    background: var(--yellow-bg);
+    border: 1px solid var(--yellow-border);
+    color: var(--yellow);
+}
+
 .flash-error {
     background: var(--red-bg);
     border: 1px solid var(--red-border);

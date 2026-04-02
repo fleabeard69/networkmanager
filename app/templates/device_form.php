@@ -66,9 +66,37 @@ $deviceTypes = [
         <div class="field-group">
             <label class="field-label" for="panel_rear_rows">Rear Panel Rows</label>
             <input class="field-input" type="number" id="panel_rear_rows" name="panel_rear_rows"
-                   min="0" max="10" value="<?= $val('panel_rear_rows', 0) ?>">
+                   min="0" max="10" value="<?= $val('panel_rear_rows', 0) ?>"
+                   data-original="<?= $isEdit ? (int)$device['panel_rear_rows'] : 0 ?>">
             <p class="field-hint">When above 0, a rear panel section appears on the dashboard alongside the front panel — useful for devices with ports on both sides. Leave at 0 if all ports are front-facing. Front rows are configured in the panel editor.</p>
         </div>
+
+<?php if ($isEdit && ($rearPortCount ?? 0) > 0): ?>
+        <div id="rear-port-warning" class="field-group" hidden>
+            <div class="flash flash-warn">
+                <?= (int)$rearPortCount ?> rear port<?= $rearPortCount === 1 ? '' : 's' ?> are currently positioned on the rear panel.
+                Reducing Rear Panel Rows below their positions will make them inaccessible —
+                check the box below to permanently delete them when saving.
+            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" name="delete_rear_ports" id="delete_rear_ports" value="1">
+                Delete out-of-bounds rear ports when saving
+            </label>
+        </div>
+        <script>
+        (function () {
+            const input   = document.getElementById('panel_rear_rows');
+            const warning = document.getElementById('rear-port-warning');
+            const orig    = parseInt(input.dataset.original, 10) || 0;
+            function sync() {
+                const cur = parseInt(input.value, 10);
+                warning.hidden = !(Number.isFinite(cur) && cur < orig);
+            }
+            input.addEventListener('input', sync);
+            sync();
+        }());
+        </script>
+<?php endif; ?>
 
         <div class="field-group">
             <label class="field-label" for="notes">Notes</label>

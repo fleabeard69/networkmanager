@@ -134,6 +134,31 @@ class PortModel
         return $this->db->execute('DELETE FROM switch_ports WHERE id = :id', [':id' => $id]) > 0;
     }
 
+    /**
+     * Count ports belonging to a device whose row exceeds the total panel height.
+     * Used to detect ports that would become unreachable if panel dimensions shrink.
+     */
+    public function countOutOfBounds(int $deviceId, int $totalRows): int
+    {
+        $row = $this->db->fetchOne(
+            'SELECT COUNT(*) AS n FROM switch_ports WHERE device_id = :dev AND port_row > :total',
+            [':dev' => $deviceId, ':total' => $totalRows]
+        );
+        return (int) ($row['n'] ?? 0);
+    }
+
+    /**
+     * Delete ports belonging to a device whose row exceeds the total panel height.
+     * Call only after the user has explicitly confirmed the deletion.
+     */
+    public function deleteOutOfBounds(int $deviceId, int $totalRows): void
+    {
+        $this->db->execute(
+            'DELETE FROM switch_ports WHERE device_id = :dev AND port_row > :total',
+            [':dev' => $deviceId, ':total' => $totalRows]
+        );
+    }
+
     public function stats(): array
     {
         $row = $this->db->fetchOne(

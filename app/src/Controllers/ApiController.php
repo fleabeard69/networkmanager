@@ -118,6 +118,20 @@ class ApiController
             $this->json(['error' => 'panel_rows must be 1–10, panel_rear_rows 0–10, panel_cols 1–50.'], 422);
         }
 
+        // Guard: check whether the new dimensions would leave any ports out of bounds.
+        $orphaned = $this->portModel->countOutOfBounds($id, $rows + $rearRows);
+        if ($orphaned > 0) {
+            if (empty($body['delete_rear_ports'])) {
+                $noun = $orphaned === 1 ? 'port' : 'ports';
+                $this->json([
+                    'error'          => "{$orphaned} {$noun} are outside the new panel bounds.",
+                    'orphaned_count' => $orphaned,
+                    'requires_delete' => true,
+                ], 409);
+            }
+            $this->portModel->deleteOutOfBounds($id, $rows + $rearRows);
+        }
+
         $this->deviceModel->updatePanelDims($id, $rows, $rearRows, $cols);
         $this->json($this->deviceModel->find($id));
     }

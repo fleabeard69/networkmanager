@@ -914,12 +914,32 @@ function initPanelEditor() {
         const rear = parseInt(ctrlRearRows?.value ?? '0', 10);
         const c    = parseInt(ctrlCols.value, 10);
         if (r < 1 || r > 10 || rear < 0 || rear > 10 || c < 1 || c > 50) return;
+
+        // Check whether any loaded ports would fall outside the new panel bounds.
+        const totalNew  = r + rear;
+        const orphaned  = ports.filter(p => p.port_row > totalNew);
+        let deleteOob   = false;
+        if (orphaned.length > 0) {
+            const noun = orphaned.length === 1 ? 'port' : 'ports';
+            const ok   = await showConfirm(
+                `${orphaned.length} ${noun} are outside the new panel bounds and will be permanently deleted. Continue?`,
+                'Delete & Apply'
+            );
+            if (!ok) return;
+            deleteOob = true;
+        }
+
         if (isDeviceScoped) {
             setLoading(btnApply, true);
             try {
                 await apiFetch(`/api/devices/${scopedDeviceId}/panel`, {
                     method: 'PATCH',
-                    body:   JSON.stringify({ panel_rows: r, panel_rear_rows: rear, panel_cols: c }),
+                    body:   JSON.stringify({
+                        panel_rows:      r,
+                        panel_rear_rows: rear,
+                        panel_cols:      c,
+                        ...(deleteOob ? { delete_rear_ports: true } : {}),
+                    }),
                 });
             } catch (err) {
                 alert('Failed to save dimensions: ' + err.message);
@@ -927,6 +947,11 @@ function initPanelEditor() {
             } finally {
                 setLoading(btnApply, false);
             }
+        }
+
+        // Remove orphaned ports from local state so renderGrid() reflects the deletion.
+        if (deleteOob) {
+            ports = ports.filter(p => p.port_row <= totalNew);
         }
         rows     = r;
         rearRows = rear;

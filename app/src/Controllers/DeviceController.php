@@ -19,8 +19,9 @@ class DeviceController
     public function create(): void
     {
         render('device_form', [
-            'navActive' => 'devices',
-            'device'    => null,
+            'navActive'     => 'devices',
+            'device'        => null,
+            'rearPortCount' => 0,
         ]);
     }
 
@@ -84,9 +85,14 @@ class DeviceController
             $this->notFound('Device not found.');
         }
 
+        // Count ports that live on the rear panel (row > front rows).
+        // Passed to the form so it can warn before the user disables the rear panel.
+        $rearPortCount = $this->portModel->countOutOfBounds($id, (int) $device['panel_rows']);
+
         render('device_form', [
-            'navActive' => 'devices',
-            'device'    => $device,
+            'navActive'     => 'devices',
+            'device'        => $device,
+            'rearPortCount' => $rearPortCount,
         ]);
     }
 
@@ -105,6 +111,25 @@ class DeviceController
             Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /devices/{$id}/edit");
             exit;
+        }
+
+        // Guard: check whether the new rear-row count would leave any ports out of bounds.
+        // panel_rows (front) is not changed by this form — only panel_rear_rows is.
+        $totalNewRows = (int) $device['panel_rows'] + $data['panel_rear_rows'];
+        $orphaned     = $this->portModel->countOutOfBounds($id, $totalNewRows);
+        if ($orphaned > 0) {
+            if (empty($_POST['delete_rear_ports'])) {
+                $noun = $orphaned === 1 ? 'port' : 'ports';
+                Session::flash('error',
+                    "{$orphaned} rear {$noun} are positioned beyond the new panel bounds. " .
+                    "Check \"Delete out-of-bounds rear ports\" to remove them, or move them " .
+                    "in the Panel Editor first."
+                );
+                Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
+                header("Location: /devices/{$id}/edit");
+                exit;
+            }
+            $this->portModel->deleteOutOfBounds($id, $totalNewRows);
         }
 
         try {
