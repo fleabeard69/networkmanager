@@ -1631,13 +1631,13 @@ td:hover .copy-btn,
         print-color-adjust: exact;
     }
 
-    /* Default to landscape so wide switch panels have the most room.
-       The user can override paper size and orientation in the print dialog.
-       12 mm sits well within every common printer's physical non-printable area,
-       so the printer driver never needs to shift content — the earlier
-       padding-instead-of-@page-margin workaround caused the driver to offset the
-       printable region, eliminating the margin on one side. */
-    @page { size: landscape; margin: 12mm; }
+    /* Do NOT set @page size here. CSS `size: landscape` works for "Save as PDF"
+       but physical printer drivers frequently ignore it or — worse — receive the
+       landscape-dimensioned page and rotate it 90° to fit portrait paper, producing
+       the content shoved into one corner. Let the user choose orientation in the
+       print dialog (landscape is recommended for wide switch panels).
+       12 mm margins sit well within any printer's physical non-printable area. */
+    @page { margin: 12mm; }
 
     /* ── Light color scheme ──────────────────────────────────────────────── */
     /* Re-map every dark-theme variable to a light equivalent so the output
