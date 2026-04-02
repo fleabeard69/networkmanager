@@ -536,7 +536,7 @@ a.stat-card:focus-visible {
     background: var(--port-empty-bg);
     cursor: pointer;
     transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-    height: 90px;
+    height: var(--port-card-size, 90px);
     overflow: hidden;
     text-align: center;
     user-select: none;

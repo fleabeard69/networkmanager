@@ -95,6 +95,7 @@ function fitDashboardGrids() {
 
         grid.style.gridTemplateColumns = `repeat(${cols}, ${colWidth}px)`;
         grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
+        grid.style.setProperty('--port-card-size', `${colWidth}px`);
     });
 }
 
