@@ -1692,11 +1692,7 @@ td:hover .copy-btn,
         margin-bottom: 14px;
     }
 
-    /* ── Port grid: reflow into auto-fill columns that fit the page ──────── */
-    /* The dashboard renders port grids without inline grid-template-columns
-       (those are only set by the JS panel editors via .style), so these CSS
-       rules take full effect on the dashboard. The !important handles the
-       panel editor pages where JS does set the property inline.              */
+    /* ── Port grid ───────────────────────────────────────────────────────── */
     .port-grid-wrap {
         overflow: visible;
         padding: 12px 16px;
@@ -1713,30 +1709,13 @@ td:hover .copy-btn,
         min-width: 0;   /* allow flex item to shrink below its content size    */
     }
 
+    /* grid-template-columns/rows are set by the beforeprint JS handler using
+       data-cols / data-rows, so the exact row/column structure from the screen
+       is preserved. Explicit gr-N / gc-N placement classes are left intact.  */
     .port-grid {
-        width: 100% !important;
-        min-width: 0 !important;
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important;
-        grid-template-rows: none !important;    /* reset JS-set repeat(N,auto) */
+        min-width: 0;
         gap: 6px;
     }
-
-    /* Reset explicit row/column placement so cards flow with auto-fill.
-       Without this, gc-24 would create an implicit column-24 outside the
-       auto-fill layout, breaking the compact grid entirely.                  */
-    .gr-1,  .gr-2,  .gr-3,  .gr-4,  .gr-5,
-    .gr-6,  .gr-7,  .gr-8,  .gr-9,  .gr-10 { grid-row: auto; }
-
-    .gc-1,  .gc-2,  .gc-3,  .gc-4,  .gc-5,
-    .gc-6,  .gc-7,  .gc-8,  .gc-9,  .gc-10,
-    .gc-11, .gc-12, .gc-13, .gc-14, .gc-15,
-    .gc-16, .gc-17, .gc-18, .gc-19, .gc-20,
-    .gc-21, .gc-22, .gc-23, .gc-24, .gc-25,
-    .gc-26, .gc-27, .gc-28, .gc-29, .gc-30,
-    .gc-31, .gc-32, .gc-33, .gc-34, .gc-35,
-    .gc-36, .gc-37, .gc-38, .gc-39, .gc-40,
-    .gc-41, .gc-42, .gc-43, .gc-44, .gc-45,
-    .gc-46, .gc-47, .gc-48, .gc-49, .gc-50 { grid-column: auto; }
 
     /* ── Compact port cards ──────────────────────────────────────────────── */
     .port-card {

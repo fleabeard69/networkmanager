@@ -107,6 +107,23 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.style.gridTemplateRows    = `repeat(${rows}, auto)`;
     });
 
+    // ── Print: shrink columns to 60 px so row structure is preserved ──────
+    // beforeprint/afterprint fire when the print dialog opens/closes.
+    // Only grids with data-cols (dashboard) are affected; panel editor grids
+    // have no data-cols and are untouched.
+    window.addEventListener('beforeprint', () => {
+        document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
+            grid.style.gridTemplateColumns = `repeat(${parseInt(grid.dataset.cols, 10) || 1}, 60px)`;
+            grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
+        });
+    });
+    window.addEventListener('afterprint', () => {
+        document.querySelectorAll('.port-grid[data-cols]').forEach(grid => {
+            grid.style.gridTemplateColumns = `repeat(${parseInt(grid.dataset.cols, 10) || 1}, 90px)`;
+            grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
+        });
+    });
+
     // ── Port card navigation ──────────────────────────────────────────────
     // On non-dashboard pages (panel viewer), clicking a port card navigates
     // to its full edit page. On the dashboard the modal handles clicks instead.
