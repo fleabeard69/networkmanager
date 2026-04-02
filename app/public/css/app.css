@@ -1631,13 +1631,9 @@ td:hover .copy-btn,
         print-color-adjust: exact;
     }
 
-    /* Do NOT set @page size — see previous commits for why size: landscape
-       breaks physical printers (content rotated/shoved into corner).
-       Do NOT use @page margin either — printer drivers can strip it when the
-       user selects landscape or changes the Margins dropdown. Visual margins
-       are applied as padding on .main-content instead (CSS padding is immune
-       to driver overrides). */
-    @page { margin: 0; }
+    /* Default to landscape so wide switch panels have the most room.
+       The user can override paper size and orientation in the print dialog. */
+    @page { size: landscape; margin: 12mm; }
 
     /* ── Light color scheme ──────────────────────────────────────────────── */
     /* Re-map every dark-theme variable to a light equivalent so the output
@@ -1675,7 +1671,7 @@ td:hover .copy-btn,
     }
     .main-content {
         overflow: visible;
-        padding: 12mm;
+        padding: 0;
     }
 
     /* ── Hide interactive / screen-only elements ─────────────────────────── */
@@ -1734,4 +1730,3 @@ td:hover .copy-btn,
     .port-number { font-size: 15px; }
     .port-device { max-width: 52px; }  /* card is ~63px wide; fit inner text  */
 }
-
