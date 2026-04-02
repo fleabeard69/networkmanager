@@ -1639,6 +1639,7 @@ td:hover .copy-btn,
     /* ── Hide interactive / screen-only elements ─────────────────────────── */
     .dashboard-toolbar,        /* Connect Ports + Print button                */
     .stats-grid,               /* Switch Ports / In Use / Devices / IPs cards */
+    .port-legend,              /* Active / WAN / Mgmt / Disabled legend       */
     .flash-stack,              /* Toast notifications                         */
     #confirm-overlay,          /* Confirm dialog                              */
     #port-tooltip,             /* Hover tooltip (position:fixed)              */
