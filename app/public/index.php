@@ -119,10 +119,6 @@ switch (true) {
         (new ApiController($portModel, $deviceModel))->listPorts();
         break;
 
-    case $path === '/api/ports/unassigned' && $method === 'GET':
-        (new ApiController($portModel, $deviceModel))->listUnassignedPorts();
-        break;
-
     case $path === '/api/devices' && $method === 'GET':
         (new ApiController($portModel, $deviceModel))->listDevices();
         break;

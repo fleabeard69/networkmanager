@@ -462,7 +462,6 @@ function initPanelEditor() {
 
     // ── State ─────────────────────────────────────────────────────────────
     let ports      = [];
-    let devices    = [];
     let rows       = parseInt(document.getElementById('ctrl-rows').value, 10) || 2;
     let rearRows   = parseInt(document.getElementById('ctrl-rear-rows')?.value ?? '0', 10) || 0;
     let cols       = parseInt(document.getElementById('ctrl-cols').value, 10) || 28;
@@ -488,7 +487,6 @@ function initPanelEditor() {
     const mPortType     = document.getElementById('m-port-type');
     const mSpeed        = document.getElementById('m-speed');
     const mStatus       = document.getElementById('m-status');
-    const mDevice       = document.getElementById('m-device');         // global panel only
     const mVlan         = document.getElementById('m-vlan');
     const mPoe          = document.getElementById('m-poe');
     const mNotes        = document.getElementById('m-notes');
@@ -511,33 +509,8 @@ function initPanelEditor() {
 
     // ── Load data ─────────────────────────────────────────────────────────
     async function loadData() {
-        const portsUrl = isDeviceScoped
-            ? `/api/devices/${scopedDeviceId}/ports`
-            : '/api/ports';
-
-        if (isDeviceScoped) {
-            ports = await apiFetch(portsUrl);
-        } else {
-            const [portsData, devicesData] = await Promise.all([
-                apiFetch(portsUrl),
-                apiFetch('/api/devices'),
-            ]);
-            ports   = portsData;
-            devices = devicesData;
-            if (mDevice) populateDeviceSelect();
-        }
+        ports = await apiFetch(`/api/devices/${scopedDeviceId}/ports`);
         renderGrid();
-    }
-
-    // ── Build device <select> options (global panel only) ─────────────────
-    function populateDeviceSelect() {
-        while (mDevice.options.length > 1) mDevice.remove(1);
-        devices.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.hostname;
-            mDevice.appendChild(opt);
-        });
     }
 
     // ── Render grid ───────────────────────────────────────────────────────
@@ -719,7 +692,6 @@ function initPanelEditor() {
         mPortType.value   = port.port_type;
         mSpeed.value      = port.speed;
         mStatus.value     = port.status;
-        if (mDevice) mDevice.value = port.device_id ?? '';
         mVlan.value  = port.vlan_id ?? '';
         mPoe.checked = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
         mNotes.value = port.notes ?? '';
@@ -745,7 +717,6 @@ function initPanelEditor() {
         mPortType.value   = 'rj45';
         mSpeed.value      = '1G';
         mStatus.value     = 'active';
-        if (mDevice) mDevice.value = '';
         mVlan.value  = '';
         mPoe.checked = false;
         mNotes.value = '';
@@ -764,11 +735,7 @@ function initPanelEditor() {
 
     // ── Build payload from modal fields ───────────────────────────────────
     function buildPayload(r, c) {
-        // In device-scoped mode the device is always the scoped device;
-        // in global mode it comes from the device <select>.
-        const deviceId = isDeviceScoped
-            ? scopedDeviceId
-            : (mDevice?.value ? parseInt(mDevice.value, 10) : null);
+        const deviceId = scopedDeviceId;
 
         return {
             port_number: parseInt(mPortNumber.value, 10) || null,

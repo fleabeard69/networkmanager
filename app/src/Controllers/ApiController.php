@@ -239,12 +239,6 @@ class ApiController
         }
     }
 
-    // ── GET /api/ports/unassigned ─────────────────────────────────────────
-    public function listUnassignedPorts(): void
-    {
-        $this->json($this->portModel->allUnassigned());
-    }
-
     // ── GET /api/devices/{id}/ports ───────────────────────────────────────
     public function listDevicePorts(int $deviceId): void
     {
