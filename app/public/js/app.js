@@ -165,7 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.style.gridTemplateRows    = `repeat(${parseInt(grid.dataset.rows, 10) || 1}, auto)`;
         });
     });
-    window.addEventListener('afterprint', fitDashboardGrids);
+    // afterprint is handled inside initDashboardConnections() so it can also
+    // call drawConnections() after restoring the grid — keeping lines aligned.
 
     // ── Port card navigation ──────────────────────────────────────────────
     // On non-dashboard pages (panel viewer), clicking a port card navigates
@@ -2118,6 +2119,20 @@ function initDashboardConnections() {
     window.addEventListener('resize', drawConnections);
     container.addEventListener('deviceReordered', drawConnections);
     container.addEventListener('portUpdated', drawConnections);
+
+    // After the print dialog closes (whether printed or cancelled), the browser
+    // removes @media print styles and restores the screen layout.  We must wait
+    // for that layout pass to complete before measuring clientWidth (for grid
+    // sizing) and getBoundingClientRect() (for connection-line anchors).
+    // requestAnimationFrame defers until the next frame, by which time the
+    // reflow is guaranteed to have run, eliminating the stale-coordinate race
+    // that leaves scrollbars visible and connection lines misaligned.
+    window.addEventListener('afterprint', () => {
+        requestAnimationFrame(() => {
+            fitDashboardGrids();
+            drawConnections();
+        });
+    });
 
     // Redraw when any port-grid section is scrolled horizontally.
     // portAnchor() uses getBoundingClientRect() which is viewport-relative,
