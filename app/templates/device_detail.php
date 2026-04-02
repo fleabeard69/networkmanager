@@ -234,7 +234,7 @@
                     </td>
                     <td class="mono"><?= $sp['vlan_id'] ? h($sp['vlan_id']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= $sp['poe_enabled'] && $sp['poe_enabled'] !== 'f' ? '<span class="badge badge-success">Yes</span>' : '<span class="text-muted">—</span>' ?></td>
-                    <td class="notes-cell"><?= $sp['notes'] ? h($sp['notes']) : '<span class="text-muted">—</span>' ?></td>
+                    <td class="notes-cell"<?= $sp['notes'] ? ' title="' . h($sp['notes']) . '"' : '' ?>><?= $sp['notes'] ? h($sp['notes']) : '<span class="text-muted">—</span>' ?></td>
                     <td class="actions-cell">
                         <a href="/ports/<?= h($sp['id']) ?>/edit" class="btn btn-secondary btn-xs">Edit</a>
                         <form method="post" action="/ports/<?= h($sp['id']) ?>/unassign" class="inline-form">

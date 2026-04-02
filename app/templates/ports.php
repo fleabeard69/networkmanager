@@ -80,7 +80,7 @@
                         <span class="text-muted">—</span>
                     <?php endif; ?>
                 </td>
-                <td class="notes-cell"><?= h($p['notes']) ?></td>
+                <td class="notes-cell"<?= $p['notes'] ? ' title="' . h($p['notes']) . '"' : '' ?>><?= h($p['notes']) ?></td>
                 <td class="actions-cell">
                     <a href="/ports/<?= h($p['id']) ?>/edit" class="btn btn-secondary btn-xs" data-inline-edit>Edit</a>
                     <form method="post" action="/ports/<?= h($p['id']) ?>/delete" class="inline-form">
