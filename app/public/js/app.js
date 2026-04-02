@@ -2076,6 +2076,16 @@ function initDashboardConnections() {
     container.addEventListener('deviceReordered', drawConnections);
     container.addEventListener('portUpdated', drawConnections);
 
+    // Redraw when any port-grid section is scrolled horizontally.
+    // portAnchor() uses getBoundingClientRect() which is viewport-relative,
+    // so the computed coordinates change as the inner grid scrolls — but only
+    // if drawConnections() is called again to pick up the new positions.
+    // Without this, lines stay at stale pixel coordinates and appear to attach
+    // to whichever port card now occupies that pixel (e.g. port 10 instead of 19).
+    container.querySelectorAll('.port-grid-wrap').forEach(wrap => {
+        wrap.addEventListener('scroll', drawConnections, { passive: true });
+    });
+
     fetch('/api/connections')
         .then(r => r.json())
         .then(data => {
