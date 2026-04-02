@@ -1662,7 +1662,17 @@ td:hover .copy-btn,
         overflow: visible;
         padding: 12px 16px;
     }
-    .port-grid-wrap-dual { flex-wrap: wrap; }   /* stack front/rear if needed */
+    /* Keep front and rear panels side-by-side in print. Each column gets an
+       equal share of the available page width via flex:1, which breaks the
+       circular size reference that previously caused width:100% on .port-grid
+       to collapse to one card wide and stack ports vertically.                */
+    .port-grid-wrap-dual {
+        flex-wrap: nowrap;
+    }
+    .port-grid-wrap-dual .panel-face-col {
+        flex: 1;
+        min-width: 0;   /* allow flex item to shrink below its content size    */
+    }
 
     .port-grid {
         width: 100% !important;
