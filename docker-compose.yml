@@ -22,10 +22,11 @@ services:
       - ./swag:/config
     ports:
       - 443:443
+    depends_on:
+      - nginx
     restart: unless-stopped
     networks:
-      netmanager_net:
-        ipv4_address: 172.25.0.2
+      - netmanager_net
 
   nginx:
     image: nginx:1.27-alpine
@@ -84,9 +85,6 @@ services:
 networks:
   netmanager_net:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.25.0.0/24
 
 volumes:
   netmanager_db:
