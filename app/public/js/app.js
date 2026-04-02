@@ -2725,7 +2725,11 @@ function initDashboardPortEdit() {
     function openModal(card) {
         currentCard = card;
         const d = card.dataset;
-        modalTitle.textContent = `Edit Port ${d.portNumber}`;
+        const section    = card.closest('.device-panel-section');
+        const deviceName = section?.querySelector('.device-section-label')?.textContent?.trim() ?? '';
+        modalTitle.textContent = deviceName
+            ? `Edit Port ${d.portNumber} \u2014 ${deviceName}`
+            : `Edit Port ${d.portNumber}`;
         fullEdit.href  = `/ports/${parseInt(d.portId, 10)}/edit`;
         mPortNum.value  = d.portNumber ?? '';
         mLabel.value    = d.label      ?? '';
