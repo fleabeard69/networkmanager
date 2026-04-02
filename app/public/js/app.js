@@ -1797,6 +1797,9 @@ function initDashboardConnections() {
         });
 
         const BRIDGE_R = 7;
+        // Distinct dash patterns assigned by lane index so same-corridor,
+        // same-color lines remain visually distinguishable at a glance.
+        const DASH_PATTERNS = ['7 4', '2 4', '14 5', '14 4 2 4'];
         const f = v => v.toFixed(1);
 
         // Test two segments for intersection; returns t along segment A or null
@@ -1918,11 +1921,12 @@ function initDashboardConnections() {
             const sideA  = conn.anchor_a || null;
             const sideB  = conn.anchor_b || null;
 
-            let x1, y1, x2, y2, pts;
+            let x1, y1, x2, y2, pts, labelAt1, labelAt2;
 
             if (!sideA && !sideB) {
                 // Backward-compatible auto-routing: bottom of higher port → top of lower
-                const [top, bot] = a.mid <= b.mid ? [a, b] : [b, a];
+                const topIsA  = a.mid <= b.mid;
+                const [top, bot] = topIsA ? [a, b] : [b, a];
                 x1 = top.cx; y1 = top.bot;
                 x2 = bot.cx; y2 = bot.top;
                 const sy1 = y1 + STUB, sy2 = y2 - STUB;
@@ -1934,6 +1938,10 @@ function initDashboardConnections() {
                 if (lane && lane.count > 1) {
                     const span = sy2 - sy1;
                     midY = sy1 + (lane.idx + 1) * (span / (lane.count + 1));
+                    // Capture endpoint port numbers for the labels drawn in the
+                    // render pass.  labelAt1 is the port touching (x1,y1) etc.
+                    labelAt1 = String(topIsA ? conn.port_a_number : conn.port_b_number);
+                    labelAt2 = String(topIsA ? conn.port_b_number : conn.port_a_number);
                 }
                 pts = [{ x: x1, y: y1 }, { x: x1, y: sy1 },
                        { x: x1, y: midY }, { x: x2, y: midY },
@@ -1950,8 +1958,12 @@ function initDashboardConnections() {
                 pts = routePoints(x1, y1, aSide, x2, y2, bSide);
             }
 
-            pathInfos.push({ conn, color, x1, y1, x2, y2, pts });
+            pathInfos.push({ conn, color, x1, y1, x2, y2, pts, labelAt1, labelAt2 });
         }
+
+        // Hover-interaction registry: conn.id → { line, dots, labels }
+        // Built during the draw loop so hover handlers can dim all other lines.
+        const connEls = new Map();
 
         // Draw each path; later paths arc over earlier ones at crossings
         pathInfos.forEach((pd, idx) => {
@@ -1960,37 +1972,88 @@ function initDashboardConnections() {
                 bridges.push(...findCrossings(pd.pts, pathInfos[j].pts));
             bridges.sort((a, b) => a.dist - b.dist);
 
-            const d = buildPath(pd.pts, bridges);
+            const pathD = buildPath(pd.pts, bridges);
+            const lane  = laneOf.get(pd.conn.id);
+            const dashPattern = lane && lane.count > 1
+                ? DASH_PATTERNS[lane.idx % DASH_PATTERNS.length]
+                : '7 4';
 
+            const connId = pd.conn.id;
+            connEls.set(connId, { line: null, dots: [], labels: [] });
+            const entry = connEls.get(connId);
+
+            // Invisible wide hit-target for click-to-remove and hover
             const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hit.setAttribute('class', 'conn-hit');
-            hit.setAttribute('d', d);
+            hit.setAttribute('d', pathD);
             hit.setAttribute('stroke', 'transparent');
             hit.setAttribute('stroke-width', '18');
             hit.setAttribute('fill', 'none');
-            hit.title = 'Click to remove this connection';
+            const lblA = pd.conn.port_a_label || `Port ${pd.conn.port_a_number}`;
+            const lblB = pd.conn.port_b_label || `Port ${pd.conn.port_b_number}`;
+            hit.title = `${lblA} ↔ ${lblB} — Click to remove`;
             hit.addEventListener('click', () => removeConnection(pd.conn));
+            // Hover: emphasise this line and dim all others so it can be traced
+            hit.addEventListener('mouseenter', () => {
+                connEls.forEach((e, cid) => {
+                    const active = cid === connId;
+                    e.line.setAttribute('opacity',      active ? '1.0'  : '0.15');
+                    e.line.setAttribute('stroke-width', active ? '4'    : '2');
+                    e.dots.forEach(  dot => dot.setAttribute('opacity', active ? '1.0' : '0.15'));
+                    e.labels.forEach(lbl => lbl.setAttribute('opacity', active ? '1.0' : '0.10'));
+                });
+            });
+            hit.addEventListener('mouseleave', () => {
+                connEls.forEach(e => {
+                    e.line.setAttribute('opacity',      '0.85');
+                    e.line.setAttribute('stroke-width', '3');
+                    e.dots.forEach(  dot => dot.setAttribute('opacity', '1'));
+                    e.labels.forEach(lbl => lbl.setAttribute('opacity', '1'));
+                });
+            });
             svg.appendChild(hit);
 
+            // Visible line — dash pattern varies by lane index within corridor
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('class', 'conn-line');
-            path.setAttribute('d', d);
+            path.setAttribute('d', pathD);
             path.setAttribute('stroke', pd.color);
             path.setAttribute('stroke-width', '3');
-            path.setAttribute('stroke-dasharray', '7 4');
+            path.setAttribute('stroke-dasharray', dashPattern);
             path.setAttribute('fill', 'none');
             path.setAttribute('opacity', '0.85');
             svg.appendChild(path);
+            entry.line = path;
 
-            [{ x: pd.x1, y: pd.y1 }, { x: pd.x2, y: pd.y2 }].forEach(({ x, y }) => {
+            // Endpoint dots
+            [{ x: pd.x1, y: pd.y1 }, { x: pd.x2, y: pd.y2 }].forEach(pt => {
                 const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 dot.setAttribute('class', 'conn-dot');
-                dot.setAttribute('cx', x);
-                dot.setAttribute('cy', y);
+                dot.setAttribute('cx', pt.x);
+                dot.setAttribute('cy', pt.y);
                 dot.setAttribute('r', '4');
                 dot.setAttribute('fill', pd.color);
                 svg.appendChild(dot);
+                entry.dots.push(dot);
             });
+
+            // Port-number labels beside each endpoint dot — only for corridors
+            // with multiple connections, where they'd otherwise be ambiguous.
+            if (lane && lane.count > 1 && pd.labelAt1 !== undefined) {
+                [
+                    { x: pd.x1 + 7, y: pd.y1 + 11, text: pd.labelAt1 },
+                    { x: pd.x2 + 7, y: pd.y2 - 3,  text: pd.labelAt2 },
+                ].forEach(({ x, y, text }) => {
+                    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    lbl.setAttribute('class', 'conn-label');
+                    lbl.setAttribute('x', f(x));
+                    lbl.setAttribute('y', f(y));
+                    lbl.setAttribute('fill', pd.color);
+                    lbl.textContent = text;
+                    svg.appendChild(lbl);
+                    entry.labels.push(lbl);
+                });
+            }
         });
 
         // Tint connected port card borders to match their line color and mark as wired

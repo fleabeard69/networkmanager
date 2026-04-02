@@ -1332,8 +1332,21 @@ select.field-input { cursor: pointer; }
 }
 
 .conn-line,
-.conn-dot {
+.conn-dot,
+.conn-label {
     pointer-events: none;
+}
+
+/* Port-number labels beside endpoint dots for crowded corridors.
+   paint-order: stroke fill creates a dark halo so text is readable
+   over the dark dashboard background without a separate rect element. */
+.conn-label {
+    font-size: 10px;
+    font-weight: 700;
+    paint-order: stroke fill;
+    stroke: var(--bg);
+    stroke-width: 3px;
+    stroke-linejoin: round;
 }
 
 /* Disable connection hit areas while connect mode is active so they
