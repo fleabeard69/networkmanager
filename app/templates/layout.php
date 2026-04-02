@@ -30,6 +30,10 @@
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="7" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/></svg>
                     Switch Ports
                 </a>
+                <ul class="nav-sub">
+                    <li><a href="/ports/panel" class="nav-sub-link <?= ($navSub ?? '') === 'panel' ? 'active' : '' ?>">Grid View</a></li>
+                    <li><a href="/ports" class="nav-sub-link <?= ($navSub ?? '') === 'list' ? 'active' : '' ?>">List View</a></li>
+                </ul>
             </li>
             <li>
                 <a href="/devices" class="nav-link <?= ($navActive ?? '') === 'devices' ? 'active' : '' ?>">

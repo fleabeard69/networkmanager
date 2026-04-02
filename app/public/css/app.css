@@ -162,6 +162,33 @@ a:hover { text-decoration: underline; }
     flex-shrink: 0;
 }
 
+.nav-sub {
+    list-style: none;
+    padding: 0 0 4px 0;
+}
+
+.nav-sub-link {
+    display: block;
+    padding: 5px 20px 5px 46px; /* 20px sidebar padding + 16px icon + 10px gap */
+    font-size: 12.5px;
+    color: var(--text-dim);
+    border-left: 3px solid transparent;
+    transition: color var(--transition), background var(--transition);
+    text-decoration: none;
+}
+
+.nav-sub-link:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    text-decoration: none;
+}
+
+.nav-sub-link.active {
+    color: var(--accent);
+    background: var(--blue-bg);
+    border-left-color: var(--accent);
+}
+
 .sidebar-footer {
     padding: 16px 20px;
     border-top: 1px solid var(--border);
@@ -1516,6 +1543,7 @@ select.field-input { cursor: pointer; }
     .nav-link span,
     .sidebar-user,
     .btn-logout { display: none; }
+    .nav-sub { display: none; }
     .nav-link { padding: 10px; justify-content: center; }
     .nav-icon { width: 20px; height: 20px; }
     .sidebar-footer { justify-content: center; padding: 12px; }

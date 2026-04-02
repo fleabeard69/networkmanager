@@ -12,14 +12,14 @@ class PortController
 
     public function panel(): void
     {
-        render('panel_editor', ['navActive' => 'ports']);
+        render('panel_editor', ['navActive' => 'ports', 'navSub' => 'panel']);
     }
 
     public function index(): void
     {
         $ports   = $this->portModel->all();
         $devices = $this->deviceModel->all();
-        render('ports', ['navActive' => 'ports', 'ports' => $ports, 'devices' => $devices]);
+        render('ports', ['navActive' => 'ports', 'navSub' => 'list', 'ports' => $ports, 'devices' => $devices]);
     }
 
     public function create(): void
