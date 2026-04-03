@@ -218,10 +218,10 @@ class ApiController
             $id = $this->connectionModel->create($portA, $portB, $color, $anchorA, $anchorB);
             $this->json($this->connectionModel->find($id), 201);
         } catch (RuntimeException $e) {
-            $this->json(['error' => $e->getMessage()], 409);
+            $this->json(['error' => 'One or both ports are already in use.'], 409);
         } catch (PDOException $e) {
             $msg = str_contains(strtolower($e->getMessage()), 'unique')
-                ? 'These ports are already connected.'
+                ? 'One or both ports are already in use.'
                 : 'Database error.';
             $this->json(['error' => $msg], 409);
         }
