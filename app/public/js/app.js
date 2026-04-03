@@ -1810,7 +1810,16 @@ function initDashboardConnections() {
             const gx = cx-ax, gy = cy-ay;
             const t = (gx*fy - gy*fx) / den;
             const u = (gx*ey - gy*ex) / den;
-            return (t > 0.02 && t < 0.98 && u > 0.02 && u < 0.98) ? t : null;
+            // t is kept strict (0.02–0.98) so arcs don't appear at path A's own
+            // vertices.  u is intentionally relaxed to [0, 1] so a crossing that
+            // lands exactly on a vertex of path B (u=0 or u=1) is still detected.
+            // This fixes the case where routeY of an explicit-anchor line equals
+            // sy2 of an auto-routed line (both computed as "port_top − STUB" for
+            // ports in the same grid row), causing the crossing to fall between two
+            // adjacent B-segments, both of which reject it with the strict filter.
+            // The buildPath deduplication (dist-based) handles any double-counts
+            // that arise when both adjacent segments detect the same vertex crossing.
+            return (t > 0.02 && t < 0.98 && u >= 0 && u <= 1) ? t : null;
         }
 
         // Find arc-length positions where polyline B crosses polyline A
