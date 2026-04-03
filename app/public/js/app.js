@@ -284,7 +284,15 @@ const FIELD_VALIDATORS = {
     },
 
     // MAC address: exactly six colon-separated hex pairs (case-insensitive).
+    // normalize() strips common separators (dashes, colons, spaces) and reformats
+    // to the canonical AA:BB:CC:DD:EE:FF form so copy-pasted MACs are accepted.
     'mac': {
+        normalize(input) {
+            const hex = input.value.replace(/[^0-9A-Fa-f]/g, '');
+            if (hex.length === 12) {
+                input.value = hex.toUpperCase().match(/.{2}/g).join(':');
+            }
+        },
         validate(v) {
             return /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(v);
         },
@@ -322,8 +330,12 @@ function initInlineValidation() {
             }
         }
 
-        // Show error when the user leaves the field.
-        input.addEventListener('blur', check);
+        // Show error when the user leaves the field. Normalize first so that
+        // e.g. a dash-separated MAC is reformatted before validation runs.
+        input.addEventListener('blur', () => {
+            rule.normalize?.(input);
+            check();
+        });
 
         // Clear the error the moment the user begins correcting, so they aren't
         // reading an error message while actively typing a fix.
