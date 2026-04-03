@@ -32,6 +32,9 @@
                         data-confirm-ok="Restore">Restore from Backup</button>
             </div>
         </form>
+        <?php if ($lastImportedAt && ($lastImportTs = strtotime($lastImportedAt))): ?>
+        <p class="backup-meta">Last restore: <?= h(gmdate('Y-m-d H:i', $lastImportTs)) ?> UTC</p>
+        <?php endif; ?>
     </div>
 
 </div>

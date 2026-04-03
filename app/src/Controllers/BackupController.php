@@ -11,12 +11,15 @@ class BackupController
     // ── GET /backup ───────────────────────────────────────────────────────────
     public function show(): void
     {
-        $lastExportedAt = null;
+        $settings = [];
         try {
-            $row = $this->db->fetchOne(
-                "SELECT value FROM app_settings WHERE key = 'last_exported_at'"
+            $rows = $this->db->fetchAll(
+                "SELECT key, value FROM app_settings
+                 WHERE key IN ('last_exported_at', 'last_imported_at')"
             );
-            $lastExportedAt = $row ? $row['value'] : null;
+            foreach ($rows as $row) {
+                $settings[$row['key']] = $row['value'];
+            }
         } catch (PDOException) {
             // app_settings table not yet migrated on this deployment — degrade gracefully
         }
@@ -24,7 +27,8 @@ class BackupController
         render('backup', [
             'navActive'      => 'backup',
             'title'          => 'Backup & Restore',
-            'lastExportedAt' => $lastExportedAt,
+            'lastExportedAt' => $settings['last_exported_at'] ?? null,
+            'lastImportedAt' => $settings['last_imported_at'] ?? null,
         ]);
     }
 
@@ -136,6 +140,44 @@ class BackupController
             header('Location: /backup');
             exit;
         }
+
+        // ── Rate limiting ─────────────────────────────────────────────────────
+        // Two-layer check: session (fast, no DB) + app_settings (persistent
+        // across logout/re-login). Both use a 60-second cooldown window.
+        // The timestamp is written BEFORE performImport() so even a failed
+        // import (which still executes the full DB wipe before rolling back)
+        // counts against the limit and cannot be spammed on a bad backup file.
+
+        if (time() - Session::get('last_import_at', 0) < 60) {
+            Session::flash('error', 'Please wait 60 seconds between restores.');
+            header('Location: /backup');
+            exit;
+        }
+
+        // Persistent check: survives re-login and multiple browser sessions.
+        // Silent on PDOException if app_settings not yet migrated.
+        try {
+            $row = $this->db->fetchOne(
+                "SELECT value FROM app_settings WHERE key = 'last_imported_at'"
+            );
+            if ($row && (time() - (int) strtotime($row['value'])) < 60) {
+                Session::flash('error', 'Please wait 60 seconds between restores.');
+                header('Location: /backup');
+                exit;
+            }
+        } catch (PDOException) {}
+
+        // Pre-mark the timestamp before the heavy operation so a concurrent
+        // request that passes both checks above also sees a recent timestamp
+        // on its own persistent check.
+        Session::set('last_import_at', time());
+        try {
+            $this->db->execute(
+                "INSERT INTO app_settings (key, value) VALUES ('last_imported_at', :v)
+                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                [':v' => date('c')]
+            );
+        } catch (PDOException) {}
 
         try {
             $this->performImport($data);
