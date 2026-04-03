@@ -2678,28 +2678,14 @@ function initCopyButtons() {
             try {
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(text);
-                } else {
-                    // Fallback for non-secure contexts (plain HTTP)
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.left = '-9999px';
-                    ta.style.top = '-9999px';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.focus();
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
+                    const prevTitle = btn.title;
+                    btn.classList.add('copy-btn-ok');
+                    btn.title = 'Copied!';
+                    setTimeout(() => {
+                        btn.classList.remove('copy-btn-ok');
+                        btn.title = prevTitle;
+                    }, 1500);
                 }
-                // Brief success feedback
-                const prevTitle = btn.title;
-                btn.classList.add('copy-btn-ok');
-                btn.title = 'Copied!';
-                setTimeout(() => {
-                    btn.classList.remove('copy-btn-ok');
-                    btn.title = prevTitle;
-                }, 1500);
             } catch {
                 // Silent fail — clipboard access denied or unavailable
             }
