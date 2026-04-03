@@ -123,7 +123,7 @@ class PortController
         $this->portModel->assign($id, null);
         Session::flash('success', 'Port unassigned from device.');
 
-        if ($deviceId) {
+        if ($deviceId && $this->deviceModel->find($deviceId)) {
             header("Location: /devices/{$deviceId}#switch-ports");
         } else {
             header('Location: /ports');
