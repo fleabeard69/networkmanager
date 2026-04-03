@@ -193,12 +193,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Auto-dismiss flash messages ───────────────────────────────────────
+    // Success/warning toasts auto-dismiss after 5 s. Error toasts persist
+    // until the user explicitly closes them — they often require action.
     document.querySelectorAll('.flash').forEach(flash => {
         function dismiss() {
             flash.classList.add('flash-hiding');
             setTimeout(() => flash.remove(), 400);
         }
-        const timerId = setTimeout(dismiss, 5000);
+        const timerId = flash.classList.contains('flash-error')
+            ? undefined
+            : setTimeout(dismiss, 5000);
         flash.querySelector('.flash-close')?.addEventListener('click', () => {
             clearTimeout(timerId);
             dismiss();
