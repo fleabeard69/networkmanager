@@ -65,7 +65,7 @@
                     <a href="/devices/<?= h($d['id']) ?>/edit" class="btn btn-secondary btn-xs" data-inline-edit>Edit</a>
                     <form method="post" action="/devices/<?= h($d['id']) ?>/delete" class="inline-form">
                         <?= Csrf::field() ?>
-                        <button type="submit" class="btn btn-danger btn-xs"
+                        <button type="submit" class="btn btn-danger btn-xs" disabled
                                 data-confirm="Delete <?= h($d['hostname']) ?>? All IPs and service ports will also be removed."
                                         data-confirm-ok="Delete">
                             Delete

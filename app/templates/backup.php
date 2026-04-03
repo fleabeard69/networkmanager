@@ -27,7 +27,7 @@
             <div class="backup-upload-row">
                 <input type="file" name="backup_file" id="backup_file"
                        accept=".json,application/json" required class="backup-file-input">
-                <button type="submit" class="btn btn-danger"
+                <button type="submit" class="btn btn-danger" disabled
                         data-confirm="This will erase ALL current data and replace it with the backup. Are you sure?"
                         data-confirm-ok="Restore">Restore from Backup</button>
             </div>

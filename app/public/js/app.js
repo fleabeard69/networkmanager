@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Any submit button with data-confirm shows a styled modal before submitting.
     // data-confirm-ok sets the confirm button label (default "Confirm").
     document.querySelectorAll('button[data-confirm]').forEach(btn => {
+        btn.disabled = false;
         btn.addEventListener('click', async e => {
             e.preventDefault();
             btn.disabled = true;

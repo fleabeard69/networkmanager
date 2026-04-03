@@ -10,7 +10,7 @@
             <a href="/devices/<?= h($device['id']) ?>/edit" class="btn btn-secondary btn-sm">Edit</a>
             <form method="post" action="/devices/<?= h($device['id']) ?>/delete" class="inline-form">
                 <?= Csrf::field() ?>
-                <button type="submit" class="btn btn-danger btn-sm"
+                <button type="submit" class="btn btn-danger btn-sm" disabled
                         data-confirm="Delete <?= h($device['hostname']) ?>? All IPs and service ports will also be removed."
                         data-confirm-ok="Delete">
                     Delete
@@ -131,7 +131,7 @@
                         <?php if (!($ip['is_primary'] && $ip['is_primary'] !== 'f')): ?>
                         <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/primary" class="inline-form">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-secondary btn-xs"
+                            <button type="submit" class="btn btn-secondary btn-xs" disabled
                                     data-confirm="Set <?= h($ip['ip_str']) ?> as the primary IP for this device?"
                                     data-confirm-ok="Set Primary">
                                 Set Primary
@@ -140,7 +140,7 @@
                         <?php endif; ?>
                         <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-danger btn-xs"
+                            <button type="submit" class="btn btn-danger btn-xs" disabled
                                     data-confirm="Remove <?= h($ip['ip_str']) ?>?"
                                     data-confirm-ok="Remove">
                                 Delete
@@ -239,7 +239,7 @@
                         <a href="/ports/<?= h($sp['id']) ?>/edit" class="btn btn-secondary btn-xs">Edit</a>
                         <form method="post" action="/ports/<?= h($sp['id']) ?>/unassign" class="inline-form">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-warning btn-xs"
+                            <button type="submit" class="btn btn-warning btn-xs" disabled
                                     data-confirm="Unassign Port <?= h($sp['port_number']) ?> from this device?"
                                     data-confirm-ok="Unassign">
                                 Unassign
@@ -330,7 +330,7 @@
                     <td class="actions-cell">
                         <form method="post" action="/devices/<?= h($device['id']) ?>/services/<?= h($svc['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-danger btn-xs"
+                            <button type="submit" class="btn btn-danger btn-xs" disabled
                                     data-confirm="Remove <?= h(strtoupper($svc['protocol'])) ?>/<?= h($svc['port_number']) ?>?"
                                     data-confirm-ok="Remove">
                                 Delete

@@ -94,7 +94,7 @@
                     <a href="/ports/<?= h($p['id']) ?>/edit" class="btn btn-secondary btn-xs" data-inline-edit>Edit</a>
                     <form method="post" action="/ports/<?= h($p['id']) ?>/delete" class="inline-form">
                         <?= Csrf::field() ?>
-                        <button type="submit" class="btn btn-danger btn-xs"
+                        <button type="submit" class="btn btn-danger btn-xs" disabled
                                 data-confirm="Remove port <?= h($p['port_number']) ?>? This cannot be undone."
                                 data-confirm-ok="Delete">
                             Delete
