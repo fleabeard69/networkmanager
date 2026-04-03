@@ -61,6 +61,13 @@
             </div>
             <div class="form-row">
                 <div class="field-group">
+                    <label class="field-label" for="m-client-label">Connected Client</label>
+                    <input id="m-client-label" type="text" class="field-input" maxlength="128" placeholder="e.g. Bob's Laptop — 192.168.0.201">
+                    <p class="field-hint">Shown on hover in the dashboard.</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group">
                     <label class="field-label" for="m-notes">Notes</label>
                     <textarea id="m-notes" class="field-input" rows="2" placeholder="Optional notes"></textarea>
                 </div>

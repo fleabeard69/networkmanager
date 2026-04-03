@@ -124,6 +124,7 @@ foreach ($ports as $p) {
                                  data-vlan="<?= h($port['vlan_id'] ?? '') ?>"
                                  data-device-id="<?= h($port['device_id'] ?? '') ?>"
                                  data-notes="<?= h($port['notes'] ?? '') ?>"
+                                 data-client="<?= h($port['client_label'] ?? '') ?>"
                                  data-row="<?= h($port['port_row']) ?>"
                                  data-col="<?= h($port['port_col']) ?>"
                                  title="Port <?= h($port['port_number']) ?><?= $port['label'] ? ' — ' . h($port['label']) : '' ?>">
@@ -247,6 +248,13 @@ foreach ($ports as $p) {
                     <label class="checkbox-label" for="dpm-poe">
                         <input id="dpm-poe" type="checkbox"> PoE
                     </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="dpm-client-label">Connected Client</label>
+                    <input id="dpm-client-label" type="text" class="field-input" maxlength="128" placeholder="e.g. Bob's Laptop — 192.168.0.201">
+                    <p class="field-hint">Shown on hover in the dashboard.</p>
                 </div>
             </div>
             <div class="form-row">

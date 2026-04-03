@@ -634,6 +634,12 @@ a.stat-card:focus-visible {
 .port-tooltip .ptt-meta   { color: var(--text-muted); font-size: 11px; margin-top: 1px; }
 .port-tooltip .ptt-label  { margin-top: 5px; font-weight: 500; }
 .port-tooltip .ptt-vlan   { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.port-tooltip .ptt-client {
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+}
 .port-tooltip .ptt-notes  {
     margin-top: 5px;
     padding-top: 5px;

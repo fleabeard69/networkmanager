@@ -111,6 +111,14 @@ $hasOld = !empty($old);
         </div>
 
         <div class="field-group">
+            <label class="field-label" for="client_label">Connected Client</label>
+            <input class="field-input" type="text" id="client_label" name="client_label"
+                   maxlength="128" placeholder="e.g. Bob's Laptop — 192.168.0.201"
+                   value="<?= $val('client_label') ?>">
+            <p class="field-hint">Shown on hover in the dashboard.</p>
+        </div>
+
+        <div class="field-group">
             <label class="field-label" for="notes">Notes</label>
             <textarea class="field-input" id="notes" name="notes" rows="3"
                       placeholder="Any additional notes…"><?= $val('notes') ?></textarea>

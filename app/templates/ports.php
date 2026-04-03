@@ -63,6 +63,7 @@
                 data-device-id="<?= h($p['device_id'] ?? '') ?>"
                 data-device-hostname="<?= h($p['device_hostname'] ?? '') ?>"
                 data-notes="<?= h($p['notes'] ?? '') ?>"
+                data-client="<?= h($p['client_label'] ?? '') ?>"
                 data-row="<?= h($p['port_row']) ?>"
                 data-col="<?= h($p['port_col']) ?>">
                 <td class="mono cell-port-number"><?= h($p['port_number']) ?></td>
@@ -178,6 +179,13 @@
                     <label class="checkbox-label" for="ipm-poe">
                         <input id="ipm-poe" type="checkbox"> PoE
                     </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group">
+                    <label class="field-label" for="ipm-client-label">Connected Client</label>
+                    <input id="ipm-client-label" type="text" class="field-input" maxlength="128" placeholder="e.g. Bob's Laptop — 192.168.0.201">
+                    <p class="field-hint">Shown on hover in the dashboard.</p>
                 </div>
             </div>
             <div class="form-row">

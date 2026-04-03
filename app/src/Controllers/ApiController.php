@@ -405,17 +405,18 @@ class ApiController
         if ($col === false) return 'Column must be between 1 and 50.';
 
         return [
-            'port_number' => $portNumber,
-            'label'       => substr(trim((string)($body['label'] ?? '')), 0, 64),
-            'port_type'   => $portType,
-            'speed'       => $speed,
-            'poe_enabled' => !empty($body['poe_enabled']),
-            'vlan_id'     => $vlanId,
-            'status'      => $status,
-            'device_id'   => $deviceId,
-            'notes'       => substr(trim((string)($body['notes'] ?? '')), 0, 1000),
-            'port_row'    => $row,
-            'port_col'    => $col,
+            'port_number'  => $portNumber,
+            'label'        => substr(trim((string)($body['label'] ?? '')), 0, 64),
+            'port_type'    => $portType,
+            'speed'        => $speed,
+            'poe_enabled'  => !empty($body['poe_enabled']),
+            'vlan_id'      => $vlanId,
+            'status'       => $status,
+            'device_id'    => $deviceId,
+            'notes'        => substr(trim((string)($body['notes'] ?? '')), 0, 1000),
+            'port_row'     => $row,
+            'port_col'     => $col,
+            'client_label' => substr(trim((string)($body['client_label'] ?? '')), 0, 128),
         ];
     }
 

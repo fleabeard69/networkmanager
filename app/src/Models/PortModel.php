@@ -33,8 +33,8 @@ class PortModel
     {
         $stmt = $this->db->query(
             'INSERT INTO switch_ports
-             (port_number, label, port_type, speed, poe_enabled, vlan_id, status, device_id, notes, port_row, port_col)
-             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes, :row, :col)
+             (port_number, label, port_type, speed, poe_enabled, vlan_id, status, device_id, notes, port_row, port_col, client_label)
+             VALUES (:num, :label, :type, :speed, :poe, :vlan, :status, :dev, :notes, :row, :col, :client)
              RETURNING id',
             [
                 ':num'    => $data['port_number'],
@@ -48,6 +48,7 @@ class PortModel
                 ':notes'  => $data['notes'],
                 ':row'    => $data['port_row'],
                 ':col'    => $data['port_col'],
+                ':client' => $data['client_label'],
             ]
         );
         return (int) $stmt->fetchColumn();
@@ -60,18 +61,19 @@ class PortModel
     {
         $this->db->execute(
             'UPDATE switch_ports SET
-             port_number = :num,
-             label       = :label,
-             port_type   = :type,
-             speed       = :speed,
-             poe_enabled = :poe,
-             vlan_id     = :vlan,
-             status      = :status,
-             device_id   = :dev,
-             notes       = :notes,
-             port_row    = :row,
-             port_col    = :col,
-             updated_at  = NOW()
+             port_number  = :num,
+             label        = :label,
+             port_type    = :type,
+             speed        = :speed,
+             poe_enabled  = :poe,
+             vlan_id      = :vlan,
+             status       = :status,
+             device_id    = :dev,
+             notes        = :notes,
+             port_row     = :row,
+             port_col     = :col,
+             client_label = :client,
+             updated_at   = NOW()
              WHERE id = :id',
             [
                 ':num'    => $data['port_number'],
@@ -85,6 +87,7 @@ class PortModel
                 ':notes'  => $data['notes'],
                 ':row'    => $data['port_row'],
                 ':col'    => $data['port_col'],
+                ':client' => $data['client_label'],
                 ':id'     => $id,
             ]
         );

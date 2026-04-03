@@ -454,6 +454,14 @@ function initPortCardTooltips() {
             tt.appendChild(vl);
         }
 
+        // Connected client label
+        if (d.client) {
+            const cl = document.createElement('div');
+            cl.className   = 'ptt-client';
+            cl.textContent = d.client;
+            tt.appendChild(cl);
+        }
+
         // Notes (below a separator line, line-clamped in CSS)
         if (d.notes) {
             const nl = document.createElement('div');
@@ -555,6 +563,7 @@ function initPanelEditor() {
     const mStatus       = document.getElementById('m-status');
     const mVlan         = document.getElementById('m-vlan');
     const mPoe          = document.getElementById('m-poe');
+    const mClientLabel  = document.getElementById('m-client-label');
     const mNotes        = document.getElementById('m-notes');
     const ctrlRows      = document.getElementById('ctrl-rows');
     const ctrlRearRows  = document.getElementById('ctrl-rear-rows');
@@ -769,6 +778,7 @@ function initPanelEditor() {
         mStatus.value     = port.status;
         mVlan.value  = port.vlan_id ?? '';
         mPoe.checked = port.poe_enabled === true || port.poe_enabled === 't' || port.poe_enabled === '1';
+        if (mClientLabel) mClientLabel.value = port.client_label ?? '';
         mNotes.value = port.notes ?? '';
 
         // Show delete always; show unassign only in device-scoped mode; always show clone
@@ -795,6 +805,7 @@ function initPanelEditor() {
         mStatus.value     = 'active';
         mVlan.value  = '';
         mPoe.checked = false;
+        if (mClientLabel) mClientLabel.value = '';
         mNotes.value = '';
         hideError();
     }
@@ -814,17 +825,18 @@ function initPanelEditor() {
         const deviceId = scopedDeviceId;
 
         return {
-            port_number: parseInt(mPortNumber.value, 10) || null,
-            label:       mLabel.value.trim(),
-            port_type:   mPortType.value,
-            speed:       mSpeed.value,
-            status:      mStatus.value,
-            device_id:   deviceId,
-            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
-            poe_enabled: mPoe.checked,
-            notes:       mNotes.value.trim(),
-            port_row:    r,
-            port_col:    c,
+            port_number:  parseInt(mPortNumber.value, 10) || null,
+            label:        mLabel.value.trim(),
+            port_type:    mPortType.value,
+            speed:        mSpeed.value,
+            status:       mStatus.value,
+            device_id:    deviceId,
+            vlan_id:      mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled:  mPoe.checked,
+            client_label: mClientLabel ? mClientLabel.value.trim() : '',
+            notes:        mNotes.value.trim(),
+            port_row:     r,
+            port_col:     c,
         };
     }
 
@@ -2275,15 +2287,16 @@ function initPortsTableEdit() {
     const modalClose  = document.getElementById('ipm-close');
     const modalCancel = document.getElementById('ipm-cancel');
     const fullEdit    = document.getElementById('ipm-full-edit');
-    const mPortNum    = document.getElementById('ipm-port-number');
-    const mLabel      = document.getElementById('ipm-label');
-    const mPortType   = document.getElementById('ipm-port-type');
-    const mSpeed      = document.getElementById('ipm-speed');
-    const mStatus     = document.getElementById('ipm-status');
-    const mDevice     = document.getElementById('ipm-device');
-    const mVlan       = document.getElementById('ipm-vlan');
-    const mPoe        = document.getElementById('ipm-poe');
-    const mNotes      = document.getElementById('ipm-notes');
+    const mPortNum     = document.getElementById('ipm-port-number');
+    const mLabel       = document.getElementById('ipm-label');
+    const mPortType    = document.getElementById('ipm-port-type');
+    const mSpeed       = document.getElementById('ipm-speed');
+    const mStatus      = document.getElementById('ipm-status');
+    const mDevice      = document.getElementById('ipm-device');
+    const mVlan        = document.getElementById('ipm-vlan');
+    const mPoe         = document.getElementById('ipm-poe');
+    const mClientLabel = document.getElementById('ipm-client-label');
+    const mNotes       = document.getElementById('ipm-notes');
 
     let currentTr = null;
 
@@ -2314,6 +2327,7 @@ function initPortsTableEdit() {
         if (mDevice) mDevice.value = d.deviceId ?? '';
         mVlan.value  = d.vlan  ?? '';
         mPoe.checked = d.poe === '1';
+        if (mClientLabel) mClientLabel.value = d.client ?? '';
         mNotes.value = d.notes ?? '';
         hideError();
         overlay.classList.remove('hidden');
@@ -2345,17 +2359,18 @@ function initPortsTableEdit() {
         const portId = parseInt(d.id, 10);
 
         const payload = {
-            port_number: parseInt(mPortNum.value, 10) || null,
-            label:       mLabel.value.trim(),
-            port_type:   mPortType.value,
-            speed:       mSpeed.value,
-            status:      mStatus.value,
-            device_id:   mDevice?.value ? parseInt(mDevice.value, 10) : null,
-            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
-            poe_enabled: mPoe.checked,
-            notes:       mNotes.value.trim(),
-            port_row:    parseInt(d.row, 10),
-            port_col:    parseInt(d.col, 10),
+            port_number:  parseInt(mPortNum.value, 10) || null,
+            label:        mLabel.value.trim(),
+            port_type:    mPortType.value,
+            speed:        mSpeed.value,
+            status:       mStatus.value,
+            device_id:    mDevice?.value ? parseInt(mDevice.value, 10) : null,
+            vlan_id:      mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled:  mPoe.checked,
+            client_label: mClientLabel?.value.trim() ?? '',
+            notes:        mNotes.value.trim(),
+            port_row:     parseInt(d.row, 10),
+            port_col:     parseInt(d.col, 10),
         };
 
         try {
@@ -2383,6 +2398,7 @@ function initPortsTableEdit() {
         tr.dataset.deviceHostname = p.device_hostname ?? '';
         tr.dataset.vlan       = p.vlan_id    ?? '';
         tr.dataset.poe        = (p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1') ? '1' : '0';
+        tr.dataset.client     = p.client_label ?? '';
         tr.dataset.notes      = p.notes      ?? '';
 
         // Update visible cells — all via textContent or safe DOM construction (no innerHTML from user data)
@@ -2917,15 +2933,16 @@ function initDashboardPortEdit() {
     const modalClose  = document.getElementById('dpm-close');
     const modalCancel = document.getElementById('dpm-cancel');
     const fullEdit    = document.getElementById('dpm-full-edit');
-    const mPortNum    = document.getElementById('dpm-port-number');
-    const mLabel      = document.getElementById('dpm-label');
-    const mPortType   = document.getElementById('dpm-port-type');
-    const mSpeed      = document.getElementById('dpm-speed');
-    const mStatus     = document.getElementById('dpm-status');
-    const mDevice     = document.getElementById('dpm-device');
-    const mVlan       = document.getElementById('dpm-vlan');
-    const mPoe        = document.getElementById('dpm-poe');
-    const mNotes      = document.getElementById('dpm-notes');
+    const mPortNum     = document.getElementById('dpm-port-number');
+    const mLabel       = document.getElementById('dpm-label');
+    const mPortType    = document.getElementById('dpm-port-type');
+    const mSpeed       = document.getElementById('dpm-speed');
+    const mStatus      = document.getElementById('dpm-status');
+    const mDevice      = document.getElementById('dpm-device');
+    const mVlan        = document.getElementById('dpm-vlan');
+    const mPoe         = document.getElementById('dpm-poe');
+    const mClientLabel = document.getElementById('dpm-client-label');
+    const mNotes       = document.getElementById('dpm-notes');
 
     let currentCard = null;
 
@@ -2960,6 +2977,7 @@ function initDashboardPortEdit() {
         if (mDevice) mDevice.value = d.deviceId ?? '';
         mVlan.value  = d.vlan  ?? '';
         mPoe.checked = d.poe === '1';
+        if (mClientLabel) mClientLabel.value = d.client ?? '';
         mNotes.value = d.notes ?? '';
         hideError();
         overlay.classList.remove('hidden');
@@ -2991,17 +3009,18 @@ function initDashboardPortEdit() {
         const portId = parseInt(d.portId, 10);
 
         const payload = {
-            port_number: parseInt(mPortNum.value, 10) || null,
-            label:       mLabel.value.trim(),
-            port_type:   mPortType.value,
-            speed:       mSpeed.value,
-            status:      mStatus.value,
-            device_id:   mDevice?.value ? parseInt(mDevice.value, 10) : null,
-            vlan_id:     mVlan.value ? parseInt(mVlan.value, 10) : null,
-            poe_enabled: mPoe.checked,
-            notes:       mNotes.value.trim(),
-            port_row:    parseInt(d.row, 10),
-            port_col:    parseInt(d.col, 10),
+            port_number:  parseInt(mPortNum.value, 10) || null,
+            label:        mLabel.value.trim(),
+            port_type:    mPortType.value,
+            speed:        mSpeed.value,
+            status:       mStatus.value,
+            device_id:    mDevice?.value ? parseInt(mDevice.value, 10) : null,
+            vlan_id:      mVlan.value ? parseInt(mVlan.value, 10) : null,
+            poe_enabled:  mPoe.checked,
+            client_label: mClientLabel?.value.trim() ?? '',
+            notes:        mNotes.value.trim(),
+            port_row:     parseInt(d.row, 10),
+            port_col:     parseInt(d.col, 10),
         };
 
         try {
@@ -3028,6 +3047,7 @@ function initDashboardPortEdit() {
         card.dataset.deviceId   = p.device_id  ?? '';
         card.dataset.vlan       = p.vlan_id    ?? '';
         card.dataset.poe        = (p.poe_enabled === true || p.poe_enabled === 't' || p.poe_enabled === '1') ? '1' : '0';
+        card.dataset.client     = p.client_label ?? '';
         card.dataset.notes      = p.notes      ?? '';
 
         // Update title attribute

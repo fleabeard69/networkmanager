@@ -202,17 +202,18 @@ class PortController
         }
 
         return [
-            'port_number' => $portNumber,
-            'label'       => substr(trim($post['label'] ?? ''), 0, 64),
-            'port_type'   => $portType,
-            'speed'       => $speed,
-            'poe_enabled' => !empty($post['poe_enabled']),
-            'vlan_id'     => $vlanId,
-            'status'      => $status,
-            'device_id'   => $deviceId,
-            'notes'       => substr(trim($post['notes'] ?? ''), 0, 1000),
-            'port_row'    => $portRow,
-            'port_col'    => $portCol,
+            'port_number'  => $portNumber,
+            'label'        => substr(trim($post['label'] ?? ''), 0, 64),
+            'port_type'    => $portType,
+            'speed'        => $speed,
+            'poe_enabled'  => !empty($post['poe_enabled']),
+            'vlan_id'      => $vlanId,
+            'status'       => $status,
+            'device_id'    => $deviceId,
+            'notes'        => substr(trim($post['notes'] ?? ''), 0, 1000),
+            'port_row'     => $portRow,
+            'port_col'     => $portCol,
+            'client_label' => substr(trim($post['client_label'] ?? ''), 0, 128),
         ];
     }
 
