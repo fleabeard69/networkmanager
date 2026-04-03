@@ -74,8 +74,12 @@ class Auth
             'INSERT INTO login_attempts (ip_address) VALUES (:ip)',
             [':ip' => $ip]
         );
+        // Purge window is 30 minutes — 2× the 15-minute rate-limit window, so
+        // isRateLimited() always has a full window of data to COUNT against.
+        // 30 minutes bounds the table to ~30 min of attack traffic instead of
+        // 24 hours, and the idx_login_attempts_time index makes this DELETE fast.
         $this->db->execute(
-            "DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '24 hours'"
+            "DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '30 minutes'"
         );
     }
 
