@@ -22,6 +22,16 @@ class Session
 
         session_name('netmgr_session');
         session_start();
+
+        if (isset($_SESSION['user_id'])) {
+            if (time() - ($_SESSION['_last_activity'] ?? time()) > 3600) {
+                $_SESSION = [];
+                session_regenerate_id(true);
+                $_SESSION['_flash']['error'] = 'Your session has expired. Please log in again.';
+            } else {
+                $_SESSION['_last_activity'] = time();
+            }
+        }
     }
 
     public static function regenerate(): void
