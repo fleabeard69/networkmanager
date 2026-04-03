@@ -155,6 +155,10 @@ switch (true) {
         (new ApiController($portModel, $deviceModel))->createPort();
         break;
 
+    case $path === '/api/ports/swap' && $method === 'POST':
+        (new ApiController($portModel, $deviceModel))->swapPorts();
+        break;
+
     // Specific sub-resource routes before the bare /{id} pattern
     case preg_match('#^/api/ports/(\d+)/position$#', $path, $m) && $method === 'PATCH':
         (new ApiController($portModel, $deviceModel))->movePort((int) $m[1]);

@@ -132,6 +132,54 @@ class PortModel
         );
     }
 
+    /**
+     * Atomically swap the grid positions of two ports in one transaction.
+     *
+     * The unique constraint uq_switch_ports_position is deferred for the
+     * duration of the transaction so both UPDATEs can execute before the
+     * database validates the final state — at which point each port occupies
+     * the other's former cell and there is no collision.
+     *
+     * @return array{port_a: array, port_b: array} Fresh port records after swap.
+     * @throws \RuntimeException if either port does not exist.
+     * @throws \PDOException     on any other database error.
+     */
+    public function swap(int $idA, int $idB): array
+    {
+        $portA = $this->find($idA);
+        $portB = $this->find($idB);
+
+        if (!$portA || !$portB) {
+            throw new \RuntimeException('One or both ports not found.');
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Defer constraint to transaction end so the intermediate state
+            // (both ports momentarily sharing one cell) doesn't trigger a violation.
+            $this->db->execute('SET CONSTRAINTS uq_switch_ports_position DEFERRED');
+
+            $this->db->execute(
+                'UPDATE switch_ports SET port_row = :row, port_col = :col, updated_at = NOW() WHERE id = :id',
+                [':row' => $portB['port_row'], ':col' => $portB['port_col'], ':id' => $idA]
+            );
+            $this->db->execute(
+                'UPDATE switch_ports SET port_row = :row, port_col = :col, updated_at = NOW() WHERE id = :id',
+                [':row' => $portA['port_row'], ':col' => $portA['port_col'], ':id' => $idB]
+            );
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        return [
+            'port_a' => $this->find($idA),
+            'port_b' => $this->find($idB),
+        ];
+    }
+
     public function delete(int $id): bool
     {
         return $this->db->execute('DELETE FROM switch_ports WHERE id = :id', [':id' => $id]) > 0;

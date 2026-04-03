@@ -38,9 +38,11 @@ class ApiController
             $port = $this->portModel->find($id);
             $this->json($port, 201);
         } catch (PDOException $e) {
-            $msg = str_contains(strtolower($e->getMessage()), 'unique')
-                ? 'Port number already exists on this device.'
-                : 'Database error. Please try again.';
+            $msg = match(true) {
+                str_contains($e->getMessage(), 'uq_switch_ports_position') => 'That grid cell is already occupied by another port.',
+                str_contains(strtolower($e->getMessage()), 'unique')       => 'Port number already exists on this device.',
+                default                                                    => 'Database error. Please try again.',
+            };
             $this->json(['error' => $msg], 409);
         }
     }
@@ -64,9 +66,11 @@ class ApiController
             $this->portModel->update($id, $data);
             $this->json($this->portModel->find($id));
         } catch (PDOException $e) {
-            $msg = str_contains(strtolower($e->getMessage()), 'unique')
-                ? 'Port number already exists on this device.'
-                : 'Database error. Please try again.';
+            $msg = match(true) {
+                str_contains($e->getMessage(), 'uq_switch_ports_position') => 'That grid cell is already occupied by another port.',
+                str_contains(strtolower($e->getMessage()), 'unique')       => 'Port number already exists on this device.',
+                default                                                    => 'Database error. Please try again.',
+            };
             $this->json(['error' => $msg], 409);
         }
     }
@@ -92,8 +96,38 @@ class ApiController
             $this->json(['error' => 'Invalid position (row 1–20, col 1–50).'], 422);
         }
 
-        $this->portModel->move($id, $row, $col);
-        $this->json($this->portModel->find($id));
+        try {
+            $this->portModel->move($id, $row, $col);
+            $this->json($this->portModel->find($id));
+        } catch (PDOException $e) {
+            $msg = str_contains($e->getMessage(), 'uq_switch_ports_position')
+                ? 'That grid cell is already occupied by another port.'
+                : 'Database error. Please try again.';
+            $this->json(['error' => $msg], 409);
+        }
+    }
+
+    // ── POST /api/ports/swap ──────────────────────────────────────────────
+    public function swapPorts(): void
+    {
+        $this->verifyCsrf();
+
+        $body  = $this->body();
+        $portA = filter_var($body['port_a'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $portB = filter_var($body['port_b'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        if ($portA === false || $portB === false || $portA === $portB) {
+            $this->json(['error' => 'Two distinct valid port IDs are required.'], 422);
+        }
+
+        try {
+            $result = $this->portModel->swap($portA, $portB);
+            $this->json($result);
+        } catch (\RuntimeException $e) {
+            $this->json(['error' => $e->getMessage()], 404);
+        } catch (PDOException $e) {
+            $this->json(['error' => 'Swap failed. Please try again.'], 409);
+        }
     }
 
     // ── PATCH /api/devices/{id}/panel ────────────────────────────────────

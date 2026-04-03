@@ -941,22 +941,20 @@ function initPanelEditor() {
     }
 
     // ── Swap two ports' positions ─────────────────────────────────────────
-    async function swapPorts(idA, rowA, colA, idB, rowB, colB) {
+    // Single atomic request: the server defers the position uniqueness constraint
+    // within one transaction so both moves commit together without a transient
+    // collision. Positions are read from the DB, not from JS state, so stale
+    // client-side data can't corrupt the outcome.
+    async function swapPorts(idA, _rowA, _colA, idB, _rowB, _colB) {
         try {
-            const [updatedA, updatedB] = await Promise.all([
-                apiFetch(`/api/ports/${idA}/position`, {
-                    method: 'PATCH',
-                    body:   JSON.stringify({ port_row: rowB, port_col: colB }),
-                }),
-                apiFetch(`/api/ports/${idB}/position`, {
-                    method: 'PATCH',
-                    body:   JSON.stringify({ port_row: rowA, port_col: colA }),
-                }),
-            ]);
+            const result = await apiFetch('/api/ports/swap', {
+                method: 'POST',
+                body:   JSON.stringify({ port_a: idA, port_b: idB }),
+            });
             const idxA = ports.findIndex(p => p.id === idA);
             const idxB = ports.findIndex(p => p.id === idB);
-            if (idxA !== -1) ports[idxA] = updatedA;
-            if (idxB !== -1) ports[idxB] = updatedB;
+            if (idxA !== -1) ports[idxA] = result.port_a;
+            if (idxB !== -1) ports[idxB] = result.port_b;
             renderGrid();
         } catch (err) {
             await loadData();
@@ -1571,20 +1569,18 @@ function initGlobalPanelEditor() {
     }
 
     // ── Swap within same device ───────────────────────────────────────────
-    async function swapPorts(idA, rowA, colA, idB, rowB, colB) {
+    // Single atomic request: the server defers the position uniqueness constraint
+    // within one transaction so both moves commit together without a transient
+    // collision. Positions are read from the DB, not from JS state, so stale
+    // client-side data can't corrupt the outcome.
+    async function swapPorts(idA, _rowA, _colA, idB, _rowB, _colB) {
         try {
-            const [updA, updB] = await Promise.all([
-                apiFetch(`/api/ports/${idA}/position`, {
-                    method: 'PATCH',
-                    body:   JSON.stringify({ port_row: rowB, port_col: colB }),
-                }),
-                apiFetch(`/api/ports/${idB}/position`, {
-                    method: 'PATCH',
-                    body:   JSON.stringify({ port_row: rowA, port_col: colA }),
-                }),
-            ]);
+            const result = await apiFetch('/api/ports/swap', {
+                method: 'POST',
+                body:   JSON.stringify({ port_a: idA, port_b: idB }),
+            });
             [idA, idB].forEach((id, i) => {
-                const upd = i === 0 ? updA : updB;
+                const upd = i === 0 ? result.port_a : result.port_b;
                 const idx = ports.findIndex(p => p.id === id);
                 if (idx !== -1) ports[idx] = upd;
             });
