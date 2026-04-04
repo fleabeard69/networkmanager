@@ -136,7 +136,8 @@
                                 data-subnet="<?= h($ip['subnet_str'] ?? '') ?>"
                                 data-gateway="<?= h($ip['gateway_str'] ?? '') ?>"
                                 data-interface="<?= h($ip['interface'] ?? '') ?>"
-                                data-notes="<?= h($ip['notes'] ?? '') ?>">
+                                data-notes="<?= h($ip['notes'] ?? '') ?>"
+                                data-is-primary="<?= $isPrimary ? '1' : '0' ?>">
                             Edit
                         </button>
                         <?php if (!$isPrimary): ?>
@@ -401,6 +402,12 @@
                 <div class="field-group field-group-wide">
                     <label class="field-label" for="ip-edit-notes">Notes</label>
                     <input id="ip-edit-notes" type="text" class="field-input" maxlength="200">
+                </div>
+                <div class="field-group field-group-check">
+                    <label class="checkbox-label" for="ip-edit-primary">
+                        <input type="checkbox" id="ip-edit-primary">
+                        <span>Primary IP</span>
+                    </label>
                 </div>
             </div>
         </div>

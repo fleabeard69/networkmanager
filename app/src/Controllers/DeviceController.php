@@ -285,6 +285,8 @@ class DeviceController
             if ($row['subnet_str'] !== null) {
                 $row['subnet_str'] = self::cidrToSubnetMask($row['subnet_str']);
             }
+            // Normalize PostgreSQL boolean ("t"/"f") to a JSON bool for the JS client.
+            $row['is_primary'] = ($row['is_primary'] && $row['is_primary'] !== 'f');
             $this->json($row);
         } catch (PDOException) {
             $this->json(['error' => 'A database error occurred. Please try again.'], 500);

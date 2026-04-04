@@ -192,33 +192,73 @@ class DeviceModel
     }
 
     /**
-     * Updates an IP assignment (all fields except is_primary).
+     * Updates an IP assignment including is_primary.
+     * When promoting to primary, clears any existing primary flag first — all in
+     * a transaction to satisfy the unique partial index on (device_id) WHERE is_primary = TRUE.
      * Returns the updated row with text-cast inet/cidr columns, or false if not found.
      */
     public function updateIp(int $deviceId, int $ipId, array $data): array|false
     {
+        $params = [
+            ':ip'     => $data['ip_address'],
+            ':subnet' => $data['subnet'],
+            ':gw'     => $data['gateway'],
+            ':iface'  => $data['interface'],
+            ':notes'  => $data['notes'],
+            ':id'     => $ipId,
+            ':dev'    => $deviceId,
+        ];
+
+        $returning = 'RETURNING id, device_id,
+                       ip_address::text AS ip_str,
+                       subnet::text     AS subnet_str,
+                       gateway::text    AS gateway_str,
+                       interface, is_primary, notes';
+
+        if ($data['is_primary']) {
+            // Transaction: clear all primary flags for this device first, then update
+            // this row with is_primary = TRUE — mirrors setPrimaryIp().
+            $this->db->execute('BEGIN');
+            try {
+                $this->db->execute(
+                    'UPDATE ip_assignments SET is_primary = FALSE WHERE device_id = :device_id AND is_primary = TRUE',
+                    [':device_id' => $deviceId]
+                );
+                $row = $this->db->fetchOne(
+                    "UPDATE ip_assignments SET
+                         ip_address = :ip,
+                         subnet     = :subnet,
+                         gateway    = :gw,
+                         interface  = :iface,
+                         notes      = :notes,
+                         is_primary = TRUE
+                     WHERE id = :id AND device_id = :dev
+                     {$returning}",
+                    $params
+                );
+                if (!$row) {
+                    $this->db->execute('ROLLBACK');
+                    return false;
+                }
+                $this->db->execute('COMMIT');
+                return $row;
+            } catch (Throwable $e) {
+                $this->db->execute('ROLLBACK');
+                throw $e;
+            }
+        }
+
         return $this->db->fetchOne(
-            'UPDATE ip_assignments SET
+            "UPDATE ip_assignments SET
                  ip_address = :ip,
                  subnet     = :subnet,
                  gateway    = :gw,
                  interface  = :iface,
-                 notes      = :notes
+                 notes      = :notes,
+                 is_primary = FALSE
              WHERE id = :id AND device_id = :dev
-             RETURNING id, device_id,
-                       ip_address::text AS ip_str,
-                       subnet::text     AS subnet_str,
-                       gateway::text    AS gateway_str,
-                       interface, is_primary, notes',
-            [
-                ':ip'     => $data['ip_address'],
-                ':subnet' => $data['subnet'],
-                ':gw'     => $data['gateway'],
-                ':iface'  => $data['interface'],
-                ':notes'  => $data['notes'],
-                ':id'     => $ipId,
-                ':dev'    => $deviceId,
-            ]
+             {$returning}",
+            $params
         );
     }
 

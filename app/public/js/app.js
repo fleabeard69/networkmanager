@@ -3162,6 +3162,7 @@ function initIpEdit() {
     const mGateway  = document.getElementById('ip-edit-gateway');
     const mIface    = document.getElementById('ip-edit-interface');
     const mNotes    = document.getElementById('ip-edit-notes');
+    const mPrimary  = document.getElementById('ip-edit-primary');
 
     let currentBtn = null;
 
@@ -3169,12 +3170,13 @@ function initIpEdit() {
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
     function openModal(btn) {
-        currentBtn     = btn;
-        mIp.value      = btn.dataset.ip        ?? '';
-        mSubnet.value  = btn.dataset.subnet     ?? '';
-        mGateway.value = btn.dataset.gateway    ?? '';
-        mIface.value   = btn.dataset.interface  ?? '';
-        mNotes.value   = btn.dataset.notes      ?? '';
+        currentBtn       = btn;
+        mIp.value        = btn.dataset.ip        ?? '';
+        mSubnet.value    = btn.dataset.subnet     ?? '';
+        mGateway.value   = btn.dataset.gateway    ?? '';
+        mIface.value     = btn.dataset.interface  ?? '';
+        mNotes.value     = btn.dataset.notes      ?? '';
+        mPrimary.checked = btn.dataset.isPrimary  === '1';
         hideError();
         overlay.classList.remove('hidden');
         mIp.focus();
@@ -3207,6 +3209,7 @@ function initIpEdit() {
                     gateway:    mGateway.value.trim(),
                     interface:  mIface.value.trim(),
                     notes:      mNotes.value.trim(),
+                    is_primary: mPrimary.checked,
                 }),
             });
             const data = await res.json();
@@ -3223,6 +3226,15 @@ function initIpEdit() {
     function updateIpRow(btn, ip) {
         const tr = btn.closest('tr');
         if (!tr) return;
+
+        // If primary status changed, the affected rows are complex to update in-place
+        // (the old primary row needs its badge removed and Set Primary button restored;
+        // the new primary row needs the reverse). Reload the section instead.
+        const wasPrimary = btn.dataset.isPrimary === '1';
+        if (ip.is_primary !== wasPrimary) {
+            location.href = `/devices/${btn.dataset.deviceId}#ips`;
+            return;
+        }
 
         // Sync data attributes for future edits
         btn.dataset.ip        = ip.ip_str      ?? '';
