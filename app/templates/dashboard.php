@@ -21,10 +21,10 @@ foreach ($ports as $p) {
         <div class="stat-value"><?= h($deviceCount) ?></div>
         <div class="stat-label">Devices</div>
     </a>
-    <a href="/devices" class="stat-card" title="Manage IP addresses on each device page">
+    <div class="stat-card">
         <div class="stat-value"><?= h($ipCount) ?></div>
         <div class="stat-label">IP Addresses</div>
-    </a>
+    </div>
 </div>
 
 <?php if (empty($devices)): ?>
