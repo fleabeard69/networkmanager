@@ -1,6 +1,6 @@
 <?php $title = $device['hostname']; ?>
 
-<div class="panel">
+<div class="panel" id="overview">
     <div class="panel-header">
         <div class="device-title-block">
             <h2 class="panel-title"><?= h($device['hostname']) ?></h2>
@@ -47,6 +47,13 @@
         <?php endif; ?>
     </div>
 </div>
+
+<nav class="device-section-nav" aria-label="Page sections">
+    <a href="#overview">Overview</a>
+    <a href="#ips">IP Addresses</a>
+    <a href="#switch-ports">Switch Ports</a>
+    <a href="#services">Service Ports</a>
+</nav>
 
 <!-- ── IP Addresses ────────────────────────────────────────────────────────── -->
 <section class="panel" id="ips">
