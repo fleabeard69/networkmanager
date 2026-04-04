@@ -252,6 +252,18 @@ class DeviceController
         exit;
     }
 
+    public function setPrimaryIpJson(int $deviceId, int $ipId): void
+    {
+        $this->verifyCsrfJson();
+        if (!$this->deviceModel->find($deviceId)) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+        if (!$this->deviceModel->setPrimaryIp($deviceId, $ipId)) {
+            $this->json(['error' => 'IP address not found.'], 404);
+        }
+        $this->json(['ok' => true]);
+    }
+
     public function deleteIp(int $deviceId, int $ipId): void
     {
         $this->verifyCsrf();

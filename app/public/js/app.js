@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('dpm-overlay'))      initDashboardPortEdit();
     if (document.getElementById('ip-edit-overlay'))  initIpEdit();
     if (document.getElementById('svc-edit-overlay')) initServiceEdit();
+    if (document.querySelector('[data-set-primary]')) initSetPrimaryIp();
 
     // ── Table filters ─────────────────────────────────────────────────────
     if (document.getElementById('device-filter')) initDevicesFilter();
@@ -364,6 +365,43 @@ function setLoading(btn, loading) {
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
     }
+}
+
+// ── Dynamic flash toast ───────────────────────────────────────────────────────
+// Creates a toast in the existing .flash-stack (or creates the stack) without
+// a page load. Uses textContent for the message — no innerHTML, no XSS risk.
+// type: 'success' | 'warn' | 'error'  (matches CSS .flash-{type} classes)
+function showFlash(message, type = 'error') {
+    let stack = document.querySelector('.flash-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.className = 'flash-stack';
+        document.body.appendChild(stack);
+    }
+
+    const flash    = document.createElement('div');
+    flash.className = `flash flash-${type}`;
+    flash.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    const span = document.createElement('span');
+    span.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'flash-close';
+    closeBtn.setAttribute('aria-label', 'Dismiss');
+    closeBtn.textContent = '\u00D7';   // ×
+
+    flash.append(span, closeBtn);
+    stack.appendChild(flash);
+
+    function dismiss() {
+        flash.classList.add('flash-hiding');
+        setTimeout(() => flash.remove(), 400);
+    }
+
+    const timerId = type !== 'error' ? setTimeout(dismiss, 5000) : undefined;
+    closeBtn.addEventListener('click', () => { clearTimeout(timerId); dismiss(); });
 }
 
 // ── Unsaved Changes Guard ─────────────────────────────────────────────────────
@@ -3444,5 +3482,43 @@ function initServiceEdit() {
     overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+}
+
+// ── Set Primary IP (AJAX) ─────────────────────────────────────────────────────
+function initSetPrimaryIp() {
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    document.querySelectorAll('[data-set-primary]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const ip       = btn.dataset.ip;
+            const deviceId = btn.dataset.deviceId;
+            const ipId     = btn.dataset.id;
+
+            const confirmed = await showConfirm(
+                `Set ${ip} as the primary IP for this device?`,
+                'Set Primary'
+            );
+            if (!confirmed) return;
+
+            setLoading(btn, true);
+            try {
+                const res = await fetch(`/devices/${deviceId}/ips/${ipId}/primary`, {
+                    method:  'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    showFlash(data.error || 'Failed to set primary IP.');
+                    return;
+                }
+                location.href = `/devices/${deviceId}#ips`;
+            } catch (err) {
+                showFlash(err.message || 'Failed to set primary IP.');
+            } finally {
+                setLoading(btn, false);
+            }
+        });
     });
 }

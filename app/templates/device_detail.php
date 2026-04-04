@@ -141,14 +141,12 @@
                             Edit
                         </button>
                         <?php if (!$isPrimary): ?>
-                        <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/primary" class="inline-form">
-                            <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-secondary btn-xs" disabled
-                                    data-confirm="Set <?= h($ip['ip_str']) ?> as the primary IP for this device?"
-                                    data-confirm-ok="Set Primary">
-                                Set Primary
-                            </button>
-                        </form>
+                        <button class="btn btn-secondary btn-xs" data-set-primary
+                                data-id="<?= h($ip['id']) ?>"
+                                data-device-id="<?= h($device['id']) ?>"
+                                data-ip="<?= h($ip['ip_str']) ?>">
+                            Set Primary
+                        </button>
                         <?php endif; ?>
                         <form method="post" action="/devices/<?= h($device['id']) ?>/ips/<?= h($ip['id']) ?>/delete" class="inline-form">
                             <?= Csrf::field() ?>

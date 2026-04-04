@@ -249,6 +249,10 @@ switch (true) {
         (new DeviceController($deviceModel, $portModel))->addIp((int) $m[1]);
         break;
 
+    case preg_match('#^/devices/(\d+)/ips/(\d+)/primary$#', $path, $m) && $method === 'PATCH':
+        (new DeviceController($deviceModel, $portModel))->setPrimaryIpJson((int) $m[1], (int) $m[2]);
+        break;
+
     case preg_match('#^/devices/(\d+)/ips/(\d+)/primary$#', $path, $m) && $method === 'POST':
         (new DeviceController($deviceModel, $portModel))->setPrimaryIp((int) $m[1], (int) $m[2]);
         break;
