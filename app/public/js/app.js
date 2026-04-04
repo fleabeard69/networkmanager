@@ -1749,7 +1749,7 @@ function initDashboardConnections() {
 
     if (printBtn) printBtn.addEventListener('click', () => window.print());
 
-    const connectHint = colorPicker?.querySelector('.connect-color-hint');
+    const connectHint = document.getElementById('connect-status');
 
     const csrfToken = () =>
         document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -2183,7 +2183,10 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Cancel';
         connectBtn.classList.replace('btn-secondary', 'btn-warning');
         colorPicker?.classList.remove('hidden');
-        if (connectHint) connectHint.textContent = 'Click a free port to connect — or a wired port to disconnect. ESC to cancel.';
+        if (connectHint) {
+            connectHint.textContent = 'Click a free port to connect — or a wired port to disconnect. ESC to cancel.';
+            connectHint.classList.remove('hidden');
+        }
         svg.classList.add('connect-mode-active');
         container.querySelectorAll('.port-card[data-port-id]').forEach(card => {
             const pid = parseInt(card.dataset.portId, 10);
@@ -2202,6 +2205,7 @@ function initDashboardConnections() {
         connectBtn.textContent = 'Connect Ports';
         connectBtn.classList.replace('btn-warning', 'btn-secondary');
         colorPicker?.classList.add('hidden');
+        connectHint?.classList.add('hidden');
         svg.classList.remove('connect-mode-active');
         container.querySelectorAll('.port-card').forEach(c => {
             c.classList.remove('connectable', 'conn-selected', 'conn-occupied');

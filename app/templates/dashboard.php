@@ -53,8 +53,8 @@ foreach ($ports as $p) {
                       data-color="<?= h($hex) ?>"
                       title="<?= h($name) ?>"></span>
             <?php $first = false; endforeach; ?>
-            <span class="connect-color-hint">Click a port, then another to connect. Esc to cancel.</span>
         </div>
+        <span id="connect-status" class="connect-status hidden" aria-live="polite"></span>
         <button id="btn-print" class="btn btn-secondary btn-sm">Print / PDF</button>
     </div>
 
