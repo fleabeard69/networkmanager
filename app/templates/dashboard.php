@@ -173,10 +173,13 @@ foreach ($ports as $p) {
     </div><!-- #dashboard-devices -->
 
     <div class="port-legend">
+        <span class="legend-group-label">Status</span>
         <span class="legend-item"><span class="legend-dot legend-connected"></span> Active</span>
+        <span class="legend-item"><span class="legend-dot legend-disabled"></span> Disabled</span>
+        <span class="legend-sep" aria-hidden="true"></span>
+        <span class="legend-group-label">Type</span>
         <span class="legend-item"><span class="legend-dot legend-wan"></span> WAN</span>
         <span class="legend-item"><span class="legend-dot legend-mgmt"></span> Mgmt</span>
-        <span class="legend-item"><span class="legend-dot legend-disabled"></span> Disabled</span>
     </div>
 <?php endif; ?>
 
