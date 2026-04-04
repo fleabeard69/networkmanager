@@ -263,6 +263,34 @@ class DeviceController
         exit;
     }
 
+    public function updateIp(int $deviceId, int $ipId): void
+    {
+        $this->verifyCsrfJson();
+
+        if (!$this->deviceModel->find($deviceId)) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
+        $body = json_decode(file_get_contents('php://input') ?: '{}', true) ?? [];
+        $data = $this->validateIpData($body);
+        if (is_string($data)) {
+            $this->json(['error' => $data], 422);
+        }
+
+        try {
+            $row = $this->deviceModel->updateIp($deviceId, $ipId, $data);
+            if (!$row) {
+                $this->json(['error' => 'IP address not found.'], 404);
+            }
+            if ($row['subnet_str'] !== null) {
+                $row['subnet_str'] = self::cidrToSubnetMask($row['subnet_str']);
+            }
+            $this->json($row);
+        } catch (PDOException) {
+            $this->json(['error' => 'A database error occurred. Please try again.'], 500);
+        }
+    }
+
     // ── Service Ports ─────────────────────────────────────────────────────
 
     public function addService(int $deviceId): void
@@ -301,6 +329,34 @@ class DeviceController
         Session::flash('success', 'Service port removed.');
         header("Location: /devices/{$deviceId}#services");
         exit;
+    }
+
+    public function updateService(int $deviceId, int $serviceId): void
+    {
+        $this->verifyCsrfJson();
+
+        if (!$this->deviceModel->find($deviceId)) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
+        $body = json_decode(file_get_contents('php://input') ?: '{}', true) ?? [];
+        $data = $this->validateServiceData($body);
+        if (is_string($data)) {
+            $this->json(['error' => $data], 422);
+        }
+
+        try {
+            $updated = $this->deviceModel->updateService($deviceId, $serviceId, $data);
+            if (!$updated) {
+                $this->json(['error' => 'Service port not found.'], 404);
+            }
+            $this->json($updated);
+        } catch (PDOException $e) {
+            $msg = str_contains(strtolower($e->getMessage()), 'unique')
+                ? 'A service port with that protocol and port number already exists on this device.'
+                : 'A database error occurred. Please try again.';
+            $this->json(['error' => $msg], 409);
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────
@@ -473,6 +529,22 @@ class DeviceController
             http_response_code(403);
             exit('Invalid CSRF token.');
         }
+    }
+
+    private function verifyCsrfJson(): void
+    {
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+        if (!Csrf::verify($token)) {
+            $this->json(['error' => 'Invalid CSRF token.'], 403);
+        }
+    }
+
+    private function json(mixed $data, int $status = 200): never
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data);
+        exit;
     }
 
     private function notFound(string $message): never

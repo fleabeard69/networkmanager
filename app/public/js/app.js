@@ -220,9 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Inline table editors ──────────────────────────────────────────────
-    if (document.getElementById('ipm-overlay')) initPortsTableEdit();
-    if (document.getElementById('idm-overlay')) initDevicesTableEdit();
-    if (document.getElementById('dpm-overlay')) initDashboardPortEdit();
+    if (document.getElementById('ipm-overlay'))      initPortsTableEdit();
+    if (document.getElementById('idm-overlay'))      initDevicesTableEdit();
+    if (document.getElementById('dpm-overlay'))      initDashboardPortEdit();
+    if (document.getElementById('ip-edit-overlay'))  initIpEdit();
+    if (document.getElementById('svc-edit-overlay')) initServiceEdit();
 
     // ── Table filters ─────────────────────────────────────────────────────
     if (document.getElementById('device-filter')) initDevicesFilter();
@@ -3142,6 +3144,291 @@ function initDashboardPortEdit() {
     modalSave.addEventListener('click',   savePort);
     modalClose.addEventListener('click',  closeModal);
     modalCancel.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+}
+
+// ── IP Address Inline Edit ────────────────────────────────────────────────────
+function initIpEdit() {
+    const overlay   = document.getElementById('ip-edit-overlay');
+    const errorEl   = document.getElementById('ip-edit-error');
+    const saveBtn   = document.getElementById('ip-edit-save');
+    const cancelBtn = document.getElementById('ip-edit-cancel');
+    const closeBtn  = document.getElementById('ip-edit-close');
+    const mIp       = document.getElementById('ip-edit-ip');
+    const mSubnet   = document.getElementById('ip-edit-subnet');
+    const mGateway  = document.getElementById('ip-edit-gateway');
+    const mIface    = document.getElementById('ip-edit-interface');
+    const mNotes    = document.getElementById('ip-edit-notes');
+
+    let currentBtn = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    function openModal(btn) {
+        currentBtn     = btn;
+        mIp.value      = btn.dataset.ip        ?? '';
+        mSubnet.value  = btn.dataset.subnet     ?? '';
+        mGateway.value = btn.dataset.gateway    ?? '';
+        mIface.value   = btn.dataset.interface  ?? '';
+        mNotes.value   = btn.dataset.notes      ?? '';
+        hideError();
+        overlay.classList.remove('hidden');
+        mIp.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        currentBtn = null;
+        hideError();
+    }
+
+    function showError(msg) { errorEl.textContent = msg; errorEl.classList.remove('hidden'); }
+    function hideError()    { errorEl.textContent = '';  errorEl.classList.add('hidden'); }
+
+    async function saveIp() {
+        if (!currentBtn) return;
+        hideError();
+        setLoading(saveBtn, true);
+
+        const deviceId = currentBtn.dataset.deviceId;
+        const ipId     = currentBtn.dataset.id;
+
+        try {
+            const res = await fetch(`/devices/${deviceId}/ips/${ipId}`, {
+                method:  'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+                body:    JSON.stringify({
+                    ip_address: mIp.value.trim(),
+                    subnet:     mSubnet.value.trim(),
+                    gateway:    mGateway.value.trim(),
+                    interface:  mIface.value.trim(),
+                    notes:      mNotes.value.trim(),
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) { showError(data.error || 'Save failed.'); return; }
+            updateIpRow(currentBtn, data);
+            closeModal();
+        } catch (err) {
+            showError(err.message || 'Save failed.');
+        } finally {
+            setLoading(saveBtn, false);
+        }
+    }
+
+    function updateIpRow(btn, ip) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+
+        // Sync data attributes for future edits
+        btn.dataset.ip        = ip.ip_str      ?? '';
+        btn.dataset.subnet    = ip.subnet_str   ?? '';
+        btn.dataset.gateway   = ip.gateway_str  ?? '';
+        btn.dataset.interface = ip.interface    ?? '';
+        btn.dataset.notes     = ip.notes        ?? '';
+
+        // IP cell: rebuild with text + copy button
+        const ipCell = tr.querySelector('.cell-ip');
+        if (ipCell) {
+            ipCell.replaceChildren();
+            ipCell.append(ip.ip_str ?? '');
+            const copyBtn = document.createElement('button');
+            copyBtn.className    = 'copy-btn';
+            copyBtn.dataset.copy = ip.ip_str ?? '';
+            copyBtn.setAttribute('aria-label', 'Copy IP address');
+            copyBtn.title = 'Copy to clipboard';
+            copyBtn.innerHTML = '<svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="1" width="8" height="9" rx="1"/><rect x="1" y="4" width="8" height="9" rx="1"/></svg>';
+            ipCell.appendChild(copyBtn);
+        }
+
+        function setCell(cls, text) {
+            const td = tr.querySelector(cls);
+            if (!td) return;
+            td.replaceChildren();
+            if (text) {
+                td.textContent = text;
+            } else {
+                const span = document.createElement('span');
+                span.className   = 'text-muted';
+                span.textContent = '—';
+                td.appendChild(span);
+            }
+        }
+
+        setCell('.cell-subnet',  ip.subnet_str  ?? '');
+        setCell('.cell-gateway', ip.gateway_str ?? '');
+        setCell('.cell-iface',   ip.interface   ?? '');
+        setCell('.cell-notes',   ip.notes       ?? '');
+
+        // Keep the delete confirm message in sync with the new IP
+        const confirmBtn = tr.querySelector('[data-confirm]');
+        if (confirmBtn) {
+            confirmBtn.dataset.confirm = `Remove ${ip.ip_str}?`;
+        }
+    }
+
+    document.querySelectorAll('[data-ip-edit]').forEach(btn => {
+        btn.addEventListener('click', () => openModal(btn));
+    });
+
+    saveBtn.addEventListener('click',   saveIp);
+    cancelBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click',  closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+}
+
+// ── Service Port Inline Edit ──────────────────────────────────────────────────
+function initServiceEdit() {
+    const overlay   = document.getElementById('svc-edit-overlay');
+    const errorEl   = document.getElementById('svc-edit-error');
+    const saveBtn   = document.getElementById('svc-edit-save');
+    const cancelBtn = document.getElementById('svc-edit-cancel');
+    const closeBtn  = document.getElementById('svc-edit-close');
+    const mProtocol = document.getElementById('svc-edit-protocol');
+    const mPort     = document.getElementById('svc-edit-port');
+    const mService  = document.getElementById('svc-edit-service');
+    const mDesc     = document.getElementById('svc-edit-description');
+    const mExternal = document.getElementById('svc-edit-external');
+
+    let currentBtn = null;
+
+    const csrfToken = () =>
+        document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    function openModal(btn) {
+        currentBtn        = btn;
+        mProtocol.value   = btn.dataset.protocol    ?? 'tcp';
+        mPort.value       = btn.dataset.port        ?? '';
+        mService.value    = btn.dataset.service     ?? '';
+        mDesc.value       = btn.dataset.description ?? '';
+        mExternal.checked = btn.dataset.external    === '1';
+        hideError();
+        overlay.classList.remove('hidden');
+        mPort.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+        currentBtn = null;
+        hideError();
+    }
+
+    function showError(msg) { errorEl.textContent = msg; errorEl.classList.remove('hidden'); }
+    function hideError()    { errorEl.textContent = '';  errorEl.classList.add('hidden'); }
+
+    async function saveService() {
+        if (!currentBtn) return;
+        hideError();
+        setLoading(saveBtn, true);
+
+        const deviceId = currentBtn.dataset.deviceId;
+        const svcId    = currentBtn.dataset.id;
+
+        try {
+            const res = await fetch(`/devices/${deviceId}/services/${svcId}`, {
+                method:  'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+                body:    JSON.stringify({
+                    protocol:    mProtocol.value,
+                    port_number: parseInt(mPort.value, 10),
+                    service:     mService.value.trim(),
+                    description: mDesc.value.trim(),
+                    is_external: mExternal.checked,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) { showError(data.error || 'Save failed.'); return; }
+            updateServiceRow(currentBtn, data);
+            closeModal();
+        } catch (err) {
+            showError(err.message || 'Save failed.');
+        } finally {
+            setLoading(saveBtn, false);
+        }
+    }
+
+    function updateServiceRow(btn, svc) {
+        const tr  = btn.closest('tr');
+        if (!tr) return;
+        const isExt = svc.is_external === true || svc.is_external === 't';
+
+        // Sync data attributes for future edits
+        btn.dataset.protocol    = svc.protocol    ?? 'tcp';
+        btn.dataset.port        = svc.port_number ?? '';
+        btn.dataset.service     = svc.service     ?? '';
+        btn.dataset.description = svc.description ?? '';
+        btn.dataset.external    = isExt ? '1' : '0';
+
+        // Protocol badge
+        const protoCell = tr.querySelector('.cell-svc-proto');
+        if (protoCell) {
+            protoCell.replaceChildren();
+            const badge = document.createElement('span');
+            badge.className  = `badge badge-proto-${svc.protocol}`;
+            badge.textContent = svc.protocol.toUpperCase();
+            protoCell.appendChild(badge);
+        }
+
+        // Port number
+        const portCell = tr.querySelector('.cell-svc-port');
+        if (portCell) portCell.textContent = svc.port_number ?? '';
+
+        function setOptCell(cls, text) {
+            const td = tr.querySelector(cls);
+            if (!td) return;
+            td.replaceChildren();
+            if (text) {
+                td.textContent = text;
+            } else {
+                const span = document.createElement('span');
+                span.className   = 'text-muted';
+                span.textContent = '—';
+                td.appendChild(span);
+            }
+        }
+
+        setOptCell('.cell-svc-name', svc.service     ?? '');
+        setOptCell('.cell-svc-desc', svc.description ?? '');
+
+        // External badge
+        const extCell = tr.querySelector('.cell-svc-external');
+        if (extCell) {
+            extCell.replaceChildren();
+            if (isExt) {
+                const badge = document.createElement('span');
+                badge.className   = 'badge badge-warning';
+                badge.textContent = 'Yes';
+                extCell.appendChild(badge);
+            } else {
+                const span = document.createElement('span');
+                span.className   = 'text-muted';
+                span.textContent = '—';
+                extCell.appendChild(span);
+            }
+        }
+
+        // Keep the delete button's confirm message in sync
+        const confirmBtn = tr.querySelector('[data-confirm]');
+        if (confirmBtn) {
+            confirmBtn.dataset.confirm =
+                `Remove ${svc.protocol.toUpperCase()}/${svc.port_number}?`;
+        }
+    }
+
+    document.querySelectorAll('[data-svc-edit]').forEach(btn => {
+        btn.addEventListener('click', () => openModal(btn));
+    });
+
+    saveBtn.addEventListener('click',   saveService);
+    cancelBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click',  closeModal);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();

@@ -191,6 +191,37 @@ class DeviceModel
         ) > 0;
     }
 
+    /**
+     * Updates an IP assignment (all fields except is_primary).
+     * Returns the updated row with text-cast inet/cidr columns, or false if not found.
+     */
+    public function updateIp(int $deviceId, int $ipId, array $data): array|false
+    {
+        return $this->db->fetchOne(
+            'UPDATE ip_assignments SET
+                 ip_address = :ip,
+                 subnet     = :subnet,
+                 gateway    = :gw,
+                 interface  = :iface,
+                 notes      = :notes
+             WHERE id = :id AND device_id = :dev
+             RETURNING id, device_id,
+                       ip_address::text AS ip_str,
+                       subnet::text     AS subnet_str,
+                       gateway::text    AS gateway_str,
+                       interface, is_primary, notes',
+            [
+                ':ip'     => $data['ip_address'],
+                ':subnet' => $data['subnet'],
+                ':gw'     => $data['gateway'],
+                ':iface'  => $data['interface'],
+                ':notes'  => $data['notes'],
+                ':id'     => $ipId,
+                ':dev'    => $deviceId,
+            ]
+        );
+    }
+
     // ── Service Ports ─────────────────────────────────────────────────────
 
     /**
@@ -227,6 +258,34 @@ class DeviceModel
             'DELETE FROM service_ports WHERE id = :id AND device_id = :device_id',
             [':id' => $serviceId, ':device_id' => $deviceId]
         ) > 0;
+    }
+
+    /**
+     * Updates a service port owned by the given device.
+     * Returns the updated row, or false if not found.
+     * @throws PDOException if the new protocol+port_number conflicts with another row.
+     */
+    public function updateService(int $deviceId, int $serviceId, array $data): array|false
+    {
+        return $this->db->fetchOne(
+            'UPDATE service_ports SET
+                 protocol    = :proto,
+                 port_number = :port,
+                 service     = :svc,
+                 description = :desc,
+                 is_external = :ext
+             WHERE id = :id AND device_id = :dev
+             RETURNING *',
+            [
+                ':proto' => $data['protocol'],
+                ':port'  => $data['port_number'],
+                ':svc'   => $data['service'],
+                ':desc'  => $data['description'],
+                ':ext'   => $data['is_external'] ? 'true' : 'false',
+                ':id'    => $serviceId,
+                ':dev'   => $deviceId,
+            ]
+        );
     }
 
     // ── Stats ─────────────────────────────────────────────────────────────
