@@ -18,6 +18,11 @@
             <span class="brand-name">NetManager</span>
         </div>
 
+        <div class="site-context">
+            <span class="site-context-label">Site</span>
+            <a href="/sites" class="site-context-name"><?= h(Session::get('current_site_name', 'Default Site')) ?></a>
+        </div>
+
         <ul class="sidebar-nav">
             <li>
                 <a href="/" class="nav-link <?= ($navActive ?? '') === 'dashboard' ? 'active' : '' ?>">
@@ -39,6 +44,12 @@
                 <a href="/devices" class="nav-link <?= ($navActive ?? '') === 'devices' ? 'active' : '' ?>">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
                     Devices
+                </a>
+            </li>
+            <li>
+                <a href="/sites" class="nav-link <?= ($navActive ?? '') === 'sites' ? 'active' : '' ?>">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Sites
                 </a>
             </li>
             <li>

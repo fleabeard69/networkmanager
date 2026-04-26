@@ -8,10 +8,12 @@ require APP_ROOT . '/src/Helpers/Database.php';
 require APP_ROOT . '/src/Helpers/Session.php';
 require APP_ROOT . '/src/Helpers/Auth.php';
 require APP_ROOT . '/src/Helpers/Csrf.php';
+require APP_ROOT . '/src/Models/SiteModel.php';
 require APP_ROOT . '/src/Models/PortModel.php';
 require APP_ROOT . '/src/Models/DeviceModel.php';
 require APP_ROOT . '/src/Models/ConnectionModel.php';
 require APP_ROOT . '/src/Controllers/AuthController.php';
+require APP_ROOT . '/src/Controllers/SiteController.php';
 require APP_ROOT . '/src/Controllers/DashboardController.php';
 require APP_ROOT . '/src/Controllers/PortController.php';
 require APP_ROOT . '/src/Controllers/DeviceController.php';
@@ -99,6 +101,17 @@ if (!$auth->check()) {
     }
     header('Location: /login');
     exit;
+}
+
+// ── Site context ──────────────────────────────────────────────────────────────
+// Auto-select first site if session has no current site (e.g. first login after migration).
+$siteModel = new SiteModel($db);
+if (!Session::get('current_site_id')) {
+    $firstSite = $siteModel->first();
+    if ($firstSite) {
+        Session::set('current_site_id', $firstSite['id']);
+        Session::set('current_site_name', $firstSite['name']);
+    }
 }
 
 // ── Authenticated models ──────────────────────────────────────────────────────
@@ -281,6 +294,35 @@ switch (true) {
 
     case preg_match('#^/devices/(\d+)/services/(\d+)$#', $path, $m) && $method === 'PATCH':
         (new DeviceController($deviceModel, $portModel))->updateService((int) $m[1], (int) $m[2]);
+        break;
+
+    // ── Sites ─────────────────────────────────────────────────────────────────
+    case $path === '/sites' && $method === 'GET':
+        (new SiteController($siteModel))->index();
+        break;
+
+    case $path === '/sites/new' && $method === 'GET':
+        (new SiteController($siteModel))->create();
+        break;
+
+    case $path === '/sites' && $method === 'POST':
+        (new SiteController($siteModel))->store();
+        break;
+
+    case preg_match('#^/sites/(\d+)/edit$#', $path, $m) && $method === 'GET':
+        (new SiteController($siteModel))->edit((int) $m[1]);
+        break;
+
+    case preg_match('#^/sites/(\d+)/edit$#', $path, $m) && $method === 'POST':
+        (new SiteController($siteModel))->update((int) $m[1]);
+        break;
+
+    case preg_match('#^/sites/(\d+)/switch$#', $path, $m) && $method === 'POST':
+        (new SiteController($siteModel))->switchTo((int) $m[1]);
+        break;
+
+    case preg_match('#^/sites/(\d+)/delete$#', $path, $m) && $method === 'POST':
+        (new SiteController($siteModel))->delete((int) $m[1]);
         break;
 
     // ── Backup & Restore ──────────────────────────────────────────────────────

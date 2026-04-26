@@ -3,24 +3,27 @@ declare(strict_types=1);
 
 class ApiController
 {
+    private int $siteId;
+
     public function __construct(
         private PortModel $portModel,
         private DeviceModel $deviceModel,
         private ?ConnectionModel $connectionModel = null
     ) {
         Auth::requireLogin();
+        $this->siteId = (int) Session::get('current_site_id');
     }
 
     // ── GET /api/ports ────────────────────────────────────────────────────
     public function listPorts(): void
     {
-        $this->json($this->portModel->all());
+        $this->json($this->portModel->all($this->siteId));
     }
 
     // ── GET /api/devices ──────────────────────────────────────────────────
     public function listDevices(): void
     {
-        $this->json($this->deviceModel->all());
+        $this->json($this->deviceModel->all($this->siteId));
     }
 
     // ── POST /api/ports ───────────────────────────────────────────────────
@@ -135,7 +138,7 @@ class ApiController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->json(['error' => 'Device not found.'], 404);
         }
@@ -167,7 +170,7 @@ class ApiController
         }
 
         $this->deviceModel->updatePanelDims($id, $rows, $rearRows, $cols);
-        $this->json($this->deviceModel->find($id));
+        $this->json($this->deviceModel->find($id, $this->siteId));
     }
 
     // ── GET /api/connections ──────────────────────────────────────────────
@@ -175,8 +178,8 @@ class ApiController
     {
         if (!$this->connectionModel) { $this->json(['error' => 'Not available.'], 500); return; }
         $this->json([
-            'connections'      => $this->connectionModel->all(),
-            'occupied_port_ids' => $this->connectionModel->occupiedPortIds(),
+            'connections'       => $this->connectionModel->all($this->siteId),
+            'occupied_port_ids' => $this->connectionModel->occupiedPortIds($this->siteId),
         ]);
     }
 
@@ -263,7 +266,7 @@ class ApiController
             $validated[] = $val;
         }
 
-        $this->deviceModel->reorder($validated);
+        $this->deviceModel->reorder($validated, $this->siteId);
         $this->json(['reordered' => true]);
     }
 
@@ -272,7 +275,7 @@ class ApiController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->json(['error' => 'Device not found.'], 404);
         }
@@ -284,7 +287,7 @@ class ApiController
 
         try {
             $this->deviceModel->update($id, $data);
-            $this->json($this->deviceModel->find($id));
+            $this->json($this->deviceModel->find($id, $this->siteId));
         } catch (PDOException) {
             $this->json(['error' => 'A database error occurred. Please try again.'], 500);
         }
@@ -293,7 +296,7 @@ class ApiController
     // ── GET /api/devices/{id}/ports ───────────────────────────────────────
     public function listDevicePorts(int $deviceId): void
     {
-        $device = $this->deviceModel->find($deviceId);
+        $device = $this->deviceModel->find($deviceId, $this->siteId);
         if (!$device) {
             $this->json(['error' => 'Device not found.'], 404);
         }
@@ -321,7 +324,7 @@ class ApiController
             }
         }
 
-        if ($deviceId !== null && !$this->deviceModel->find($deviceId)) {
+        if ($deviceId !== null && !$this->deviceModel->find($deviceId, $this->siteId)) {
             $this->json(['error' => 'Device not found.'], 404);
         }
 

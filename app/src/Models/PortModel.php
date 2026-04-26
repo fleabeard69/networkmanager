@@ -5,13 +5,15 @@ class PortModel
 {
     public function __construct(private Database $db) {}
 
-    public function all(): array
+    public function all(int $siteId): array
     {
         return $this->db->fetchAll(
             'SELECT p.*, d.hostname AS device_hostname, d.device_type AS device_type
              FROM switch_ports p
              LEFT JOIN devices d ON d.id = p.device_id
-             ORDER BY p.port_row, p.port_col, p.port_number'
+             WHERE p.device_id IS NULL OR d.site_id = :site_id
+             ORDER BY p.port_row, p.port_col, p.port_number',
+            [':site_id' => $siteId]
         );
     }
 
@@ -210,15 +212,18 @@ class PortModel
         );
     }
 
-    public function stats(): array
+    public function stats(int $siteId): array
     {
         $row = $this->db->fetchOne(
             "SELECT
-                COUNT(*)                                       AS total,
-                COUNT(device_id)                              AS in_use,
-                COUNT(*) FILTER (WHERE status = 'disabled')  AS disabled,
-                COUNT(*) FILTER (WHERE port_type = 'wan')    AS wan
-             FROM switch_ports"
+                COUNT(*)                                           AS total,
+                COUNT(*) FILTER (WHERE sp.status != 'disabled')   AS in_use,
+                COUNT(*) FILTER (WHERE sp.status = 'disabled')    AS disabled,
+                COUNT(*) FILTER (WHERE sp.port_type = 'wan')      AS wan
+             FROM switch_ports sp
+             JOIN devices d ON d.id = sp.device_id
+             WHERE d.site_id = :site_id",
+            [':site_id' => $siteId]
         );
         return $row ?: ['total' => 0, 'in_use' => 0, 'disabled' => 0, 'wan' => 0];
     }

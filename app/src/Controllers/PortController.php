@@ -3,11 +3,14 @@ declare(strict_types=1);
 
 class PortController
 {
+    private int $siteId;
+
     public function __construct(
         private PortModel $portModel,
         private DeviceModel $deviceModel
     ) {
         Auth::requireLogin();
+        $this->siteId = (int) Session::get('current_site_id');
     }
 
     public function panel(): void
@@ -17,14 +20,14 @@ class PortController
 
     public function index(): void
     {
-        $ports   = $this->portModel->all();
-        $devices = $this->deviceModel->all();
+        $ports   = $this->portModel->all($this->siteId);
+        $devices = $this->deviceModel->all($this->siteId);
         render('ports', ['navActive' => 'ports', 'navSub' => 'list', 'ports' => $ports, 'devices' => $devices]);
     }
 
     public function create(): void
     {
-        $devices = $this->deviceModel->all();
+        $devices = $this->deviceModel->all($this->siteId);
         render('port_form', [
             'navActive' => 'ports',
             'port'      => null,
@@ -62,7 +65,7 @@ class PortController
         if (!$port) {
             $this->notFound('Port not found.');
         }
-        $devices = $this->deviceModel->all();
+        $devices = $this->deviceModel->all($this->siteId);
         render('port_form', [
             'navActive' => 'ports',
             'port'      => $port,
@@ -123,7 +126,7 @@ class PortController
         $this->portModel->assign($id, null);
         Session::flash('success', 'Port unassigned from device.');
 
-        if ($deviceId && $this->deviceModel->find($deviceId)) {
+        if ($deviceId && $this->deviceModel->find($deviceId, $this->siteId)) {
             header("Location: /devices/{$deviceId}#switch-ports");
         } else {
             header('Location: /ports');

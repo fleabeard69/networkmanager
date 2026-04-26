@@ -125,6 +125,38 @@ a:hover { text-decoration: underline; }
     letter-spacing: 0.01em;
 }
 
+.site-context {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+
+.site-context-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+
+.site-context-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.site-context-name:hover {
+    text-decoration: underline;
+}
+
 .sidebar-nav {
     list-style: none;
     padding: 12px 0;
@@ -804,6 +836,8 @@ a.stat-card:focus-visible {
 .badge-status-active   { background: var(--green-bg);  border: 1px solid var(--green-border);  color: #3fb950; }
 .badge-status-disabled { background: var(--red-bg);    border: 1px solid var(--red-border);    color: #ff7b72; }
 .badge-status-unknown  { background: var(--surface-2); border: 1px solid var(--border);        color: var(--text-muted); }
+
+.badge-active { background: var(--blue-bg); border: 1px solid var(--blue-border); color: #79c0ff; }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {

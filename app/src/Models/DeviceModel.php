@@ -5,7 +5,7 @@ class DeviceModel
 {
     public function __construct(private Database $db) {}
 
-    public function all(): array
+    public function all(int $siteId): array
     {
         return $this->db->fetchAll(
             "SELECT d.*,
@@ -13,18 +13,20 @@ class DeviceModel
                 (SELECT ip_address::text FROM ip_assignments
                  WHERE device_id = d.id AND is_primary = TRUE LIMIT 1)                       AS primary_ip
              FROM devices d
-             ORDER BY d.sort_order, d.hostname"
+             WHERE d.site_id = :site_id
+             ORDER BY d.sort_order, d.hostname",
+            [':site_id' => $siteId]
         );
     }
 
-    public function reorder(array $orderedIds): void
+    public function reorder(array $orderedIds, int $siteId): void
     {
         $this->db->execute('BEGIN');
         try {
             foreach ($orderedIds as $i => $id) {
                 $this->db->execute(
-                    'UPDATE devices SET sort_order = :order WHERE id = :id',
-                    [':order' => $i, ':id' => (int) $id]
+                    'UPDATE devices SET sort_order = :order WHERE id = :id AND site_id = :site_id',
+                    [':order' => $i, ':id' => (int) $id, ':site_id' => $siteId]
                 );
             }
             $this->db->execute('COMMIT');
@@ -34,8 +36,19 @@ class DeviceModel
         }
     }
 
-    public function find(int $id): array|false
+    public function find(int $id, ?int $siteId = null): array|false
     {
+        if ($siteId !== null) {
+            return $this->db->fetchOne(
+                "SELECT d.*,
+                    (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id)  AS port_count,
+                    (SELECT ip_address::text FROM ip_assignments
+                     WHERE device_id = d.id AND is_primary = TRUE LIMIT 1)      AS primary_ip
+                 FROM devices d
+                 WHERE d.id = :id AND d.site_id = :site_id",
+                [':id' => $id, ':site_id' => $siteId]
+            );
+        }
         return $this->db->fetchOne(
             "SELECT d.*,
                 (SELECT COUNT(*) FROM switch_ports WHERE device_id = d.id)  AS port_count,
@@ -82,18 +95,19 @@ class DeviceModel
     /**
      * @throws PDOException on constraint violations
      */
-    public function create(array $data): int
+    public function create(array $data, int $siteId): int
     {
         $stmt = $this->db->query(
-            'INSERT INTO devices (hostname, mac_address, device_type, notes, panel_rear_rows)
-             VALUES (:host, :mac, :type, :notes, :rear)
+            'INSERT INTO devices (hostname, mac_address, device_type, notes, panel_rear_rows, site_id)
+             VALUES (:host, :mac, :type, :notes, :rear, :site_id)
              RETURNING id',
             [
-                ':host'  => $data['hostname'],
-                ':mac'   => $data['mac_address'],
-                ':type'  => $data['device_type'],
-                ':notes' => $data['notes'],
-                ':rear'  => $data['panel_rear_rows'] ?? 0,
+                ':host'    => $data['hostname'],
+                ':mac'     => $data['mac_address'],
+                ':type'    => $data['device_type'],
+                ':notes'   => $data['notes'],
+                ':rear'    => $data['panel_rear_rows'] ?? 0,
+                ':site_id' => $siteId,
             ]
         );
         return (int) $stmt->fetchColumn();
@@ -330,13 +344,20 @@ class DeviceModel
 
     // ── Stats ─────────────────────────────────────────────────────────────
 
-    public function count(): int
+    public function count(int $siteId): int
     {
-        return (int) ($this->db->fetchOne('SELECT COUNT(*) AS c FROM devices')['c'] ?? 0);
+        return (int) ($this->db->fetchOne(
+            'SELECT COUNT(*) AS c FROM devices WHERE site_id = :site_id',
+            [':site_id' => $siteId]
+        )['c'] ?? 0);
     }
 
-    public function ipCount(): int
+    public function ipCount(int $siteId): int
     {
-        return (int) ($this->db->fetchOne('SELECT COUNT(*) AS c FROM ip_assignments')['c'] ?? 0);
+        return (int) ($this->db->fetchOne(
+            'SELECT COUNT(*) AS c FROM ip_assignments
+             WHERE device_id IN (SELECT id FROM devices WHERE site_id = :site_id)',
+            [':site_id' => $siteId]
+        )['c'] ?? 0);
     }
 }

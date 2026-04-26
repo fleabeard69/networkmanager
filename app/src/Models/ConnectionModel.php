@@ -11,7 +11,7 @@ class ConnectionModel
 
     public function __construct(private Database $db) {}
 
-    public function all(): array
+    public function all(int $siteId): array
     {
         return $this->db->fetchAll(
             'SELECT pc.*,
@@ -21,7 +21,11 @@ class ConnectionModel
                     pb.device_id   AS port_b_device_id
              FROM port_connections pc
              JOIN switch_ports pa ON pa.id = pc.port_a
-             JOIN switch_ports pb ON pb.id = pc.port_b'
+             JOIN switch_ports pb ON pb.id = pc.port_b
+             JOIN devices da ON da.id = pa.device_id
+             JOIN devices db ON db.id = pb.device_id
+             WHERE da.site_id = :site_id AND db.site_id = :site_id',
+            [':site_id' => $siteId]
         );
     }
 
@@ -43,12 +47,21 @@ class ConnectionModel
      * Returns the set of port IDs that already have a connection.
      * Used by the API and JS to pre-flag occupied ports.
      */
-    public function occupiedPortIds(): array
+    public function occupiedPortIds(int $siteId): array
     {
         $rows = $this->db->fetchAll(
-            'SELECT port_a AS id FROM port_connections
+            'SELECT pc.port_a AS id
+             FROM port_connections pc
+             JOIN switch_ports sp ON sp.id = pc.port_a
+             JOIN devices d ON d.id = sp.device_id
+             WHERE d.site_id = :site_id
              UNION
-             SELECT port_b AS id FROM port_connections'
+             SELECT pc.port_b AS id
+             FROM port_connections pc
+             JOIN switch_ports sp ON sp.id = pc.port_b
+             JOIN devices d ON d.id = sp.device_id
+             WHERE d.site_id = :site_id',
+            [':site_id' => $siteId]
         );
         return array_column($rows, 'id');
     }

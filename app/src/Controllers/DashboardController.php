@@ -12,11 +12,12 @@ class DashboardController
 
     public function index(): void
     {
-        $ports       = $this->portModel->all();
-        $portStats   = $this->portModel->stats();
-        $devices     = $this->deviceModel->all();
+        $siteId      = (int) Session::get('current_site_id');
+        $ports       = $this->portModel->all($siteId);
+        $portStats   = $this->portModel->stats($siteId);
+        $devices     = $this->deviceModel->all($siteId);
         $deviceCount = count($devices);
-        $ipCount     = $this->deviceModel->ipCount();
+        $ipCount     = $this->deviceModel->ipCount($siteId);
 
         render('dashboard', [
             'navActive'   => 'dashboard',

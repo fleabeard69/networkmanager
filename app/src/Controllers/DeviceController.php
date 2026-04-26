@@ -3,16 +3,19 @@ declare(strict_types=1);
 
 class DeviceController
 {
+    private int $siteId;
+
     public function __construct(
         private DeviceModel $deviceModel,
         private PortModel $portModel
     ) {
         Auth::requireLogin();
+        $this->siteId = (int) Session::get('current_site_id');
     }
 
     public function index(): void
     {
-        $devices = $this->deviceModel->all();
+        $devices = $this->deviceModel->all($this->siteId);
         render('devices', ['navActive' => 'devices', 'devices' => $devices]);
     }
 
@@ -38,7 +41,7 @@ class DeviceController
         }
 
         try {
-            $id = $this->deviceModel->create($data);
+            $id = $this->deviceModel->create($data, $this->siteId);
             Session::flash('success', 'Device added successfully.');
             header("Location: /devices/{$id}");
         } catch (PDOException) {
@@ -51,7 +54,7 @@ class DeviceController
 
     public function show(int $id): void
     {
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -80,7 +83,7 @@ class DeviceController
 
     public function edit(int $id): void
     {
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -100,7 +103,7 @@ class DeviceController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -147,6 +150,9 @@ class DeviceController
     public function delete(int $id): void
     {
         $this->verifyCsrf();
+        if (!$this->deviceModel->find($id, $this->siteId)) {
+            $this->notFound('Device not found.');
+        }
         if (!$this->deviceModel->delete($id)) {
             $this->notFound('Device not found.');
         }
@@ -159,7 +165,7 @@ class DeviceController
 
     public function portPanel(int $id): void
     {
-        $device = $this->deviceModel->find($id);
+        $device = $this->deviceModel->find($id, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -175,7 +181,7 @@ class DeviceController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($deviceId);
+        $device = $this->deviceModel->find($deviceId, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -215,7 +221,7 @@ class DeviceController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($deviceId);
+        $device = $this->deviceModel->find($deviceId, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -255,7 +261,7 @@ class DeviceController
     public function setPrimaryIpJson(int $deviceId, int $ipId): void
     {
         $this->verifyCsrfJson();
-        if (!$this->deviceModel->find($deviceId)) {
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
             $this->json(['error' => 'Device not found.'], 404);
         }
         if (!$this->deviceModel->setPrimaryIp($deviceId, $ipId)) {
@@ -279,7 +285,7 @@ class DeviceController
     {
         $this->verifyCsrfJson();
 
-        if (!$this->deviceModel->find($deviceId)) {
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
             $this->json(['error' => 'Device not found.'], 404);
         }
 
@@ -311,7 +317,7 @@ class DeviceController
     {
         $this->verifyCsrf();
 
-        $device = $this->deviceModel->find($deviceId);
+        $device = $this->deviceModel->find($deviceId, $this->siteId);
         if (!$device) {
             $this->notFound('Device not found.');
         }
@@ -349,7 +355,7 @@ class DeviceController
     {
         $this->verifyCsrfJson();
 
-        if (!$this->deviceModel->find($deviceId)) {
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
             $this->json(['error' => 'Device not found.'], 404);
         }
 
