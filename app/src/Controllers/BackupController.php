@@ -142,11 +142,10 @@ class BackupController
         }
 
         // ── Rate limiting ─────────────────────────────────────────────────────
-        // Two-layer check: session (fast, no DB) + app_settings (persistent
-        // across logout/re-login). Both use a 60-second cooldown window.
-        // The timestamp is written BEFORE performImport() so even a failed
-        // import (which still executes the full DB wipe before rolling back)
-        // counts against the limit and cannot be spammed on a bad backup file.
+        // Two-layer check: session (fast, in-memory) + app_settings (persistent
+        // across re-login and across browser sessions). Both enforce a 60-second
+        // cooldown. The DB write happens before performImport() so even a failed
+        // import counts against the limit.
 
         if (time() - Session::get('last_import_at', 0) < 60) {
             Session::flash('error', 'Please wait 60 seconds between restores.');
@@ -154,30 +153,30 @@ class BackupController
             exit;
         }
 
-        // Persistent check: survives re-login and multiple browser sessions.
+        // Atomic DB claim: the upsert only writes (and RETURNING only returns a row)
+        // if no import has been recorded in the last 60 seconds. Because the check
+        // and the write happen in a single statement, there is no TOCTOU window —
+        // Postgres row-level locking serializes concurrent attempts.
         // Silent on PDOException if app_settings not yet migrated.
         try {
-            $row = $this->db->fetchOne(
-                "SELECT value FROM app_settings WHERE key = 'last_imported_at'"
-            );
-            if ($row && (time() - (int) strtotime($row['value'])) < 60) {
+            $claimed = $this->db->query(
+                "INSERT INTO app_settings (key, value) VALUES ('last_imported_at', :v)
+                 ON CONFLICT (key) DO UPDATE
+                     SET value = EXCLUDED.value
+                 WHERE app_settings.value IS NULL
+                    OR (NOW() - app_settings.value::timestamptz) >= INTERVAL '60 seconds'
+                 RETURNING key",
+                [':v' => date('c')]
+            )->fetch();
+
+            if ($claimed === false) {
                 Session::flash('error', 'Please wait 60 seconds between restores.');
                 header('Location: /backup');
                 exit;
             }
         } catch (PDOException) {}
 
-        // Pre-mark the timestamp before the heavy operation so a concurrent
-        // request that passes both checks above also sees a recent timestamp
-        // on its own persistent check.
         Session::set('last_import_at', time());
-        try {
-            $this->db->execute(
-                "INSERT INTO app_settings (key, value) VALUES ('last_imported_at', :v)
-                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-                [':v' => date('c')]
-            );
-        } catch (PDOException) {}
 
         try {
             $this->performImport($data);

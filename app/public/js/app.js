@@ -634,9 +634,11 @@ function initPanelEditor() {
             headers['X-CSRF-Token'] = csrfToken();
         }
         const res  = await fetch(url, { ...options, headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
     }
 
     // ── Load data ─────────────────────────────────────────────────────────
@@ -1143,9 +1145,11 @@ function initGlobalPanelEditor() {
             headers['X-CSRF-Token'] = csrfToken();
         }
         const res  = await fetch(url, { ...options, headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
     }
 
     // ── Load ──────────────────────────────────────────────────────────────
@@ -2366,9 +2370,11 @@ function initPortsTableEdit() {
             headers['X-CSRF-Token'] = csrfToken();
         }
         const res  = await fetch(url, { ...options, headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
     }
 
     function openModal(tr) {
@@ -2577,9 +2583,11 @@ function initDevicesTableEdit() {
             headers['X-CSRF-Token'] = csrfToken();
         }
         const res  = await fetch(url, { ...options, headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
     }
 
     function openModal(tr) {
@@ -2998,9 +3006,11 @@ function initDashboardPortEdit() {
             headers['X-CSRF-Token'] = csrfToken();
         }
         const res  = await fetch(url, { ...options, headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
     }
 
     function openModal(card) {
