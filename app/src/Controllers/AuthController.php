@@ -35,7 +35,8 @@ class AuthController
         $attempts  = Session::get('login_attempts', 0);
         $attemptAt = Session::get('login_attempts_at', 0);
         if (time() - $attemptAt > 300) {
-            $attempts = 0;
+            $attempts  = 0;
+            $attemptAt = 0;
         }
         if ($attempts >= 5) {
             Session::flash('error', 'Too many failed login attempts. Please wait a few minutes.');

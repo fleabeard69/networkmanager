@@ -416,12 +416,12 @@ class DeviceController
     /** @return array|string Validated data array, or an error string. */
     private function validateIpData(array $post): array|string
     {
-        $ip = trim($post['ip_address'] ?? '');
+        $ip = trim((string)($post['ip_address'] ?? ''));
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
             return 'Invalid IP address format.';
         }
 
-        $subnet = trim($post['subnet'] ?? '');
+        $subnet = trim((string)($post['subnet'] ?? ''));
         if ($subnet !== '') {
             $isIpv4 = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
             if ($isIpv4) {
@@ -445,7 +445,7 @@ class DeviceController
             }
         }
 
-        $gateway = trim($post['gateway'] ?? '');
+        $gateway = trim((string)($post['gateway'] ?? ''));
         if ($gateway !== '' && !filter_var($gateway, FILTER_VALIDATE_IP)) {
             return 'Invalid gateway IP address format.';
         }
@@ -454,9 +454,9 @@ class DeviceController
             'ip_address' => $ip,
             'subnet'     => $subnet !== '' ? $subnet : null,
             'gateway'    => $gateway !== '' ? $gateway : null,
-            'interface'  => substr(trim($post['interface'] ?? ''), 0, 32),
+            'interface'  => substr(trim((string)($post['interface'] ?? '')), 0, 32),
             'is_primary' => !empty($post['is_primary']),
-            'notes'      => substr(trim($post['notes'] ?? ''), 0, 1000),
+            'notes'      => substr(trim((string)($post['notes'] ?? '')), 0, 1000),
         ];
     }
 
@@ -531,8 +531,8 @@ class DeviceController
         return [
             'protocol'    => $protocol,
             'port_number' => $portNum,
-            'service'     => substr(trim($post['service'] ?? ''), 0, 64),
-            'description' => substr(trim($post['description'] ?? ''), 0, 1000),
+            'service'     => substr(trim((string)($post['service'] ?? '')), 0, 64),
+            'description' => substr(trim((string)($post['description'] ?? '')), 0, 1000),
             'is_external' => !empty($post['is_external']),
         ];
     }
