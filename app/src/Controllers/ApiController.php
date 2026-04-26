@@ -261,6 +261,14 @@ class ApiController
             $this->json(['error' => 'Connection not found.'], 404);
         }
 
+        // Verify at least one port belongs to this site before allowing deletion.
+        $portA = $this->portModel->find((int) $conn['port_a']);
+        $portB = $this->portModel->find((int) $conn['port_b']);
+        if (!$portA || !$portB
+         || (!$this->portBelongsToSite($portA) && !$this->portBelongsToSite($portB))) {
+            $this->json(['error' => 'Connection not found.'], 404);
+        }
+
         $this->connectionModel->delete($id);
         $this->json(['deleted' => true]);
     }
@@ -329,7 +337,7 @@ class ApiController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->json(['error' => 'Port not found.'], 404);
         }
 
