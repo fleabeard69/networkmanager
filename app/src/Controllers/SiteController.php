@@ -35,12 +35,14 @@ class SiteController
         $data = $this->validateSiteData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /sites/new');
             exit;
         }
 
         if ($this->siteModel->slugExists($data['slug'])) {
             Session::flash('error', 'A site with that slug already exists.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /sites/new');
             exit;
         }
@@ -50,6 +52,7 @@ class SiteController
             Session::flash('success', 'Site created.');
         } catch (PDOException) {
             Session::flash('error', 'A database error occurred. Please try again.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header('Location: /sites/new');
             exit;
         }
@@ -85,12 +88,14 @@ class SiteController
         $data = $this->validateSiteData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /sites/{$id}/edit");
             exit;
         }
 
         if ($this->siteModel->slugExists($data['slug'], $id)) {
             Session::flash('error', 'A site with that slug already exists.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /sites/{$id}/edit");
             exit;
         }
@@ -103,6 +108,7 @@ class SiteController
             Session::flash('success', 'Site updated.');
         } catch (PDOException) {
             Session::flash('error', 'A database error occurred. Please try again.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /sites/{$id}/edit");
             exit;
         }
@@ -154,7 +160,8 @@ class SiteController
         Session::set('current_site_name', $site['name']);
 
         $redirect = $_POST['redirect'] ?? '/';
-        $redirect = (str_starts_with($redirect, '/') && !str_starts_with($redirect, '//')) ? $redirect : '/';
+        // Allow only same-origin paths: must start with / followed by a non-/ non-\ character, or be exactly /.
+        $redirect = (preg_match('#^/(?:[^/\\\\]|$)#', $redirect)) ? $redirect : '/';
         header("Location: {$redirect}");
         exit;
     }

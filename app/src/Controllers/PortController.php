@@ -47,6 +47,13 @@ class PortController
             exit;
         }
 
+        if ($data['device_id'] !== null && !$this->deviceModel->find($data['device_id'], $this->siteId)) {
+            Session::flash('error', 'Device not found.');
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
+            header('Location: /ports/new');
+            exit;
+        }
+
         try {
             $this->portModel->create($data);
             Session::flash('success', 'Port added successfully.');
@@ -62,7 +69,7 @@ class PortController
     public function edit(int $id): void
     {
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->notFound('Port not found.');
         }
         $devices = $this->deviceModel->all($this->siteId);
@@ -78,13 +85,20 @@ class PortController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->notFound('Port not found.');
         }
 
         $data = $this->validatePortData($_POST);
         if (is_string($data)) {
             Session::flash('error', $data);
+            Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
+            header("Location: /ports/{$id}/edit");
+            exit;
+        }
+
+        if ($data['device_id'] !== null && !$this->deviceModel->find($data['device_id'], $this->siteId)) {
+            Session::flash('error', 'Device not found.');
             Session::flashInput(array_diff_key($_POST, ['_csrf' => '']));
             header("Location: /ports/{$id}/edit");
             exit;
@@ -105,9 +119,11 @@ class PortController
     public function delete(int $id): void
     {
         $this->verifyCsrf();
-        if (!$this->portModel->delete($id)) {
+        $port = $this->portModel->find($id);
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->notFound('Port not found.');
         }
+        $this->portModel->delete($id);
         Session::flash('success', 'Port removed.');
         header('Location: /ports');
         exit;
@@ -118,7 +134,7 @@ class PortController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->notFound('Port not found.');
         }
 
@@ -218,6 +234,12 @@ class PortController
             'port_col'     => $portCol,
             'client_label' => substr(trim($post['client_label'] ?? ''), 0, 128),
         ];
+    }
+
+    private function portBelongsToSite(array $port): bool
+    {
+        return $port['device_id'] === null
+            || (bool) $this->deviceModel->find((int) $port['device_id'], $this->siteId);
     }
 
     private function verifyCsrf(): void

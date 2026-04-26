@@ -22,10 +22,11 @@ class ConnectionModel
              FROM port_connections pc
              JOIN switch_ports pa ON pa.id = pc.port_a
              JOIN switch_ports pb ON pb.id = pc.port_b
-             JOIN devices da ON da.id = pa.device_id
-             JOIN devices db ON db.id = pb.device_id
-             WHERE da.site_id = :site_id AND db.site_id = :site_id',
-            [':site_id' => $siteId]
+             LEFT JOIN devices da ON da.id = pa.device_id
+             LEFT JOIN devices db ON db.id = pb.device_id
+             WHERE (pa.device_id IS NULL OR da.site_id = :site_id_a)
+               AND (pb.device_id IS NULL OR db.site_id = :site_id_b)',
+            [':site_id_a' => $siteId, ':site_id_b' => $siteId]
         );
     }
 
@@ -49,19 +50,12 @@ class ConnectionModel
      */
     public function occupiedPortIds(int $siteId): array
     {
+        // A port can only be in one connection at a time (DB-enforced), so occupancy
+        // is a global property — return all occupied ports regardless of site.
         $rows = $this->db->fetchAll(
-            'SELECT pc.port_a AS id
-             FROM port_connections pc
-             JOIN switch_ports sp ON sp.id = pc.port_a
-             JOIN devices d ON d.id = sp.device_id
-             WHERE d.site_id = :site_id
+            'SELECT port_a AS id FROM port_connections
              UNION
-             SELECT pc.port_b AS id
-             FROM port_connections pc
-             JOIN switch_ports sp ON sp.id = pc.port_b
-             JOIN devices d ON d.id = sp.device_id
-             WHERE d.site_id = :site_id',
-            [':site_id' => $siteId]
+             SELECT port_b AS id FROM port_connections'
         );
         return array_column($rows, 'id');
     }

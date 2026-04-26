@@ -250,6 +250,9 @@ class DeviceController
     public function setPrimaryIp(int $deviceId, int $ipId): void
     {
         $this->verifyCsrf();
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
+            $this->notFound('Device not found.');
+        }
         if (!$this->deviceModel->setPrimaryIp($deviceId, $ipId)) {
             $this->notFound('IP address not found.');
         }
@@ -273,6 +276,9 @@ class DeviceController
     public function deleteIp(int $deviceId, int $ipId): void
     {
         $this->verifyCsrf();
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
+            $this->notFound('Device not found.');
+        }
         if (!$this->deviceModel->deleteIp($deviceId, $ipId)) {
             $this->notFound('IP address not found.');
         }
@@ -343,6 +349,9 @@ class DeviceController
     public function deleteService(int $deviceId, int $serviceId): void
     {
         $this->verifyCsrf();
+        if (!$this->deviceModel->find($deviceId, $this->siteId)) {
+            $this->notFound('Device not found.');
+        }
         if (!$this->deviceModel->deleteService($deviceId, $serviceId)) {
             $this->notFound('Service port not found.');
         }

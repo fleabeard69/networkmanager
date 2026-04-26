@@ -35,9 +35,13 @@ class BackupController
     // ── GET /backup/export ────────────────────────────────────────────────────
     public function export(): void
     {
+        $sites = $this->db->fetchAll(
+            'SELECT id, name, slug, description FROM sites ORDER BY id'
+        );
+
         $devices = $this->db->fetchAll(
             'SELECT id, hostname, mac_address, device_type, notes,
-                    panel_rows, panel_rear_rows, panel_cols, sort_order
+                    panel_rows, panel_rear_rows, panel_cols, sort_order, site_id
              FROM devices ORDER BY sort_order, id'
         );
 
@@ -86,6 +90,7 @@ class BackupController
         $backup = [
             'version'        => 1,
             'exported_at'    => date('c'),
+            'sites'          => $sites,
             'devices'        => $devices,
             'ports'          => $ports,
             'connections'    => $connections,
@@ -180,6 +185,8 @@ class BackupController
 
         try {
             $this->performImport($data);
+            Session::forget('current_site_id');
+            Session::forget('current_site_name');
             $dc = count($data['devices']     ?? []);
             $pc = count($data['ports']        ?? []);
             $cc = count($data['connections']  ?? []);
@@ -201,10 +208,55 @@ class BackupController
         $this->db->execute('BEGIN');
 
         try {
-            // Clear in dependency order
+            // Clear in dependency order (devices CASCADE to IPs + services)
             $this->db->execute('DELETE FROM port_connections');
             $this->db->execute('DELETE FROM switch_ports');
-            $this->db->execute('DELETE FROM devices'); // cascades IPs + services
+            $this->db->execute('DELETE FROM devices');
+
+            // ── Sites ─────────────────────────────────────────────────────────
+            // New backups include a 'sites' key; old backups do not.
+            $siteMap = []; // old site id → new site id
+
+            if (isset($data['sites'])) {
+                // Full restore: wipe and re-create sites from the backup.
+                $this->db->execute('DELETE FROM sites');
+
+                foreach ($data['sites'] as $s) {
+                    $siteName = is_string($s['name'] ?? null) ? trim($s['name']) : '';
+                    if ($siteName === '') {
+                        throw new InvalidArgumentException('A site is missing a valid name.');
+                    }
+                    $siteSlug = is_string($s['slug'] ?? null) ? trim($s['slug']) : '';
+                    if ($siteSlug === '' || !preg_match('/^[a-z0-9][a-z0-9-]*$/', $siteSlug)) {
+                        // Auto-generate slug from name if missing or invalid
+                        $siteSlug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)), '-');
+                    }
+                    $stmt = $this->db->query(
+                        'INSERT INTO sites (name, slug, description)
+                         VALUES (:n, :sl, :d)
+                         RETURNING id',
+                        [
+                            ':n'  => substr($siteName, 0, 128),
+                            ':sl' => substr($siteSlug, 0, 64),
+                            ':d'  => substr((string)($s['description'] ?? ''), 0, 1000),
+                        ]
+                    );
+                    $siteMap[(int)$s['id']] = (int)$stmt->fetchColumn();
+                }
+            } else {
+                // Old backup (no sites key): assign all devices to the first existing site.
+                $existingSite = $this->db->fetchOne('SELECT id FROM sites ORDER BY id LIMIT 1');
+                if (!$existingSite) {
+                    $stmt = $this->db->query(
+                        "INSERT INTO sites (name, slug) VALUES ('Default Site', 'default-site') RETURNING id"
+                    );
+                    $defaultSiteId = (int)$stmt->fetchColumn();
+                } else {
+                    $defaultSiteId = (int)$existingSite['id'];
+                }
+                // All old device IDs map to the same default site
+                $siteMap = ['__default__' => $defaultSiteId];
+            }
 
             // ── Devices ───────────────────────────────────────────────────────
             $validDeviceTypes = [
@@ -237,11 +289,23 @@ class BackupController
                     $deviceType = 'unknown';
                 }
 
+                // Resolve site_id: use siteMap for new backups, default site for old ones.
+                if (isset($data['sites'])) {
+                    $newSiteId = $siteMap[(int)($d['site_id'] ?? 0)] ?? null;
+                    if ($newSiteId === null) {
+                        throw new InvalidArgumentException(
+                            "Device \"{$hostname}\" references an unknown site_id."
+                        );
+                    }
+                } else {
+                    $newSiteId = $siteMap['__default__'];
+                }
+
                 $stmt = $this->db->query(
                     'INSERT INTO devices
                          (hostname, mac_address, device_type, notes,
-                          panel_rows, panel_rear_rows, panel_cols, sort_order)
-                     VALUES (:h, :m, :t, :n, :r, :rr, :c, :s)
+                          panel_rows, panel_rear_rows, panel_cols, sort_order, site_id)
+                     VALUES (:h, :m, :t, :n, :r, :rr, :c, :s, :si)
                      RETURNING id',
                     [
                         ':h'  => $hostname,
@@ -252,6 +316,7 @@ class BackupController
                         ':rr' => max(0, min(10, (int)($d['panel_rear_rows'] ?? 0))),
                         ':c'  => max(1, min(50, (int)($d['panel_cols']      ?? 28))),
                         ':s'  => (int)($d['sort_order']      ?? 0),
+                        ':si' => $newSiteId,
                     ]
                 );
                 $deviceMap[(int)$d['id']] = (int)$stmt->fetchColumn();

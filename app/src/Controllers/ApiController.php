@@ -36,6 +36,10 @@ class ApiController
             $this->json(['error' => $data], 422);
         }
 
+        if ($data['device_id'] !== null && !$this->deviceModel->find($data['device_id'], $this->siteId)) {
+            $this->json(['error' => 'Device not found.'], 404);
+        }
+
         try {
             $id   = $this->portModel->create($data);
             $port = $this->portModel->find($id);
@@ -56,13 +60,17 @@ class ApiController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->json(['error' => 'Port not found.'], 404);
         }
 
         $data = $this->validatePortData($this->body());
         if (is_string($data)) {
             $this->json(['error' => $data], 422);
+        }
+
+        if ($data['device_id'] !== null && !$this->deviceModel->find($data['device_id'], $this->siteId)) {
+            $this->json(['error' => 'Device not found.'], 404);
         }
 
         try {
@@ -84,7 +92,7 @@ class ApiController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->json(['error' => 'Port not found.'], 404);
         }
 
@@ -121,6 +129,13 @@ class ApiController
 
         if ($portA === false || $portB === false || $portA === $portB) {
             $this->json(['error' => 'Two distinct valid port IDs are required.'], 422);
+        }
+
+        $portARow = $this->portModel->find($portA);
+        $portBRow = $this->portModel->find($portB);
+        if (!$portARow || !$this->portBelongsToSite($portARow)
+         || !$portBRow || !$this->portBelongsToSite($portBRow)) {
+            $this->json(['error' => 'One or both ports not found.'], 404);
         }
 
         try {
@@ -207,8 +222,13 @@ class ApiController
             $color = '#388bfd';
         }
 
-        if (!$this->portModel->find($portA) || !$this->portModel->find($portB)) {
+        $paRow = $this->portModel->find($portA);
+        $pbRow = $this->portModel->find($portB);
+        if (!$paRow || !$pbRow) {
             $this->json(['error' => 'One or both ports not found.'], 404);
+        }
+        if (!$this->portBelongsToSite($paRow) || !$this->portBelongsToSite($pbRow)) {
+            $this->json(['error' => 'One or both ports are not accessible from this site.'], 403);
         }
 
         $validAnchors = ['top', 'bottom', 'left', 'right'];
@@ -338,7 +358,7 @@ class ApiController
         $this->verifyCsrf();
 
         $port = $this->portModel->find($id);
-        if (!$port) {
+        if (!$port || !$this->portBelongsToSite($port)) {
             $this->json(['error' => 'Port not found.'], 404);
         }
 
@@ -455,6 +475,12 @@ class ApiController
             'port_col'     => $col,
             'client_label' => substr(trim((string)($body['client_label'] ?? '')), 0, 128),
         ];
+    }
+
+    private function portBelongsToSite(array $port): bool
+    {
+        return $port['device_id'] === null
+            || (bool) $this->deviceModel->find((int) $port['device_id'], $this->siteId);
     }
 
     private function body(): array

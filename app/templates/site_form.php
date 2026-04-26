@@ -1,9 +1,10 @@
 <?php
 $isEdit  = $site !== null;
 $action  = $isEdit ? "/sites/{$site['id']}/edit" : '/sites';
-$oldName = $isEdit ? $site['name']        : '';
-$oldSlug = $isEdit ? $site['slug']        : '';
-$oldDesc = $isEdit ? $site['description'] : '';
+$flash   = Session::getFlashInput();
+$oldName = $flash['name']        ?? ($isEdit ? $site['name']        : '');
+$oldSlug = $flash['slug']        ?? ($isEdit ? $site['slug']        : '');
+$oldDesc = $flash['description'] ?? ($isEdit ? $site['description'] : '');
 ?>
 
 <div class="panel">

@@ -104,14 +104,35 @@ if (!$auth->check()) {
 }
 
 // ── Site context ──────────────────────────────────────────────────────────────
-// Auto-select first site if session has no current site (e.g. first login after migration).
-$siteModel = new SiteModel($db);
-if (!Session::get('current_site_id')) {
+$siteModel     = new SiteModel($db);
+$currentSiteId = (int) Session::get('current_site_id');
+
+// Revalidate: if the stored site was deleted, clear it and fall through to auto-select.
+if ($currentSiteId && !$siteModel->find($currentSiteId)) {
+    Session::forget('current_site_id');
+    Session::forget('current_site_name');
+    $currentSiteId = 0;
+}
+
+if (!$currentSiteId) {
     $firstSite = $siteModel->first();
     if ($firstSite) {
         Session::set('current_site_id', $firstSite['id']);
         Session::set('current_site_name', $firstSite['name']);
+        $currentSiteId = (int) $firstSite['id'];
     }
+}
+
+// No sites exist yet — redirect to site creation (exempt /sites/* and /backup paths).
+if ($currentSiteId === 0 && !str_starts_with($path, '/sites') && !str_starts_with($path, '/backup')) {
+    if (str_starts_with($path, '/api/')) {
+        http_response_code(503);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'No site configured.']);
+        exit;
+    }
+    header('Location: /sites/new');
+    exit;
 }
 
 // ── Authenticated models ──────────────────────────────────────────────────────
