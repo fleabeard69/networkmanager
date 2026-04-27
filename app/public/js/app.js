@@ -2011,24 +2011,40 @@ function initDashboardConnections() {
                 const topIsA  = a.mid <= b.mid;
                 const [top, bot] = topIsA ? [a, b] : [b, a];
                 x1 = top.cx; y1 = top.bot;
-                x2 = bot.cx; y2 = bot.top;
-                const sy1 = y1 + STUB, sy2 = y2 - STUB;
-                // Fan parallel connections across the gap so they don't overlap.
-                // Distribute lanes evenly: idx=0 → near sy1, idx=count-1 → near sy2.
-                // Single connections (count=1) use the natural midpoint.
-                let midY = (sy1 + sy2) / 2;
-                const lane = laneOf.get(conn.id);
-                if (lane && lane.count > 1) {
-                    const span = sy2 - sy1;
-                    midY = sy1 + (lane.idx + 1) * (span / (lane.count + 1));
-                    // Capture endpoint port numbers for the labels drawn in the
-                    // render pass.  labelAt1 is the port touching (x1,y1) etc.
-                    labelAt1 = String(topIsA ? conn.port_a_number : conn.port_b_number);
-                    labelAt2 = String(topIsA ? conn.port_b_number : conn.port_a_number);
+                x2 = bot.cx;
+                const gap = bot.top - top.bot; // vertical space between the two port cards
+
+                if (gap > 0) {
+                    // Ports on different rows: route through the inter-row gap.
+                    // Cap the stub to gap/2 so the horizontal segment always lies
+                    // inside the gap even when rows are tightly spaced (gap < 2×STUB).
+                    y2 = bot.top;
+                    const stub = Math.min(STUB, gap / 2);
+                    const sy1 = y1 + stub, sy2 = y2 - stub;
+                    const span = sy2 - sy1; // ≥ 0 by construction
+                    // Fan parallel connections across the gap so they don't overlap.
+                    // Distribute lanes evenly: idx=0 → near sy1, idx=count-1 → near sy2.
+                    // Single connections (count=1) use the natural midpoint.
+                    let midY = (sy1 + sy2) / 2;
+                    const lane = laneOf.get(conn.id);
+                    if (lane && lane.count > 1 && span > 0) {
+                        midY = sy1 + (lane.idx + 1) * (span / (lane.count + 1));
+                        // Capture endpoint port numbers for the labels drawn in the
+                        // render pass.  labelAt1 is the port touching (x1,y1) etc.
+                        labelAt1 = String(topIsA ? conn.port_a_number : conn.port_b_number);
+                        labelAt2 = String(topIsA ? conn.port_b_number : conn.port_a_number);
+                    }
+                    pts = [{ x: x1, y: y1 }, { x: x1, y: sy1 },
+                           { x: x1, y: midY }, { x: x2, y: midY },
+                           { x: x2, y: sy2 }, { x: x2, y: y2 }];
+                } else {
+                    // Same row: no inter-card space to route through.
+                    // Exit both ports from the bottom and route below the row.
+                    y2 = bot.bot;
+                    const routeY = Math.max(top.bot, bot.bot) + STUB;
+                    pts = [{ x: x1, y: y1 }, { x: x1, y: routeY },
+                           { x: x2, y: routeY }, { x: x2, y: y2 }];
                 }
-                pts = [{ x: x1, y: y1 }, { x: x1, y: sy1 },
-                       { x: x1, y: midY }, { x: x2, y: midY },
-                       { x: x2, y: sy2 }, { x: x2, y: y2 }];
             } else {
                 // Explicit anchors (fall back to auto side for any null half)
                 const aSide = sideA || (a.mid <= b.mid ? 'bottom' : 'top');
