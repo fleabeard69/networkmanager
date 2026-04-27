@@ -21,7 +21,7 @@ class DeviceModel
 
     public function reorder(array $orderedIds, int $siteId): void
     {
-        $this->db->execute('BEGIN');
+        $this->db->beginTransaction();
         try {
             foreach ($orderedIds as $i => $id) {
                 $this->db->execute(
@@ -29,9 +29,9 @@ class DeviceModel
                     [':order' => $i, ':id' => (int) $id, ':site_id' => $siteId]
                 );
             }
-            $this->db->execute('COMMIT');
+            $this->db->commit();
         } catch (Throwable $e) {
-            $this->db->execute('ROLLBACK');
+            $this->db->rollBack();
             throw $e;
         }
     }

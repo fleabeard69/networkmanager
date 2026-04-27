@@ -137,7 +137,14 @@ class BackupController
             exit;
         }
 
-        $json = file_get_contents($_FILES['backup_file']['tmp_name']);
+        $tmpName = $_FILES['backup_file']['tmp_name'] ?? '';
+        if (!is_uploaded_file($tmpName)) {
+            Session::flash('error', 'No file uploaded or upload failed.');
+            header('Location: /backup');
+            exit;
+        }
+
+        $json = file_get_contents($tmpName);
         $data = $json !== false ? json_decode($json, true) : null;
 
         if (!is_array($data) || ($data['version'] ?? 0) !== 1) {
@@ -218,6 +225,10 @@ class BackupController
             $siteMap = []; // old site id → new site id
 
             if (isset($data['sites'])) {
+                if (empty($data['sites'])) {
+                    throw new InvalidArgumentException('Backup contains an empty sites list — at least one site is required.');
+                }
+
                 // Full restore: wipe and re-create sites from the backup.
                 $this->db->execute('DELETE FROM sites');
 
