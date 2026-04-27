@@ -232,6 +232,8 @@ class BackupController
                 // Full restore: wipe and re-create sites from the backup.
                 $this->db->execute('DELETE FROM sites');
 
+                $usedSlugs = []; // track slugs already inserted in this batch
+
                 foreach ($data['sites'] as $s) {
                     $siteName = is_string($s['name'] ?? null) ? trim($s['name']) : '';
                     if ($siteName === '') {
@@ -239,9 +241,16 @@ class BackupController
                     }
                     $siteSlug = is_string($s['slug'] ?? null) ? trim($s['slug']) : '';
                     if ($siteSlug === '' || !preg_match('/^[a-z0-9][a-z0-9-]*$/', $siteSlug)) {
-                        // Auto-generate slug from name if missing or invalid
                         $siteSlug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)), '-');
                     }
+                    // De-duplicate slugs within the batch (e.g. two sites with same name)
+                    $base    = substr($siteSlug, 0, 60);
+                    $counter = 2;
+                    while (isset($usedSlugs[$siteSlug])) {
+                        $siteSlug = $base . '-' . $counter++;
+                    }
+                    $usedSlugs[$siteSlug] = true;
+
                     $stmt = $this->db->query(
                         'INSERT INTO sites (name, slug, description)
                          VALUES (:n, :sl, :d)
