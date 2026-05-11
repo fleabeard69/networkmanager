@@ -1837,11 +1837,11 @@ function initDashboardConnections() {
                     { x: midX, y: sy1 }, { x: midX, y: sy2 },
                     { x: sx2, y: sy2 }, { x: bx, y: by }];
         }
-        // Mixed: single L-corner with stubs
+        // Mixed: route via the far stub corner to avoid cutting through the target port
         if (vA) return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
-                        { x: sx1, y: sy2 }, { x: sx2, y: sy2 }, { x: bx, y: by }];
-        else    return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
                         { x: sx2, y: sy1 }, { x: sx2, y: sy2 }, { x: bx, y: by }];
+        else    return [{ x: ax, y: ay }, { x: sx1, y: sy1 },
+                        { x: sx1, y: sy2 }, { x: sx2, y: sy2 }, { x: bx, y: by }];
     }
 
     // ── Which edge zone of a card was clicked ─────────────────────────────
